@@ -6,7 +6,8 @@
   <title>經夠盃挑戰｜聖經經文快問快答</title>
   <meta name="robots" content="index,follow" />
   <link rel="canonical" href="https://topheart.github.io/bible-challenge/" />
-  <meta name="description" content="用遊戲認識聖經！三種難度、題庫範圍（舊約/新約/自選書卷）、經文罕見度（常見/冷門）任你搭配；完成關卡可上排行榜，支援本機與線上成績。" />
+  <!-- Primary description (≈140 chars for SERP). Keep in sync with bible-challenge.html -->
+  <meta name="description" content="聖經經文快問快答：Classic / Survival / 裝備成長模式，自適應難度 + 經文罕見度配重、Combo 分數、離線可玩、線上/本機排行榜、零廣告快速載入，挑戰記憶與反應。" />
   <meta name="theme-color" content="#6366f1" />
   <link rel="icon" type="image/png" href="./logo/logo1-light.png" />
   <link rel="apple-touch-icon" href="./logo/logo1-light.png" />
@@ -17,7 +18,7 @@
   <meta property="og:site_name" content="經夠盃挑戰" />
   <meta property="og:url" content="https://topheart.github.io/bible-challenge/" />
   <meta property="og:title" content="經夠盃挑戰｜聖經經文快問快答" />
-  <meta property="og:description" content="用遊戲認識聖經！三種難度、題庫範圍（舊約/新約/自選書卷）、經文罕見度（常見/冷門）任你搭配；完成關卡可上排行榜，支援本機與線上成績。" />
+  <meta property="og:description" content="聖經經文快問快答：Classic / Survival / 裝備成長模式，自適應難度 + 經文罕見度配重、Combo 分數、離線可玩、線上/本機排行榜、零廣告快速載入，挑戰記憶與反應。" />
   <meta property="og:image" content="https://topheart.github.io/bible-challenge/logo/logo1-light.png" />
   <!-- Secondary image (SVG). Some platforms ignore SVG; keep PNG as primary. -->
   <meta property="og:image" content="https://topheart.github.io/bible-challenge/logo/share-1200x630.svg" />
@@ -28,8 +29,22 @@
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="經夠盃挑戰｜聖經經文快問快答" />
-  <meta name="twitter:description" content="用遊戲認識聖經！三種難度、題庫範圍（舊約/新約/自選書卷）、經文罕見度（常見/冷門）任你搭配；完成關卡可上排行榜，支援本機與線上成績。" />
+  <meta name="twitter:description" content="聖經經文快問快答：Classic / Survival / 裝備成長模式，自適應難度 + 經文罕見度配重、Combo 分數、離線可玩、線上/本機排行榜、零廣告快速載入，挑戰記憶與反應。" />
+  <!-- Extended social metadata -->
+  <meta name="keywords" content="聖經,經文,聖經遊戲,聖經問答,Bible quiz,教育遊戲,快問快答,查經" />
+  <meta name="format-detection" content="telephone=no,email=no,address=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="twitter:site" content="@" />
+  <meta name="twitter:creator" content="@" />
+  <!-- Structured data for richer previews -->
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Game","name":"經夠盃挑戰","alternateName":"Bible Challenge","description":"聖經經文快問快答：Classic / Survival / 裝備成長模式，自適應難度 + 經文罕見度配重、Combo 分數、離線可玩、線上/本機排行榜、零廣告快速載入，挑戰記憶與反應。","applicationCategory":"EducationalGame","operatingSystem":"Any","inLanguage":"zh-TW","genre":["Education","Trivia"],"playMode":"SinglePlayer","url":"https://topheart.github.io/bible-challenge/","image":"https://topheart.github.io/bible-challenge/logo/logo1-light.png"}
+  </script>
   <meta name="twitter:image" content="https://topheart.github.io/bible-challenge/logo/logo1-light.png" />
+  <!-- Prefetch game shell & data for faster transition -->
+  <link rel="prefetch" href="./bible-challenge.html" as="document" />
+  <link rel="prefetch" href="./external-verses.json" as="fetch" />
   <style>
     body { font-family: system-ui, -apple-system, 'Noto Sans TC', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang TC', 'Microsoft JhengHei', sans-serif; }
     .wrap { max-width: 720px; margin: 14vh auto; padding: 24px; color: #374151; }
@@ -49,18 +64,31 @@
       </noscript>
     </div>
   </div>
+  <!-- 移除自動以 document.write 取代整頁的行為，避免延遲首屏與干擾 SW/快取；保留按鈕導向即可。 -->
   <script>
-    (function() {
-      // 嘗試抓取並替換成完整頁面
-      fetch('bible-challenge.html', { cache: 'no-store' })
-        .then(function(res){ if(!res.ok) throw new Error('fetch failed'); return res.text(); })
-        .then(function(html){
-          document.open();
-          document.write(html);
-          document.close();
-        })
-        .catch(function(){ /* 若抓取失敗，保留頁面上的手動連結 */ });
+    // 自動導向至遊戲頁（保留按鈕作為備援）。
+    // 使用 replace 避免多一層歷史記錄；若瀏覽器限制或其他因素阻擋，使用者仍可點按鈕。
+    (function(){
+      try {
+        // 在頁面可視且已完成初始渲染後導向，避免某些瀏覽器/擴充造成 race condition。
+        var go = function(){
+          try { window.location.replace('./bible-challenge.html'); } catch (_) {}
+        };
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+          setTimeout(go, 120);
+        } else {
+          document.addEventListener('DOMContentLoaded', function(){ setTimeout(go, 120); });
+        }
+      } catch (_) {}
     })();
+  </script>
+  <script>
+    // 在首頁也註冊 SW，確保快取預先建立（含啟動畫面資產），提升首次/回訪速度。
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function(){
+        try { navigator.serviceWorker.register('sw.js', { scope: './' }); } catch(_) {}
+      });
+    }
   </script>
 </body>
 </html>

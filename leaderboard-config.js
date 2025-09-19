@@ -39,5 +39,7 @@ window.SUPABASE_CONFIG = {
   // If true, "同題重玩" runs can be saved to the leaderboard (tagged as mode: 'replay')
   allowReplaySaves: true,
   // Supabase-js client options (recommended: don't persist session on public client)
-  options: { auth: { persistSession: false } }
+  options: { auth: { persistSession: false } },
+  // Achievements telemetry table (for sampling last 100 runs)
+  achvRunsTable: "achv_runs"
 };

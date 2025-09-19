@@ -1,6 +1,6 @@
 // Service Worker (Wave1 refactor): split caches + version broadcast
 // Cache layers
-const VERSION = '1.1.0-modular-alpha'; // unified with app-version.js
+const VERSION = 'wave1-v1';
 const CACHE_CORE  = `bc-core-${VERSION}`;      // app shell & html
 const CACHE_DATA  = `bc-data-${VERSION}`;      // json verse/equip data
 const CACHE_MEDIA = `bc-media-${VERSION}`;     // images / logos
@@ -8,8 +8,6 @@ const CORE_ASSETS = [
   './',
   './index.html',
   './bible-challenge.html',
-  './app-version.js',
-  './offline.html',
   './logo/logo1-light.png',
   './logo/logo2-light.png',
   './logo/logo1-dark.png',
@@ -59,9 +57,9 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_CORE).then((c)=> c.put(req, netRes.clone()));
         return netRes;
       } catch(e){
-        const cached = await caches.match(req) || await caches.match('./bible-challenge.html') || await caches.match('./index.html') || await caches.match('./offline.html');
+        const cached = await caches.match(req) || await caches.match('./bible-challenge.html') || await caches.match('./index.html');
         if (cached) return cached;
-        return caches.match('./offline.html') || new Response('<!doctype html><title>Offline</title><meta charset="utf-8"><h1>離線中</h1><p>請稍後再試。</p>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+        return new Response('<!doctype html><title>Offline</title><meta charset="utf-8"><h1>離線中</h1><p>請稍後再試。</p>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       }
     })());
     return;

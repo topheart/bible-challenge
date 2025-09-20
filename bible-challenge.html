@@ -317,75 +317,107 @@
                 }
             }
 
-            // icon 映射（簡易占位；之後進一步美化）
+            // icon 映射（系列內可共用；跨系列不重複）
             const iconMap={
-             // Classic (all unique)
-             c_warm_start:'achv-lamp',
-             c_no_hint:'achv-tablets',
-             c_combo_8:'achv-linkedrings',
-             c_speed_hunter:'achv-sling',
-             c_accuracy_90:'achv-target2',
+             // Classic — series-unified icons for level-perfect patterns (same icon within series only)
              c_perfect_level_one:'achv-menorah',
-             c_combo_15:'achv-ribbon',
-             c_accuracy_92:'achv-reticle',
-             c_double_perfect_levels:'achv-crown2',
-             c_guardian_low_miss:'achv-staff',
-             c_speed_fury:'achv-sword',
-             c_lightning_flawless:'achv-boltcrown',
-             c_three_perfect_levels:'achv-laurel',
-             c_flawless_run:'achv-gemcross',
-             c_combo_20:'achv-banner',
-             c_first_five_perfect:'achv-scroll',
-             c_fastest_1500:'achv-hourglass2',
-             c_ultrafast_chain_3:'achv-flash',
-             c_streak_10:'achv-vine',
-             c_streak_25:'achv-grapes',
-             c_accuracy_95:'achv-compass',
-             c_accuracy_98:'achv-starburst',
-             c_low_stddev:'achv-metronome',
-             c_no_miss_15:'achv-helm',
-             c_no_hint_15:'achv-shield',
+             c_double_perfect_levels:'achv-menorah',
+             c_three_perfect_levels:'achv-menorah',
              c_perfect_all_levels:'achv-temple',
-             c_low_miss_1:'achv-wall',
-             c_perfect_last_level:'achv-olivebranch',
-             c_avg_under_3500:'achv-wing',
-             c_answered_25:'achv-wheat',
-             // Survival (all unique)
-             s_60s:'achv-sea',
+             c_two_consecutive_perfect:'achv-linkedrings',
+             c_three_consecutive_perfect:'achv-linkedrings',
+             c_four_consecutive_perfect:'achv-linkedrings',
+             c_perfect_first_two_levels:'achv-scroll',
+             c_perfect_first_three_levels:'achv-scroll',
+             c_perfect_last_two_levels:'achv-scroll',
+             c_perfect_last_three_levels:'achv-scroll',
+             c_first_last_perfect:'achv-olivebranch',
+             c_rebound_perfect:'achv-banner',
+             c_sandwich_perfect:'achv-ribbon',
+             c_consec_perfect_2_and_last:'achv-crown2',
+             c_reach_level_3:'achv-steps',
+             c_reach_level_4:'achv-steps',
+             c_reach_level_5:'achv-steps',
+             c_perfect_majority_levels:'achv-laurel',
+             c_all_but_one_perfect:'achv-laurel',
+             // Survival — series-unified within each survival series
+             s_60s:'achv-clock',
              s_90s:'achv-clock',
-             s_150s:'achv-cup',
-             s_recover_40:'achv-bread',
-             s_no_hint_90s:'achv-jar',
-             s_rescue_extend:'achv-rainbow',
-             s_combo_12:'achv-net',
+             s_150s:'achv-clock',
+             s_220s_guard:'achv-reticle',
+             s_300s:'achv-clock',
+             s_360s_master:'achv-clock',
              s_time_80:'achv-sundial',
-             s_phoenix:'achv-dove',
-             s_fast_series:'achv-chariot',
+             s_time_100:'achv-sundial',
+             s_time_120:'achv-sundial',
+             s_accuracy_88_180:'achv-reticle',
+             s_accuracy_90_200:'achv-reticle',
              s_clocksmith:'achv-gears',
+             s_low_variance:'achv-gears',
+             s_steady_rise:'achv-hourglass2',
+             s_no_rescue_150:'achv-breastplate',
+             s_no_rescue_200:'achv-breastplate',
+             s_recover_40:'achv-dove',
+             s_phoenix:'achv-dove',
+             s_three_recoveries:'achv-dove',
              s_legend_eternal:'achv-ark',
-             s_220s_guard:'achv-anchor',
-             s_combo_25:'achv-steps',
-             s_360s_master:'achv-chronocrown',
-             s_five_recoveries:'achv-phoenixwreath',
-             s_low_variance:'achv-laurelmetro',
-             s_speed_power:'achv-wingedsword',
-             s_hidden_edge:'achv-burningbush',
-             s_hidden_nohoard:'achv-breastplate',
-             s_no_rescue_150:'achv-fish',
-             s_no_hint_150:'achv-seal',
-             s_max_time_120:'achv-map',
-             s_steady_rise:'achv-hammernail',
-             s_ultrafast_chain_7:'achv-bolt7',
-             s_accuracy_88_180:'achv-lyre',
-             s_fast_avg_3500_150:'achv-oilflask',
-             s_combo_35:'achv-pillarfire',
-             s_low_miss_120:'achv-olivetree',
-             s_accuracy_90_200:'achv-sinai'
+             // Any-mode (共通) — single-icon per progressive series; no cross-series reuse
+             // Accuracy progression (all tiers):
+             any_accuracy_85:'achv-target2',
+             any_accuracy_90:'achv-target2',
+             any_accuracy_92:'achv-target2',
+             any_accuracy_95:'achv-target2',
+             any_accuracy_98:'achv-target2',
+             // Average pace progression (all tiers):
+             any_avg_under_6500:'achv-avgpace',
+             any_avg_under_5500:'achv-avgpace',
+             any_avg_under_4500:'achv-avgpace',
+             any_avg_under_3500:'achv-avgpace',
+             any_avg_under_3000:'achv-avgpace',
+             // Streak progression (all tiers):
+             any_streak_5:'achv-grapes',
+             any_streak_10:'achv-grapes',
+             any_streak_15:'achv-grapes',
+             any_streak_20:'achv-grapes',
+             // No-hint progression (all tiers):
+             any_no_hint_10:'achv-tablets',
+             any_no_hint_20:'achv-tablets',
+             any_no_hint_30:'achv-tablets',
+             // Volume answered progression (all tiers):
+             any_answered_10:'achv-basket',
+             any_answered_20:'achv-basket',
+             any_answered_30:'achv-basket',
+             any_answered_50:'achv-basket',
+             // Flawless progression (all tiers):
+             any_flawless_10:'achv-gemcross',
+             any_flawless_20:'achv-gemcross',
+             any_flawless_30:'achv-gemcross',
+             // Fastest single answer progression (all tiers):
+             any_fastest_2500:'achv-stopwatch',
+             any_fastest_2000:'achv-stopwatch',
+             any_fastest_1500:'achv-stopwatch',
+             // Ultrafast chains progression (all tiers):
+             any_ultrafast_chain_3:'achv-boltchain',
+             any_ultrafast_chain_5:'achv-boltchain',
+             any_ultrafast_chain_7:'achv-boltchain',
+             // Low stddev progression (all tiers):
+             any_low_stddev_1800:'achv-metronome',
+             any_low_stddev_1200:'achv-metronome',
+             any_low_stddev_900:'achv-metronome',
+             // Warm start progression (all tiers):
+             any_warm_start_4:'achv-lamp',
+             any_warm_start_5:'achv-lamp',
+             // Low mistakes progression (all tiers):
+             any_low_miss_20_1:'achv-wall',
+             any_low_miss_30_2:'achv-wall'
             };
+            // 提供給審核工具使用（唯讀暴露）
+            try { window.__iconMap = iconMap; } catch(_) {}
             function getAchievementIcon(a){
                 const sym = iconMap[a.id];
                 if(!sym) return '★';
-                if(sym.startsWith('achv-')) return `<svg aria-hidden="true" class="w-6 h-6"><use href="#${sym}"></use></svg>`;
+                const dt = (typeof getDisplayTier==='function') ? getDisplayTier(a) : (a && typeof a.tier==='number' ? (5 - Math.max(1, Math.min(4, a.tier))) : 4);
+                if(sym.startsWith('achv-')) return `<svg aria-hidden="true" class="w-6 h-6 achv-icon-svg t${dt}"><use href="#${sym}"></use></svg>`;
                 return sym; // fallback legacy emoji path if any
             }
             // 暴露給其他模組使用（例如勳章一覽），避免顯示 '★'
@@ -401,18 +433,19 @@
                 const mode = (gameMetrics.mode==='survival') ? 'survival' : 'classic';
                 // 初始化已解鎖集合（僅本局即時）
                 if(!gameState._rtAchUnlocked) gameState._rtAchUnlocked=new Set();
-                // 某些需「最終狀態」的成就避免即時發放（避免後續被推翻）：no_hint, flawless, 全程/每層完美等
-                // 不即時提示的成就（只在結算時依整局平均/最終結果顯示）
-                // - c_speed_hunter  時間獵人（依整局平均）
-                // - c_speed_fury    閃電解題（依整局平均）
-                // - c_fastest_1500  極速一擊（避免一開始就彈出突兀）
-                const denyRealtime = (id)=> /no_hint|flawless|perfect_all_levels|perfect_last_level|c_speed_hunter|c_speed_fury|c_fastest_1500/.test(id);
+                // 某些需「最終狀態」或容易造成突兀的成就，避免即時發放：
+                // - no_hint, flawless, 全程/每層完美
+                // - 速度相關（平均/單題極速）：c_speed_hunter, c_speed_fury, c_fastest_1500
+                const denyRealtime = (id,a)=> {
+                    if (a && a.realtime===false) return true;
+                    return /no_hint|flawless|perfect_all_levels|perfect_last_level|c_speed_hunter|c_speed_fury|c_fastest_1500/.test(id);
+                };
                 const pending=[]; // 收集此次要顯示的成就，稍作間隔避免一次爆量同時出現
                 for(const a of AchievementManager.defs){
                     if(a.tier>3) continue; // 只做前 3 Tier 的即時提示
                     if(a.mode!=='any' && a.mode!==mode) continue;
                     if(gameState._rtAchUnlocked.has(a.id)) continue;
-                    if(denyRealtime(a.id)) continue;
+                    if(denyRealtime(a.id, a)) continue;
                     try {
                         if(evalRule(a.condition, gameMetrics)) {
                             gameState._rtAchUnlocked.add(a.id);
@@ -420,10 +453,19 @@
                         }
                     } catch(_) { /* ignore */ }
                 }
-                // 節奏化顯示：每個間隔 220ms 依序彈出，減少突兀聚集
+                // 節奏化顯示：每個間隔 220ms 依序彈出，並加入速率限制避免短時間過多提示
                 if(pending.length){
-                    // 僅顯示 toast，不再觸發中央大圖特效（依需求移除 medalFlash）
-                    pending.forEach((a, i)=> setTimeout(()=>{ try{ showAchievementToast(a); }catch(_){} }, i*220));
+                    const now = Date.now();
+                    const windowMs = 8000; // 8 秒視窗
+                    const maxPerWindow = 2; // 8 秒內最多 2 個 toast
+                    if(!Array.isArray(gameState._rtToastTs)) gameState._rtToastTs = [];
+                    // 清理過期的時間戳
+                    gameState._rtToastTs = gameState._rtToastTs.filter(t => (now - t) < windowMs);
+                    const remaining = Math.max(0, maxPerWindow - gameState._rtToastTs.length);
+                    const toShow = pending.slice(0, remaining);
+                    toShow.forEach((a, i)=> setTimeout(()=>{
+                        try{ showAchievementToast(a); gameState._rtToastTs.push(Date.now()); }catch(_){}
+                    }, i*220));
                 }
             }
             // Medal flash overlay (1.6s) with reduced-motion fallback
@@ -493,99 +535,171 @@
                     accuracy88:0.88, accuracy90:0.90,
                     avgMsUnder3500:3500,
                 },
-                shared:{}
+                shared:{},
+                any:{
+                    // Accuracy progression
+                    acc85:0.85, acc90:0.90, acc92:0.92, acc95:0.95, acc98:0.98,
+                    // Average answer time progression (ms)
+                    avg6500:6500, avg5500:5500, avg4500:4500, avg3500:3500, avg3000:3000,
+                    // Streak progression
+                    streak5:5, streak10:10, streak15:15, streak20:20,
+                    // No-hint answered thresholds
+                    noHint10:10, noHint20:20, noHint30:30,
+                    // Answered count progression
+                    answered10:10, answered20:20, answered30:30, answered50:50,
+                    // Flawless counts (min answered gate to avoid trivial runs)
+                    flawless10:10, flawless20:20, flawless30:30,
+                    // Fastest single answer thresholds
+                    fast2500:2500, fast2000:2000, fast1500:1500,
+                    // Ultra-fast correct chain
+                    chain3:3, chain5:5, chain7:7,
+                    // Answer time stddev low
+                    std1800:1800, std1200:1200, std900:900,
+                    // Warm start
+                    warm4:4, warm5:5,
+                    // Low miss constraints for longer runs
+                    lowMiss20_1:{ minAnswered:20, maxWrong:1 },
+                    lowMiss30_2:{ minAnswered:30, maxWrong:2 }
+                }
             };
             window.ACHIEVEMENT_THRESHOLDS = ACHIEVEMENT_THRESHOLDS;
             const D = AchievementManager.def; const T = ACHIEVEMENT_THRESHOLDS;
             // 移除趣味分類（不再提供）
-            // Classic core
-            D({ id:'c_warm_start', mode:'classic', tier:1, name:'溫暖起手', desc:'前 5 題至少 4 題正確', condition:{type:'custom', fn:m=> m.answeredQuestions>=5 && m.firstFiveCorrect>=T.classic.warmStartFirstFive } });
-            D({ id:'c_no_hint', mode:'classic', tier:1, name:'不靠提示', desc:'本局未使用提示', condition:{type:'metric', field:'hintsUsed', op:'==', value:0} });
-            D({ id:'c_combo_8', mode:'classic', tier:1, name:'連擊手', desc:'連續答對 ≥8', condition:{type:'metric', field:'longestStreak', op:'>=', value:T.classic.streak8} });
-            D({ id:'c_speed_hunter', mode:'classic', tier:1, name:'時間獵人', desc:'平均答題時間 <6 秒', condition:{type:'custom', fn:m=> m.avgAnswerMs>0 && m.avgAnswerMs<T.classic.avgMsSpeedHunter} });
-            D({ id:'c_accuracy_90', mode:'classic', tier:2, name:'純熟掌控', desc:'正確率 ≥90%', condition:{type:'custom', fn:m=> m.accuracy>=T.classic.accuracy90} });
-            D({ id:'c_combo_15', mode:'classic', tier:3, name:'火力全開', desc:'連續答對 ≥15', condition:{type:'metric', field:'longestStreak', op:'>=', value:T.classic.streak15} });
-            D({ id:'c_perfect_level_one', mode:'classic', tier:2, name:'完美一層', desc:'任一層 0 錯', condition:{type:'custom', fn:m=> m.levelsPerfectCount>=1} });
-            D({ id:'c_three_perfect_levels', mode:'classic', tier:3, name:'三層無瑕', desc:'連續三層全對', condition:{type:'metric', field:'maxConsecutivePerfect', op:'>=', value:T.classic.maxConsecutivePerfect} });
-            D({ id:'c_flawless_run', mode:'classic', tier:4, name:'全程無瑕', desc:'全程 0 錯且無提示', condition:{type:'custom', fn:m=> m.wrongCount===0 && m.hintsUsed===0 && m.answeredQuestions>=T.classic.flawlessMinQuestions} });
-            // Classic advanced
-            D({ id:'c_combo_20', mode:'classic', tier:3, name:'連擊大師', desc:'連擊 ≥20', condition:{type:'metric', field:'longestStreak', op:'>=', value:T.classic.streak20} });
-            D({ id:'c_accuracy_92', mode:'classic', tier:2, name:'精準火力', desc:'正確率 ≥92%', condition:{type:'custom', fn:m=> m.accuracy>=T.classic.accuracy92} });
-            D({ id:'c_double_perfect_levels', mode:'classic', tier:2, name:'零失誤雙層', desc:'兩層 0 錯', condition:{type:'custom', fn:m=> m.levelsPerfectCount>=2} });
-            D({ id:'c_guardian_low_miss', mode:'classic', tier:3, name:'守護者', desc:'總錯題 ≤2 且無提示', condition:{type:'custom', fn:m=> m.wrongCount<=T.classic.guardianMaxWrong && m.hintsUsed===0 && m.answeredQuestions>=15} });
-            D({ id:'c_speed_fury', mode:'classic', tier:3, name:'閃電解題', desc:'平均答題 <4.5 秒', condition:{type:'custom', fn:m=> m.avgAnswerMs>0 && m.avgAnswerMs<T.classic.avgMsSpeedFury} });
-            D({ id:'c_lightning_flawless', mode:'classic', tier:4, name:'閃電無瑕', desc:'0 錯 0 提示 平均<5秒', condition:{type:'custom', fn:m=> m.wrongCount===0 && m.hintsUsed===0 && m.avgAnswerMs>0 && m.avgAnswerMs<T.classic.avgMsLightningFlawless && m.answeredQuestions>=15} });
-            // Survival core
+            // 共通（任一模式）進階系列（Plan E）— 以遞進階梯設計，門檻循序提高
+            // 命名盡量採聖經/基督教意象
+            // Tier 標示為預設估計，後續可藉由資料回饋微調
+            // Accuracy series
+            D({ id:'any_accuracy_85', mode:'any', tier:1, name:'公義之弓', desc:'正確率 ≥85%（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=10 && m.accuracy>=T.any.acc85 } });
+            D({ id:'any_accuracy_90', mode:'any', tier:2, name:'正直之箭', desc:'正確率 ≥90%（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=15 && m.accuracy>=T.any.acc90 } });
+            D({ id:'any_accuracy_92', mode:'any', tier:3, name:'純淨之心', desc:'正確率 ≥92%（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=15 && m.accuracy>=T.any.acc92 } });
+            D({ id:'any_accuracy_95', mode:'any', tier:4, name:'無瑕祭壇', desc:'正確率 ≥95%（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=20 && m.accuracy>=T.any.acc95 } });
+            D({ id:'any_accuracy_98', mode:'any', tier:5, name:'近乎聖潔', desc:'正確率 ≥98%（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=20 && m.accuracy>=T.any.acc98 } });
+
+            // Average speed series
+            D({ id:'any_avg_under_6500', mode:'any', tier:1, name:'勤奮之道', desc:'平均作答 <6.5 秒（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=10 && m.avgAnswerMs>0 && m.avgAnswerMs<T.any.avg6500 } });
+            D({ id:'any_avg_under_5500', mode:'any', tier:2, name:'敏捷之步', desc:'平均作答 <5.5 秒（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=12 && m.avgAnswerMs>0 && m.avgAnswerMs<T.any.avg5500 } });
+            D({ id:'any_avg_under_4500', mode:'any', tier:3, name:'奔跑不困倦', desc:'平均作答 <4.5 秒（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=15 && m.avgAnswerMs>0 && m.avgAnswerMs<T.any.avg4500 } });
+            D({ id:'any_avg_under_3500', mode:'any', tier:4, name:'如鷹展翅', desc:'平均作答 <3.5 秒（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=18 && m.avgAnswerMs>0 && m.avgAnswerMs<T.any.avg3500 } });
+            D({ id:'any_avg_under_3000', mode:'any', tier:5, name:'火輪飛馳', desc:'平均作答 <3.0 秒（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=20 && m.avgAnswerMs>0 && m.avgAnswerMs<T.any.avg3000 } });
+
+            // Streak series
+            D({ id:'any_streak_5', mode:'any', tier:1, name:'葡萄枝子', desc:'連續答對 ≥5', condition:{ type:'metric', field:'longestStreak', op:'>=', value:T.any.streak5 } });
+            D({ id:'any_streak_10', mode:'any', tier:2, name:'結實累累', desc:'連續答對 ≥10', condition:{ type:'metric', field:'longestStreak', op:'>=', value:T.any.streak10 } });
+            D({ id:'any_streak_15', mode:'any', tier:3, name:'勇士之隊', desc:'連續答對 ≥15', condition:{ type:'metric', field:'longestStreak', op:'>=', value:T.any.streak15 } });
+            D({ id:'any_streak_20', mode:'any', tier:4, name:'堅城之盾', desc:'連續答對 ≥20', condition:{ type:'metric', field:'longestStreak', op:'>=', value:T.any.streak20 } });
+
+            // No-hint progression (based on answered count and hintsUsed)
+            D({ id:'any_no_hint_10', mode:'any', tier:1, name:'無瑕憑信', desc:'答滿 10 題且 0 提示', condition:{ type:'custom', fn:m=> m.answeredQuestions>=T.any.noHint10 && m.hintsUsed===0 } });
+            D({ id:'any_no_hint_20', mode:'any', tier:2, name:'堅心倚靠', desc:'答滿 20 題且 0 提示', condition:{ type:'custom', fn:m=> m.answeredQuestions>=T.any.noHint20 && m.hintsUsed===0 } });
+            D({ id:'any_no_hint_30', mode:'any', tier:3, name:'全然信靠', desc:'答滿 30 題且 0 提示', condition:{ type:'custom', fn:m=> m.answeredQuestions>=T.any.noHint30 && m.hintsUsed===0 } });
+
+            // Answered count progression
+            D({ id:'any_answered_10', mode:'any', tier:1, name:'話語起步', desc:'完成 ≥10 題', condition:{ type:'metric', field:'answeredQuestions', op:'>=', value:T.any.answered10 } });
+            D({ id:'any_answered_20', mode:'any', tier:2, name:'勤讀不懈', desc:'完成 ≥20 題', condition:{ type:'metric', field:'answeredQuestions', op:'>=', value:T.any.answered20 } });
+            D({ id:'any_answered_30', mode:'any', tier:3, name:'多結果子', desc:'完成 ≥30 題', condition:{ type:'metric', field:'answeredQuestions', op:'>=', value:T.any.answered30 } });
+            D({ id:'any_answered_50', mode:'any', tier:4, name:'百倍收成', desc:'完成 ≥50 題', condition:{ type:'metric', field:'answeredQuestions', op:'>=', value:T.any.answered50 } });
+
+            // Flawless (no wrong) series with minimum answered gate
+            D({ id:'any_flawless_10', mode:'any', tier:2, name:'潔淨器皿', desc:'答滿 10 題且 0 錯（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=T.any.flawless10 && m.wrongCount===0 } });
+            D({ id:'any_flawless_20', mode:'any', tier:3, name:'無瑕羔羊', desc:'答滿 20 題且 0 錯（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=T.any.flawless20 && m.wrongCount===0 } });
+            D({ id:'any_flawless_30', mode:'any', tier:4, name:'聖所純金', desc:'答滿 30 題且 0 錯（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=T.any.flawless30 && m.wrongCount===0 } });
+
+            // Fastest single answer
+            D({ id:'any_fastest_2500', mode:'any', tier:1, name:'快快聽', desc:'最快單題 ≤2.5 秒（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=10 && m.fastestAnswerMs>0 && m.fastestAnswerMs<=T.any.fast2500 } });
+            D({ id:'any_fastest_2000', mode:'any', tier:2, name:'靈敏回應', desc:'最快單題 ≤2.0 秒（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=12 && m.fastestAnswerMs>0 && m.fastestAnswerMs<=T.any.fast2000 } });
+            D({ id:'any_fastest_1500', mode:'any', tier:3, name:'電光燭影', desc:'最快單題 ≤1.5 秒（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=15 && m.fastestAnswerMs>0 && m.fastestAnswerMs<=T.any.fast1500 } });
+
+            // Ultra fast chain (<=2s correct chain)
+            D({ id:'any_ultrafast_chain_3', mode:'any', tier:1, name:'急速三連', desc:'連續 3 題 ≤2 秒且正確', condition:{ type:'custom', fn:m=> m.ultraFastCorrectMax>=T.any.chain3 } });
+            D({ id:'any_ultrafast_chain_5', mode:'any', tier:2, name:'急速五連', desc:'連續 5 題 ≤2 秒且正確', condition:{ type:'custom', fn:m=> m.ultraFastCorrectMax>=T.any.chain5 } });
+            D({ id:'any_ultrafast_chain_7', mode:'any', tier:3, name:'急速七連', desc:'連續 7 題 ≤2 秒且正確', condition:{ type:'custom', fn:m=> m.ultraFastCorrectMax>=T.any.chain7 } });
+
+            // Low stddev (stable pace)
+            D({ id:'any_low_stddev_1800', mode:'any', tier:1, name:'有序腳步', desc:'答題時間標準差 ≤1.8 秒（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=12 && m.answerTimeStdDev!=null && m.answerTimeStdDev<=T.any.std1800 } });
+            D({ id:'any_low_stddev_1200', mode:'any', tier:2, name:'節奏穩定', desc:'答題時間標準差 ≤1.2 秒（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=15 && m.answerTimeStdDev!=null && m.answerTimeStdDev<=T.any.std1200 } });
+            D({ id:'any_low_stddev_900', mode:'any', tier:3, name:'秩序之冠', desc:'答題時間標準差 ≤0.9 秒（結算）', realtime:false, condition:{ type:'custom', fn:m=> m.answeredQuestions>=18 && m.answerTimeStdDev!=null && m.answerTimeStdDev<=T.any.std900 } });
+
+            // Warm start
+            D({ id:'any_warm_start_4', mode:'any', tier:1, name:'燈前預備', desc:'前 5 題至少 4 題正確', condition:{ type:'custom', fn:m=> m.answeredQuestions>=5 && m.firstFiveCorrect>=T.any.warm4 } });
+            D({ id:'any_warm_start_5', mode:'any', tier:2, name:'起初就好', desc:'前 5 題全對', condition:{ type:'custom', fn:m=> m.answeredQuestions>=5 && m.firstFiveCorrect>=T.any.warm5 } });
+
+            // Low miss guards (longer runs)
+            D({ id:'any_low_miss_20_1', mode:'any', tier:2, name:'謹慎守望', desc:'≥20 題且最多 1 題錯', condition:{ type:'custom', fn:m=> m.answeredQuestions>=T.any.lowMiss20_1.minAnswered && m.wrongCount<=T.any.lowMiss20_1.maxWrong } });
+            D({ id:'any_low_miss_30_2', mode:'any', tier:3, name:'僕人忠心', desc:'≥30 題且最多 2 題錯', condition:{ type:'custom', fn:m=> m.answeredQuestions>=T.any.lowMiss30_2.minAnswered && m.wrongCount<=T.any.lowMiss30_2.maxWrong } });
+            // Classic (20) — Mode-unique patterns（避免與「共通」重疊的型態）
+            // 完美關卡與序列（系列圖示一致）
+            D({ id:'c_perfect_level_one', mode:'classic', tier:1, name:'一層無瑕', desc:'任一層 0 錯', condition:{type:'custom', fn:m=> m.levelsPerfectCount>=1} });
+            D({ id:'c_double_perfect_levels', mode:'classic', tier:2, name:'雙層無瑕', desc:'至少 2 層 0 錯', condition:{type:'custom', fn:m=> m.levelsPerfectCount>=2} });
+            D({ id:'c_three_perfect_levels', mode:'classic', tier:3, name:'三層無瑕', desc:'至少 3 層 0 錯', condition:{type:'custom', fn:m=> m.levelsPerfectCount>=3} });
+            D({ id:'c_perfect_all_levels', mode:'classic', tier:4, name:'每層皆完美', desc:'每一層皆 0 錯（結算）', realtime:false, condition:{type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=3 && m.levelsPerfectCount===m.levelPerfectFlags.length} });
+            // 連續完美（系列圖示一致）
+            D({ id:'c_two_consecutive_perfect', mode:'classic', tier:2, name:'連續雙完美', desc:'連續 2 層 0 錯', condition:{type:'custom', fn:m=> (m.maxConsecutivePerfect||0) >= 2} });
+            D({ id:'c_three_consecutive_perfect', mode:'classic', tier:3, name:'連續三完美', desc:'連續 3 層 0 錯', condition:{type:'custom', fn:m=> (m.maxConsecutivePerfect||0) >= 3} });
+            D({ id:'c_four_consecutive_perfect', mode:'classic', tier:4, name:'四連完美', desc:'連續 4 層 0 錯', condition:{type:'custom', fn:m=> (m.maxConsecutivePerfect||0) >= 4} });
+            // 特定段落完美（系列圖示一致；系列內 tiers 不重複）
+            D({ id:'c_perfect_first_two_levels', mode:'classic', tier:1, name:'開局雙完美', desc:'前兩層皆 0 錯', condition:{type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=2 && !!m.levelPerfectFlags[0] && !!m.levelPerfectFlags[1]} });
+            D({ id:'c_perfect_first_three_levels', mode:'classic', tier:2, name:'開局三完美', desc:'前三層皆 0 錯', condition:{type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=3 && m.levelPerfectFlags[0] && m.levelPerfectFlags[1] && m.levelPerfectFlags[2]} });
+            D({ id:'c_perfect_last_two_levels', mode:'classic', tier:3, name:'收官雙完美', desc:'最後兩層皆 0 錯', condition:{type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=2 && m.levelPerfectFlags[m.levelPerfectFlags.length-1] && m.levelPerfectFlags[m.levelPerfectFlags.length-2]} });
+            D({ id:'c_perfect_last_three_levels', mode:'classic', tier:4, name:'尾聲三完美', desc:'最後三層皆 0 錯', condition:{type:'custom', fn:m=>{ const f=m.levelPerfectFlags||[]; const n=f.length|0; if(n<3) return false; return !!(f[n-1] && f[n-2] && f[n-3]); }} });
+            D({ id:'c_first_last_perfect', mode:'classic', tier:2, name:'首尾皆完美', desc:'第一層與最後一層皆 0 錯', condition:{type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=2 && !!m.levelPerfectFlags[0] && !!m.levelPerfectFlags[m.levelPerfectFlags.length-1]} });
+            // 反轉與夾心型式（系列圖示一致）
+            D({ id:'c_rebound_perfect', mode:'classic', tier:2, name:'逆轉完美', desc:'曾有失誤後達成任一層 0 錯', condition:{type:'custom', fn:m=>{ const f=m.levelPerfectFlags||[]; if(!Array.isArray(f)||f.length<2) return false; let seenFalse=false; for(let i=0;i<f.length;i++){ if(!f[i]) seenFalse=true; if(seenFalse && f[i]) return true; } return false; }} });
+            D({ id:'c_sandwich_perfect', mode:'classic', tier:2, name:'夾心完美', desc:'出現 [完美/非完美/完美] 三段序列', condition:{type:'custom', fn:m=>{ const f=m.levelPerfectFlags||[]; for(let i=0;i+2<f.length;i++){ if(f[i] && !f[i+1] && f[i+2]) return true; } return false; }} });
+            D({ id:'c_consec_perfect_2_and_last', mode:'classic', tier:3, name:'完美接力·收官', desc:'曾連續 2 層 0 錯，且最後一層 0 錯', condition:{type:'custom', fn:m=> (m.maxConsecutivePerfect||0)>=2 && Array.isArray(m.levelPerfectFlags) && !!m.levelPerfectFlags[m.levelPerfectFlags.length-1]} });
+            // 闖關進度里程碑（系列圖示一致）
+            D({ id:'c_reach_level_3', mode:'classic', tier:1, name:'闖關達三', desc:'完成 ≥3 層', condition:{type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=3} });
+            D({ id:'c_reach_level_4', mode:'classic', tier:2, name:'闖關達四', desc:'完成 ≥4 層', condition:{type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=4} });
+            D({ id:'c_reach_level_5', mode:'classic', tier:3, name:'闖關達五', desc:'完成 ≥5 層', condition:{type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=5} });
+            D({ id:'c_perfect_majority_levels', mode:'classic', tier:3, name:'多數完美', desc:'≥60% 的關卡 0 錯（至少 3 層）', condition:{type:'custom', fn:m=>{ const f=m.levelPerfectFlags||[]; const n=f.length|0; if(n<3) return false; const c=(m.levelsPerfectCount||0); return (c/n)>=0.6; }} });
+            // New to reach 20 classic achievements while avoiding overlap with Any-series
+            D({ id:'c_all_but_one_perfect', mode:'classic', tier:4, name:'幾近無瑕', desc:'除了 1 層外，其餘各層皆 0 錯（至少 4 層）', condition:{type:'custom', fn:m=>{ const f=m.levelPerfectFlags||[]; const n=f.length|0; if(n<4) return false; const c=(m.levelsPerfectCount||0); return (n - c) === 1; }} });
+            
+            // Survival (20) — Progressive series with Christian-themed names（避免與共通重疊的型態）
+            // Time survived milestones
             D({ id:'s_60s', mode:'survival', tier:1, name:'撐過起波', desc:'存活 ≥60 秒', condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive60} });
-            D({ id:'s_recover_40', mode:'survival', tier:2, name:'安全回穩', desc:'從 ≤10 秒回升到 ≥40 秒', condition:{type:'custom', fn:m=> m.nearDeathRecoveries>=T.survival.nearDeathRecoveries1 && m.maxTime>=40} });
-            D({ id:'s_no_hint_90s', mode:'survival', tier:1, name:'無提示求生', desc:'0 提示且存活 ≥90 秒', condition:{type:'custom', fn:m=> m.hintsUsed===0 && m.survivalDuration>=T.survival.survive90} });
-            D({ id:'s_rescue_extend', mode:'survival', tier:2, name:'續命奇蹟', desc:'救援後再存活 ≥30 秒', condition:{type:'custom', fn:m=> m.rescueUsed && m.survivalDuration>=60} });
-            D({ id:'s_combo_12', mode:'survival', tier:2, name:'連擊輸出', desc:'連擊 ≥12', condition:{type:'metric', field:'longestStreak', op:'>=', value:12} });
-            D({ id:'s_time_80', mode:'survival', tier:3, name:'時間富豪', desc:'超過起始值的峰值 ≥80 秒', condition:{type:'metric', field:'maxTimeOverStart', op:'>=', value:T.survival.maxTime80} });
-            D({ id:'s_phoenix', mode:'survival', tier:3, name:'轉危為安（二次）', desc:'兩次瀕死回穩', condition:{type:'metric', field:'nearDeathRecoveries', op:'>=', value:T.survival.phoenixRecoveries} });
-            D({ id:'s_fast_series', mode:'survival', tier:2, name:'極速反應', desc:'5 題 ≤2 秒且正確', condition:{type:'custom', fn:m=> m.ultraFastCorrectMax>=T.survival.ultraFastCorrect} });
+            D({ id:'s_90s', mode:'survival', tier:2, name:'耐力漸成', desc:'存活 ≥90 秒', condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive90} });
+            D({ id:'s_150s', mode:'survival', tier:3, name:'火線續航', desc:'存活 ≥150 秒', condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive150} });
+            // Removed 180s milestone to keep total at 20 (we already have 150s and 220s)
+            // D({ id:'s_180s', mode:'survival', tier:2, name:'堅忍持守 · 180s', desc:'存活 ≥180 秒', condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive180} });
+            D({ id:'s_220s_guard', mode:'survival', tier:2, name:'長生守護', desc:'存活 ≥220 秒 且 Acc≥80%', condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive220 && m.accuracy>=0.80} });
+            D({ id:'s_300s', mode:'survival', tier:4, name:'恆久忍耐', desc:'存活 ≥300 秒', condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive300} });
+            D({ id:'s_360s_master', mode:'survival', tier:5, name:'永晝守望', desc:'存活 ≥360 秒', condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive360} });
+            // Resource (time) peaks over start
+            D({ id:'s_time_80', mode:'survival', tier:2, name:'時間富豪', desc:'超過起始值的峰值 ≥80 秒', condition:{type:'metric', field:'maxTimeOverStart', op:'>=', value:T.survival.maxTime80} });
+            D({ id:'s_time_100', mode:'survival', tier:3, name:'時間管家', desc:'超過起始值的峰值 ≥100 秒', condition:{type:'metric', field:'maxTimeOverStart', op:'>=', value:T.survival.maxTime100} });
+            D({ id:'s_time_120', mode:'survival', tier:4, name:'時間庫存', desc:'超過起始值的峰值 ≥120 秒', condition:{type:'metric', field:'maxTimeOverStart', op:'>=', value:T.survival.maxTime120} });
+            // Accuracy + time combos
+            D({ id:'s_accuracy_88_180', mode:'survival', tier:3, name:'穩準', desc:'≥180 秒且 Acc≥88%（結算）', realtime:false, condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive180 && m.accuracy>=T.survival.accuracy88} });
+            D({ id:'s_accuracy_90_200', mode:'survival', tier:4, name:'精準', desc:'≥200 秒且 Acc≥90%（結算）', realtime:false, condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive200 && m.accuracy>=T.survival.accuracy90} });
+            // Stability / trend（unique to survival）
             D({ id:'s_clocksmith', mode:'survival', tier:3, name:'鐘錶匠', desc:'時間曲線穩定 (StdDev 低)', condition:{type:'custom', fn:m=> m.timeStdDev!=null && m.timeStdDev<=T.survival.clocksmithStdDev && m.survivalDuration>=120} });
-            D({ id:'s_legend_eternal', mode:'survival', tier:4, name:'恆久堅忍', desc:'≥300 秒, Acc≥85%, 0 提示', condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive300 && m.accuracy>=T.survival.legendAccuracy && m.hintsUsed===0} });
-            // Survival advanced
-            D({ id:'s_90s', mode:'survival', tier:1, name:'耐力漸成', desc:'存活 ≥90 秒', condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive90} });
-            D({ id:'s_150s', mode:'survival', tier:2, name:'火線續航', desc:'存活 ≥150 秒', condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive150} });
-            D({ id:'s_220s_guard', mode:'survival', tier:3, name:'長生守護', desc:'≥220 秒 且 Acc≥80%', condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive220 && m.accuracy>=0.80} });
-            D({ id:'s_combo_25', mode:'survival', tier:3, name:'延續連擊', desc:'連擊 ≥25', condition:{type:'metric', field:'longestStreak', op:'>=', value:25} });
-            D({ id:'s_360s_master', mode:'survival', tier:4, name:'時間支配者', desc:'≥360 秒, 峰值≥100, 0 提示', condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive360 && m.maxTime>=T.survival.maxTime100 && m.hintsUsed===0} });
-            D({ id:'s_five_recoveries', mode:'survival', tier:4, name:'五度轉危為安', desc:'三次瀕死回穩', condition:{type:'metric', field:'nearDeathRecoveries', op:'>=', value:T.survival.nearDeathRecoveries3} });
             D({ id:'s_low_variance', mode:'survival', tier:4, name:'無盡穩態', desc:'時間標準差極低', condition:{type:'custom', fn:m=> m.timeStdDev!=null && m.timeStdDev<=T.survival.lowVarianceStdDev && m.survivalDuration>=180} });
-            D({ id:'s_speed_power', mode:'survival', tier:4, name:'神速與精準', desc:'平均<3.8 秒且 Acc≥88%', condition:{type:'custom', fn:m=> m.avgAnswerMs>0 && m.avgAnswerMs<T.survival.speedPowerAvgMs && m.accuracy>=T.survival.speedPowerAccuracy && m.survivalDuration>=240} });
-            // 原隱藏：納入一般清單，不再隱藏/趣味
-            D({ id:'s_hidden_edge', mode:'survival', tier:2, hidden:false, name:'邊緣求生', desc:'大量時間徘徊低血仍撐過 120 秒', condition:{type:'custom', fn:m=> m.survivalDuration>=120 && m.timeSamples.filter(v=> v>=5 && v<=15).length/m.timeSamples.length >=0.30} });
-            D({ id:'s_hidden_nohoard', mode:'survival', tier:2, hidden:false, name:'克制累積', desc:'峰值 <40 秒仍存活 ≥100 秒', condition:{type:'custom', fn:m=> m.survivalDuration>=100 && m.maxTime<40} });
-
-            // === 擴充：闖關新增（湊滿 30 個） ===
-            D({ id:'c_first_five_perfect', mode:'classic', tier:2, name:'開局全中', desc:'前 5 題全對', condition:{type:'custom', fn:m=> m.answeredQuestions>=5 && m.firstFiveCorrect===5} });
-            D({ id:'c_fastest_1500', mode:'classic', tier:3, name:'極速一擊', desc:'最快一題 <1.5 秒', condition:{type:'custom', fn:m=> m.fastestAnswerMs>0 && m.fastestAnswerMs<=T.classic.fastestAnswerMs1500} });
-            D({ id:'c_ultrafast_chain_3', mode:'classic', tier:2, name:'急速三連', desc:'連續 3 題 ≤2 秒且正確', condition:{type:'custom', fn:m=> m.ultraFastCorrectMax>=3} });
-            D({ id:'c_streak_10', mode:'classic', tier:2, name:'十連穩定', desc:'連擊 ≥10', condition:{type:'metric', field:'longestStreak', op:'>=', value:T.classic.streak10} });
-            D({ id:'c_streak_25', mode:'classic', tier:3, name:'二十五連', desc:'連擊 ≥25', condition:{type:'metric', field:'longestStreak', op:'>=', value:T.classic.streak25} });
-            D({ id:'c_accuracy_95', mode:'classic', tier:3, name:'精確如一', desc:'正確率 ≥95%', condition:{type:'custom', fn:m=> m.accuracy>=T.classic.accuracy95 && m.answeredQuestions>=T.classic.minAnswered15} });
-            D({ id:'c_accuracy_98', mode:'classic', tier:4, name:'近乎無瑕', desc:'正確率 ≥98%', condition:{type:'custom', fn:m=> m.accuracy>=T.classic.accuracy98 && m.answeredQuestions>=T.classic.minAnswered15} });
-            D({ id:'c_low_stddev', mode:'classic', tier:2, name:'穩定輸出', desc:'答題時間標準差低', condition:{type:'custom', fn:m=> m.answerTimeStdDev!=null && m.answerTimeStdDev<=T.classic.answerStdDevMsLow && m.answeredQuestions>=T.classic.minAnswered15} });
-            D({ id:'c_no_miss_15', mode:'classic', tier:3, name:'十五題零失誤', desc:'答滿 15 題 0 錯', condition:{type:'custom', fn:m=> m.wrongCount===0 && m.answeredQuestions>=T.classic.minAnswered15} });
-            D({ id:'c_no_hint_15', mode:'classic', tier:1, name:'十五題不靠提示', desc:'答滿 15 題且 0 提示', condition:{type:'custom', fn:m=> m.hintsUsed===0 && m.answeredQuestions>=T.classic.minAnswered15} });
-            D({ id:'c_perfect_all_levels', mode:'classic', tier:4, name:'每層皆完美', desc:'每一層皆 0 錯', condition:{type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=3 && m.levelsPerfectCount===m.levelPerfectFlags.length} });
-            D({ id:'c_low_miss_1', mode:'classic', tier:2, name:'嚴謹守備', desc:'最多 1 題錯（≥20 題）', condition:{type:'custom', fn:m=> m.answeredQuestions>=T.classic.minAnswered20 && m.wrongCount<=1} });
-            D({ id:'c_perfect_last_level', mode:'classic', tier:2, name:'壓軸完美', desc:'最後一層 0 錯', condition:{type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>0 && !!m.levelPerfectFlags[m.levelPerfectFlags.length-1]} });
-            D({ id:'c_avg_under_3500', mode:'classic', tier:2, name:'穩定神速', desc:'平均答題 <3.5 秒', condition:{type:'custom', fn:m=> m.avgAnswerMs>0 && m.avgAnswerMs<T.classic.avgMsUnder3500 && m.answeredQuestions>=T.classic.minAnswered15} });
-            D({ id:'c_answered_25', mode:'classic', tier:1, name:'耐心作答', desc:'完成 ≥25 題', condition:{type:'metric', field:'answeredQuestions', op:'>=', value:T.classic.minAnswered25} });
-
-            // === 擴充：生存新增（湊滿 30 個） ===
+            D({ id:'s_steady_rise', mode:'survival', tier:2, name:'持續增長', desc:'至少 120 秒且峰值增量 ≥60 且波動小', condition:{type:'custom', fn:m=> (m.survivalDuration||0)>=120 && (m.maxTimeOverStart||0)>=60 && (m.timeStdDev||99)<=T.survival.clocksmithStdDev} });
+            // No hint / no rescue constraints
             D({ id:'s_no_rescue_150', mode:'survival', tier:2, name:'自立自強', desc:'無救援且存活 ≥150 秒', condition:{type:'custom', fn:m=> !m.rescueUsed && m.survivalDuration>=T.survival.survive150} });
-            D({ id:'s_no_hint_150', mode:'survival', tier:2, name:'無提示長存', desc:'0 提示且存活 ≥150 秒', condition:{type:'custom', fn:m=> m.hintsUsed===0 && m.survivalDuration>=T.survival.survive150} });
-            D({ id:'s_max_time_120', mode:'survival', tier:3, name:'時間庫存', desc:'超過起始值的峰值 ≥120 秒', condition:{type:'metric', field:'maxTimeOverStart', op:'>=', value:T.survival.maxTime120} });
-            D({ id:'s_steady_rise', mode:'survival', tier:2, name:'穩步上升', desc:'時間曲線整體上升', condition:{type:'custom', fn:m=> {
-                if(!Array.isArray(m.timeSamples) || m.timeSamples.length<60) return false;
-                const arr=m.timeSamples; let up=0;
-                for(let i=1;i<arr.length;i++){ if(arr[i]>=arr[i-1]) up++; }
-                const upRatio = up/Math.max(1,arr.length-1);
-                const netGain = arr[arr.length-1] - arr[0];
-                return upRatio>=0.6 && netGain>=30 && m.survivalDuration>=120; }} });
-            D({ id:'s_ultrafast_chain_7', mode:'survival', tier:3, name:'急速七連', desc:'連續 7 題 ≤2 秒且正確', condition:{type:'custom', fn:m=> m.ultraFastCorrectMax>=T.survival.ultraFastChain7} });
-            D({ id:'s_accuracy_88_180', mode:'survival', tier:3, name:'穩準 180', desc:'≥180 秒且 Acc≥88%', condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive180 && m.accuracy>=T.survival.accuracy88} });
-            D({ id:'s_fast_avg_3500_150', mode:'survival', tier:3, name:'長跑神速', desc:'平均<3.5 秒且 ≥150 秒', condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive150 && m.avgAnswerMs>0 && m.avgAnswerMs<=T.survival.avgMsUnder3500} });
-            D({ id:'s_combo_35', mode:'survival', tier:4, name:'三十五連', desc:'連擊 ≥35', condition:{type:'metric', field:'longestStreak', op:'>=', value:35} });
-            D({ id:'s_low_miss_120', mode:'survival', tier:2, name:'少錯長存', desc:'≤1 錯且 ≥120 秒', condition:{type:'custom', fn:m=> m.survivalDuration>=120 && m.wrongCount<=1} });
-            D({ id:'s_accuracy_90_200', mode:'survival', tier:4, name:'精準 200', desc:'≥200 秒且 Acc≥90%', condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive200 && m.accuracy>=T.survival.accuracy90} });
+            D({ id:'s_no_rescue_200', mode:'survival', tier:3, name:'獨行者', desc:'無救援且存活 ≥200 秒', condition:{type:'custom', fn:m=> !m.rescueUsed && m.survivalDuration>=T.survival.survive200} });
+            // Comeback/rescue
+            // Removed rescue_extend to keep total at 20 (retain phoenix comeback)
+            // D({ id:'s_rescue_extend', mode:'survival', tier:2, name:'續命奇蹟 · +30s', desc:'救援後再存活 ≥30 秒', condition:{type:'custom', fn:m=> m.rescueUsed && m.survivalDuration>=60} });
+            D({ id:'s_recover_40', mode:'survival', tier:1, name:'死裡回生', desc:'至少一次瀕死回穩', condition:{type:'metric', field:'nearDeathRecoveries', op:'>=', value:T.survival.nearDeathRecoveries1} });
+            D({ id:'s_phoenix', mode:'survival', tier:2, name:'轉危為安', desc:'兩次瀕死回穩', condition:{type:'metric', field:'nearDeathRecoveries', op:'>=', value:T.survival.phoenixRecoveries} });
+            D({ id:'s_three_recoveries', mode:'survival', tier:3, name:'浴火重生', desc:'三次瀕死回穩', condition:{type:'metric', field:'nearDeathRecoveries', op:'>=', value:T.survival.nearDeathRecoveries3} });
+            // Legendary
+            D({ id:'s_legend_eternal', mode:'survival', tier:4, name:'不滅傳奇', desc:'≥300 秒、Acc≥85%、且無救援（結算）', realtime:false, condition:{type:'custom', fn:m=> m.survivalDuration>=T.survival.survive300 && m.accuracy>=T.survival.legendAccuracy && !m.rescueUsed} });
 
             // 類別推導
             function deriveCategory(a){
                 if(a.mode==='survival') return 'survival';
+                if(a.mode==='any') return 'any';
                 return 'classic';
             }
-            const categoryTotals={all:0,classic:0,survival:0};
+            const categoryTotals={all:0,classic:0,survival:0,any:0};
             for(const a of AchievementManager.defs){ a.category=deriveCategory(a); categoryTotals[a.category]++; categoryTotals.all++; }
             window.__achievementCategoryTotals = categoryTotals;
 
             function updateAchievementTabCounts(unlocked){
                 const totals=window.__achievementCategoryTotals||{}; const arr=unlocked||[];
-                const unlockedCounts={all:arr.length,classic:0,survival:0};
+                const unlockedCounts={all:arr.length,classic:0,survival:0,any:0};
                 arr.forEach(a=>{ unlockedCounts[a.category] = (unlockedCounts[a.category]||0)+1; });
                 const tabs=document.getElementById('achievementTabs'); if(!tabs) return;
                 tabs.querySelectorAll('button[data-achv-cat]').forEach(btn=>{
@@ -624,6 +738,83 @@
                     return missing;
                 }catch(e){ console.warn('checkAchievementIcons failed', e); return []; }
             }
+
+            // 審核工具：檢查「同系列共用、跨系列不重複」的圖示規範
+            // 用法：在瀏覽器主控台呼叫 auditIconUniqueness()
+            // 輸出：
+            //  - duplicates: 每個圖示對應到的所有成就 ID（僅列出數量>1者）
+            //  - violations: 違反規範的圖示與 ID
+            //  - ok: 是否通過檢查（無違規）
+            window.auditIconUniqueness = function(){
+                try{
+                    const defs = (AchievementManager && AchievementManager.defs) ? AchievementManager.defs : [];
+                    const byIcon = {};
+                    for(const a of defs){
+                        // 優先使用 window.__iconMap；退而求其次以 getAchievementIcon() 解析 <use href="#achv-...">
+                        let sym = '';
+                        try { if (window.__iconMap && typeof window.__iconMap === 'object') sym = window.__iconMap[a.id] || ''; } catch(_) {}
+                        if(!sym && typeof window.getAchievementIcon === 'function'){
+                            try{
+                                const html = window.getAchievementIcon(a) || '';
+                                const m = /<use\s+href="#([^"]+)"/i.exec(html);
+                                if(m && m[1]) sym = m[1];
+                            }catch(_){ /* ignore */ }
+                        }
+                        if(!sym || typeof sym !== 'string') continue;
+                        if(!byIcon[sym]) byIcon[sym] = [];
+                        byIcon[sym].push(a.id);
+                    }
+                    // 允許在同一「進階系列」重複使用的白名單（以圖示為鍵）
+                    const allow = {
+                        'achv-target2': [/^any_accuracy_/],
+                        'achv-avgpace': [/^any_avg_under_/],
+                        'achv-grapes': [/^any_streak_/],
+                        'achv-tablets': [/^any_no_hint_/],
+                        'achv-basket': [/^any_answered_/],
+                        'achv-gemcross': [/^any_flawless_/],
+                        'achv-stopwatch': [/^any_fastest_/],
+                        'achv-boltchain': [/^any_ultrafast_chain_/],
+                        'achv-metronome': [/^any_low_stddev_/],
+                        'achv-lamp': [/^any_warm_start_/],
+                        'achv-wall': [/^any_low_miss_/],
+                        'achv-clock': [/^s_60s$/, /^s_90s$/, /^s_150s$/, /^s_300s$/, /^s_360s_master$/],
+                        'achv-sundial': [/^s_time_/],
+                        'achv-reticle': [/^s_accuracy_/, /^s_220s_guard$/],
+                        'achv-gears': [/^s_clocksmith$/, /^s_low_variance$/],
+                        'achv-hourglass2': [/^s_steady_rise$/],
+                        'achv-breastplate': [/^s_no_rescue_/],
+                        'achv-dove': [/^s_recover_40$/, /^s_phoenix$/, /^s_three_recoveries$/],
+                        'achv-ark': [/^s_legend_eternal$/],
+                        'achv-menorah': [/^c_perfect_level_one$/, /^c_double_perfect_levels$/, /^c_three_perfect_levels$/],
+                        'achv-temple': [/^c_perfect_all_levels$/],
+                        'achv-linkedrings': [/^c_two_consecutive_perfect$/, /^c_three_consecutive_perfect$/, /^c_four_consecutive_perfect$/],
+                        'achv-scroll': [/^c_perfect_first_two_levels$/, /^c_perfect_first_three_levels$/, /^c_perfect_last_two_levels$/, /^c_perfect_last_three_levels$/],
+                        'achv-olivebranch': [/^c_first_last_perfect$/],
+                        'achv-banner': [/^c_rebound_perfect$/],
+                        'achv-ribbon': [/^c_sandwich_perfect$/],
+                        'achv-crown2': [/^c_consec_perfect_2_and_last$/],
+                        'achv-steps': [/^c_reach_level_3$/, /^c_reach_level_4$/, /^c_reach_level_5$/],
+                        'achv-laurel': [/^c_perfect_majority_levels$/, /^c_all_but_one_perfect$/]
+                    };
+                    const duplicates = {};
+                    const violations = {};
+                    Object.entries(byIcon).forEach(([sym, ids])=>{
+                        if(ids.length<=1) return; // 唯一無需檢查
+                        duplicates[sym] = ids.slice();
+                        const rules = allow[sym] || [];
+                        // 沒有白名單但卻有重覆使用 → 視為違規
+                        if(rules.length===0){ violations[sym] = ids.slice(); return; }
+                        // 有白名單：每個 ID 至少需符合其中一條
+                        const bad = ids.filter(id=> !rules.some(rx=> rx.test(id)) );
+                        if(bad.length) violations[sym] = bad;
+                    });
+                    const ok = Object.keys(violations).length===0;
+                    const summary = { ok, duplicates, violations };
+                    if(ok) console.log('%c[icons] uniqueness OK','color:#16a34a', summary);
+                    else console.warn('[icons] uniqueness VIOLATIONS', summary);
+                    return summary;
+                }catch(e){ console.warn('auditIconUniqueness failed', e); return { ok:false, error:e && e.message } }
+            }
         })();
 
         // ====== 成就資料紀錄與分析（本地） ======
@@ -658,14 +849,31 @@
                 try{
                     const cfg = window.SUPABASE_CONFIG; if(!cfg) return null;
                     if(!(window.supabase && typeof window.supabase.createClient==='function')) return null;
-                    if(!getClient._client) getClient._client = window.supabase.createClient(cfg.url, cfg.anonKey, cfg.options || {});
+                    if(!getClient._client) {
+                        const baseOpts = cfg.options || {};
+                        const opts = cfg.projectTag
+                            ? {
+                                ...baseOpts,
+                                global: {
+                                    ...(baseOpts.global || {}),
+                                    headers: {
+                                        ...(((baseOpts.global || {}).headers) || {}),
+                                        'x-project-tag': cfg.projectTag
+                                    }
+                                }
+                              }
+                            : baseOpts;
+                        const c = window.supabase.createClient(cfg.url, cfg.anonKey, opts);
+                        getClient._client = c;
+                    }
                     return getClient._client;
                 }catch(_){ return null; }
             }
             function getRunsTable(){ try { return (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.achvRunsTable) || 'achv_runs'; } catch(_){ return 'achv_runs'; } }
 
             // 上傳單局資料（僅闖關/生存）
-            window.sendAchievementRunToSupabase = async function(metrics, unlocked, mode){
+            // If a score row will be created shortly, prefer calling with an options { linkToScoreId }
+            window.sendAchievementRunToSupabase = async function(metrics, unlocked, mode, options){
                 try{
                     if(!metrics) return;
                     const m = metrics; const md = (mode||m.mode||'classic');
@@ -683,9 +891,32 @@
                         survival_duration: m.survivalDuration||0,
                         max_time: m.maxTime||0,
                         unlock_ids: (unlocked||[]).map(a=>a.id),
+                        achievements_count: Array.isArray(unlocked) ? unlocked.length : 0,
                         project_tag: (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.projectTag)||'bible-challenge-prod'
                     };
+                    // Optionally attach a score_id if provided
+                    if (options && options.linkToScoreId) row.score_id = options.linkToScoreId;
                     await client.from(table).insert(row).throwOnError();
+                }catch(_){ /* ignore */ }
+            }
+
+            // After a score is saved, link latest queued telemetry row to that score_id (best-effort)
+            window.linkLatestAchievementRunToScore = async function(scoreId){
+                try{
+                    const client = getClient(); if(!client) return;
+                    const table = getRunsTable(); if (!scoreId) return;
+                    // Find most recent achv_runs without score_id for this project_tag and attach it
+                    const tag = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.projectTag)||'bible-challenge-prod';
+                    const { data:list } = await client.from(table)
+                        .select('id, score_id')
+                        .is('score_id', null)
+                        .eq('project_tag', tag)
+                        .order('ts', { ascending:false })
+                        .limit(1);
+                    const row = Array.isArray(list) && list[0];
+                    if (row && row.id) {
+                        await client.from(table).update({ score_id: scoreId }).eq('id', row.id);
+                    }
                 }catch(_){ /* ignore */ }
             }
 
@@ -747,15 +978,6 @@
     @media (prefers-reduced-motion: reduce) {
         .tier5.shimmer, .shimmer { animation: none !important; }
     }
-    /* Compact achievement badges used on leaderboard cards */
-    .lb-achievements, .fl-achievements { display:flex; align-items:center; gap:6px; margin-top:4px; flex-wrap:wrap; }
-    .lb-achievements .ach-badge, .fl-achievements .ach-badge { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:6px; background:rgba(255,255,255,.9); border:1px solid rgba(99,102,241,.25); box-shadow:0 1px 2px rgba(0,0,0,.05); }
-    .lb-achievements .ach-badge svg, .fl-achievements .ach-badge svg { width:14px; height:14px; }
-    .lb-achievements .ach-badge.t1, .fl-achievements .ach-badge.t1 { border-color:#fde68a; background:#fffbeb; }
-    .lb-achievements .ach-badge.t2, .fl-achievements .ach-badge.t2 { border-color:#a7f3d0; background:#ecfdf5; }
-    .lb-achievements .ach-badge.t3, .fl-achievements .ach-badge.t3 { border-color:#bfdbfe; background:#eff6ff; }
-    .lb-achievements .ach-badge.t4, .fl-achievements .ach-badge.t4 { border-color:#e5e7eb; background:#f9fafb; }
-    .lb-achievements .ach-more, .fl-achievements .ach-more { font-size:.7rem; font-weight:700; color:#6b7280; padding:0 4px; }
     </style>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Supabase client (UMD) for online leaderboard support -->
@@ -787,7 +1009,30 @@
     <symbol id="achv-trophy" viewBox="0 0 24 24"><path fill="currentColor" d="M7 4h10v3h3a3 3 0 0 1-3 3c-1.66 2.5-4.34 3.5-6 3.87V17h4v2H9v-2h4v-3.13C11.34 13.5 8.66 12.5 7 10A3 3 0 0 1 4 10a3 3 0 0 1 3-3V4Zm10 3V6H7v1c0 3.31 2.69 6 6 6s6-2.69 6-6Z"/></symbol>
     <symbol id="achv-crown" viewBox="0 0 24 24"><path fill="currentColor" d="M2 7l5 4l5-6l5 6l5-4v12H2V7Zm4 10h12v-5l-4 3l-4-5l-4 5l-4-3v5Z"/></symbol>
     <symbol id="achv-chain" viewBox="0 0 24 24"><path fill="currentColor" d="M10 14l-2 2a3 3 0 1 1-4-4l2-2l2 2l-2 2a1 1 0 1 0 2 2l2-2l2 2Zm4-4l2-2a3 3 0 1 1 4 4l-2 2l-2-2l2-2a1 1 0 0 0-2-2l-2 2l-2-2Z"/></symbol>
-    <symbol id="achv-stopwatch" viewBox="0 0 24 24"><path fill="currentColor" d="M9 2h6v2H9V2Zm3 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18Zm1 5h-2v5l4 2l1-1l-3-1.5V10Z"/></symbol>
+    <symbol id="achv-stopwatch" viewBox="0 0 24 24">
+        <defs>
+            <linearGradient id="g-sw-1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#e5e7eb"/>
+                <stop offset="1" stop-color="#9ca3af"/>
+            </linearGradient>
+            <radialGradient id="g-sw-2" cx="50%" cy="45%" r="60%">
+                <stop offset="0" stop-color="#ffffff"/>
+                <stop offset="1" stop-color="#cbd5e1"/>
+            </radialGradient>
+        </defs>
+        <!-- Crown and button -->
+        <rect x="9" y="2" width="6" height="2" rx=".6" fill="#374151"/>
+        <rect x="16.2" y="3.6" width="2.2" height="1.3" rx=".6" fill="#374151"/>
+        <!-- Bezel -->
+        <circle cx="12" cy="13" r="8.8" fill="url(#g-sw-1)" stroke="#475569" stroke-width=".9"/>
+        <circle cx="12" cy="13" r="7.3" fill="url(#g-sw-2)" stroke="#64748b" stroke-width=".7"/>
+        <!-- Ticks -->
+        <g stroke="#475569" stroke-width=".8"><path d="M12 5.8v1.9M18.2 13h1.9M12 20.2v1.9M3.9 13H5.8"/></g>
+        <!-- Hands -->
+        <path d="M12 13l3.6 1.8" stroke="#111827" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M12 13v-3.3" stroke="#ef4444" stroke-width="1.2" stroke-linecap="round"/>
+        <circle cx="12" cy="13" r=".9" fill="#111827"/>
+    </symbol>
     <symbol id="achv-book" viewBox="0 0 24 24"><path fill="currentColor" d="M4 3h12a3 3 0 0 1 3 3v14H7a3 3 0 0 1-3-3V3Zm2 2v12a1 1 0 0 0 1 1h11V6a1 1 0 0 0-1-1H6Z"/></symbol>
         <!-- Batch 1: 15 colorful unique medal symbols -->
         <symbol id="achv-laurel" viewBox="0 0 24 24">
@@ -922,10 +1167,16 @@
                     <stop offset="0" stop-color="#fde68a"/>
                     <stop offset="1" stop-color="#facc15"/>
                 </linearGradient>
+                <radialGradient id="g-scroll-2" cx="30%" cy="20%" r="70%">
+                    <stop offset="0" stop-color="#fff7ed" stop-opacity=".8"/>
+                    <stop offset="1" stop-color="#000" stop-opacity="0"/>
+                </radialGradient>
             </defs>
-            <path fill="url(#g-scroll-1)" d="M5 5h11a2 2 0 0 1 2 2v9H7a2 2 0 1 1-2-2V5Z" stroke="#92400e" stroke-width=".8"/>
-            <rect x="8" y="8" width="8.5" height="1.3" fill="#a16207"/>
-            <rect x="8" y="11" width="7.8" height="1.3" fill="#a16207"/>
+            <path fill="url(#g-scroll-1)" d="M5 5h11a2 2 0 0 1 2 2v9H7a2 2 0 1 1-2-2V5Z" stroke="#92400e" stroke-width=".9"/>
+            <path d="M5 5h11a2 2 0 0 1 2 2v2H7a2 2 0 1 1-2-2V5Z" fill="url(#g-scroll-2)"/>
+            <rect x="8" y="8" width="8.6" height="1.3" fill="#a16207"/>
+            <rect x="8" y="11" width="7.9" height="1.3" fill="#a16207"/>
+            <path d="M8 14.3h6.8" stroke="#a16207" stroke-width=".9" opacity=".7"/>
             <circle cx="6" cy="16" r="1" fill="#78350f"/>
         </symbol>
         <symbol id="achv-ribbon" viewBox="0 0 24 24">
@@ -965,13 +1216,23 @@
         <symbol id="achv-tablets" viewBox="0 0 24 24">
             <defs>
                 <linearGradient id="g-tab-1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#e5e7eb"/>
+                    <stop offset="0" stop-color="#e7e5e4"/>
                     <stop offset="1" stop-color="#9ca3af"/>
                 </linearGradient>
+                <radialGradient id="g-tab-2" cx="50%" cy="20%" r="70%">
+                    <stop offset="0" stop-color="#ffffff" stop-opacity=".7"/>
+                    <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+                </radialGradient>
             </defs>
-            <rect x="4" y="5" width="7" height="14" rx="3" fill="url(#g-tab-1)" stroke="#6b7280" stroke-width=".8"/>
-            <rect x="13" y="5" width="7" height="14" rx="3" fill="url(#g-tab-1)" stroke="#6b7280" stroke-width=".8"/>
-            <path d="M6.5 8h2.5M6.5 10h2.5M6.5 12h2.5M15.5 8h2.5M15.5 10h2.5M15.5 12h2.5" stroke="#374151" stroke-width=".8"/>
+            <!-- Left tablet with bevel highlight and engravings -->
+            <rect x="4" y="5" width="7" height="14" rx="3" fill="url(#g-tab-1)" stroke="#6b7280" stroke-width=".9"/>
+            <rect x="4" y="5" width="7" height="14" rx="3" fill="url(#g-tab-2)"/>
+            <path d="M6.2 8h3M6.2 10h3M6.2 12h3M5.7 14.8c.6-.3 1.6-.5 2.6-.3" stroke="#374151" stroke-width=".8" stroke-linecap="round" opacity=".95"/>
+            <!-- Right tablet with subtle cracks -->
+            <rect x="13" y="5" width="7" height="14" rx="3" fill="url(#g-tab-1)" stroke="#6b7280" stroke-width=".9"/>
+            <rect x="13" y="5" width="7" height="14" rx="3" fill="url(#g-tab-2)"/>
+            <path d="M15.2 8h3M15.2 10h3M15.2 12h3" stroke="#374151" stroke-width=".8" stroke-linecap="round"/>
+            <path d="M16 14.2l1 .6m-.4-2l1 .6" stroke="#334155" stroke-width=".7" opacity=".5"/>
         </symbol>
         <symbol id="achv-ark" viewBox="0 0 24 24">
             <defs>
@@ -1011,10 +1272,20 @@
             <ellipse cx="17.5" cy="9.5" rx="2.2" ry="1.4" fill="#84cc16"/>
         </symbol>
         <symbol id="achv-menorah" viewBox="0 0 24 24">
-            <path fill="#eab308" d="M5 6h2v4a5 5 0 0 0 10 0V6h2v4a7 7 0 0 1-6 6.92V20h3v2H8v-2h3v-3.08A7 7 0 0 1 5 10V6Z"/>
-            <circle cx="6" cy="5" r="1" fill="#fef08a"/>
-            <circle cx="12" cy="5" r="1" fill="#fef08a"/>
-            <circle cx="18" cy="5" r="1" fill="#fef08a"/>
+            <defs>
+                <linearGradient id="g-mnrh-1" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#fde68a"/>
+                    <stop offset="1" stop-color="#eab308"/>
+                </linearGradient>
+                <radialGradient id="g-mnrh-2" cx="50%" cy="30%" r="60%">
+                    <stop offset="0" stop-color="#fff7ed"/>
+                    <stop offset="1" stop-color="#f59e0b"/>
+                </radialGradient>
+            </defs>
+            <path fill="url(#g-mnrh-1)" d="M5 6h2v4a5 5 0 0 0 10 0V6h2v4a7 7 0 0 1-6 6.92V20h3v2H8v-2h3v-3.08A7 7 0 0 1 5 10V6Z" stroke="#a16207" stroke-width=".8"/>
+            <circle cx="6" cy="5" r="1.1" fill="url(#g-mnrh-2)"/>
+            <circle cx="12" cy="5" r="1.1" fill="url(#g-mnrh-2)"/>
+            <circle cx="18" cy="5" r="1.1" fill="url(#g-mnrh-2)"/>
         </symbol>
         <symbol id="achv-rainbow" viewBox="0 0 24 24">
             <path fill="#ef4444" d="M4 16a8 8 0 0 1 16 0h-2a6 6 0 0 0-12 0H4Z"/>
@@ -1025,16 +1296,50 @@
             <path fill="#f59e0b" d="M12 3l2.3 5.3L20 9.2l-4 3.6l1.2 5.9L12 16.8L6.8 18.7L8 12.8L4 9.2l5.7-.9L12 3Z"/>
         </symbol>
         <symbol id="achv-crown2" viewBox="0 0 24 24">
-            <path fill="#d97706" d="M3 7l4 5l5-6l5 6l4-5v11H3V7Z"/>
-            <rect x="5" y="15" width="14" height="2" fill="#f59e0b"/>
+            <defs>
+                <linearGradient id="g-cr2-1" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#f59e0b"/>
+                    <stop offset="1" stop-color="#fde68a"/>
+                </linearGradient>
+            </defs>
+            <path d="M3 7l4 5l5-6l5 6l4-5v11H3V7Z" fill="url(#g-cr2-1)" stroke="#c2410c" stroke-width=".9"/>
+            <rect x="5" y="15" width="14" height="2.2" fill="#f59e0b" stroke="#c2410c" stroke-width=".7"/>
+            <circle cx="12" cy="9" r="1" fill="#ef4444"/>
+            <circle cx="7.5" cy="11" r=".9" fill="#60a5fa"/>
+            <circle cx="16.5" cy="11" r=".9" fill="#22c55e"/>
         </symbol>
         <symbol id="achv-banner" viewBox="0 0 24 24">
-            <path fill="#ea580c" d="M6 3h10v10l-5-3l-5 3V3Z"/>
+            <defs>
+                <linearGradient id="g-banner-1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#fb923c"/>
+                    <stop offset="1" stop-color="#ea580c"/>
+                </linearGradient>
+                <linearGradient id="g-banner-2" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#fecaca" stop-opacity=".7"/>
+                    <stop offset="1" stop-color="#ef4444" stop-opacity="0"/>
+                </linearGradient>
+            </defs>
+            <!-- Fabric with fold highlight and tassels -->
+            <path d="M6 3h10v10l-5-3l-5 3V3Z" fill="url(#g-banner-1)" stroke="#9a3412" stroke-width=".9"/>
+            <path d="M7 4c3 .8 6 .8 8 0" stroke="url(#g-banner-2)" stroke-width="1.2"/>
+            <circle cx="6.9" cy="21" r=".9" fill="#9a3412"/>
+            <circle cx="8.4" cy="21" r=".9" fill="#9a3412"/>
             <rect x="6" y="3" width="2" height="18" fill="#9a3412"/>
         </symbol>
         <symbol id="achv-wall" viewBox="0 0 24 24">
-            <path fill="#9ca3af" d="M3 9h18v6H3V9Zm6-6h6v6H9V3Zm0 12h6v6H9v-6Z"/>
-            <path d="M3 12h18M9 6h6M9 18h6" stroke="#6b7280" stroke-width=".8"/>
+            <defs>
+                <linearGradient id="g-wall-1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#cbd5e1"/>
+                    <stop offset="1" stop-color="#94a3af"/>
+                </linearGradient>
+            </defs>
+            <!-- Brick rows -->
+            <rect x="3" y="6" width="18" height="12" rx="1.5" fill="url(#g-wall-1)" stroke="#64748b" stroke-width=".9"/>
+            <g stroke="#64748b" stroke-width=".8">
+                <path d="M3 10h18M3 14h18"/>
+                <path d="M7.5 6v4M16.5 6v4M12 10v4M7.5 14v4M16.5 14v4M12 14v4"/>
+            </g>
+            <path d="M4 7.5h2.8M9.2 7.5h2.8M14.4 7.5h2.8" stroke="#94a3b8" stroke-width=".7" opacity=".7"/>
         </symbol>
         <symbol id="achv-hammernail" viewBox="0 0 24 24">
             <path fill="#374151" d="M4 10l6 6l-2 2l-6-6l2-2Z"/>
@@ -1071,8 +1376,20 @@
             <rect x="10" y="12" width="4" height="8" fill="#92400e"/>
         </symbol>
         <symbol id="achv-basket" viewBox="0 0 24 24">
-            <rect x="4" y="9" width="16" height="8" rx="2" fill="#a16207"/>
-            <path d="M6 9c2-3 10-3 12 0" stroke="#78350f" stroke-width="1"/>
+            <defs>
+                <linearGradient id="g-basket-1" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#a16207"/>
+                    <stop offset="1" stop-color="#78350f"/>
+                </linearGradient>
+            </defs>
+            <rect x="4" y="9" width="16" height="8" rx="2" fill="url(#g-basket-1)" stroke="#7c2d12" stroke-width=".9"/>
+            <path d="M6 9c2-3 10-3 12 0" stroke="#9a3412" stroke-width="1.1"/>
+            <!-- Weave pattern -->
+            <g stroke="#a16207" stroke-width=".7" opacity=".75">
+                <path d="M5.5 12h13"/>
+                <path d="M5.5 13.8h13"/>
+                <path d="M8 10v6M10.6 10v6M13.2 10v6M15.8 10v6"/>
+            </g>
         </symbol>
         <symbol id="achv-sheep" viewBox="0 0 24 24">
             <circle cx="9" cy="12" r="3" fill="#e5e7eb"/>
@@ -1103,8 +1420,25 @@
             <rect x="14" y="11" width="5" height="1" fill="#374151"/>
         </symbol>
         <symbol id="achv-breastplate" viewBox="0 0 24 24">
-            <rect x="6" y="5" width="12" height="14" rx="3" fill="#9ca3af"/>
-            <rect x="9" y="8" width="6" height="6" rx="1" fill="#e5e7eb"/>
+            <defs>
+                <linearGradient id="g-breast-1" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#e5e7eb"/>
+                    <stop offset="1" stop-color="#9ca3af"/>
+                </linearGradient>
+            </defs>
+            <rect x="6" y="5" width="12" height="14" rx="3" fill="url(#g-breast-1)" stroke="#64748b" stroke-width=".9"/>
+            <!-- 12 stones -->
+            <g>
+                <rect x="8.2" y="7.8" width="2.2" height="2" rx=".3" fill="#ef4444"/>
+                <rect x="10.9" y="7.8" width="2.2" height="2" rx=".3" fill="#f59e0b"/>
+                <rect x="13.6" y="7.8" width="2.2" height="2" rx=".3" fill="#22c55e"/>
+                <rect x="8.2" y="10.2" width="2.2" height="2" rx=".3" fill="#60a5fa"/>
+                <rect x="10.9" y="10.2" width="2.2" height="2" rx=".3" fill="#a78bfa"/>
+                <rect x="13.6" y="10.2" width="2.2" height="2" rx=".3" fill="#f472b6"/>
+                <rect x="8.2" y="12.6" width="2.2" height="2" rx=".3" fill="#f97316"/>
+                <rect x="10.9" y="12.6" width="2.2" height="2" rx=".3" fill="#84cc16"/>
+                <rect x="13.6" y="12.6" width="2.2" height="2" rx=".3" fill="#06b6d4"/>
+            </g>
         </symbol>
         <symbol id="achv-sandals" viewBox="0 0 24 24">
             <rect x="6" y="13" width="5" height="6" rx="2" fill="#f59e0b"/>
@@ -1113,10 +1447,22 @@
         </symbol>
         <!-- Fourth batch biblical icons -->
         <symbol id="achv-grapes" viewBox="0 0 24 24">
-            <circle cx="10" cy="10" r="2" fill="#7c3aed"/>
-            <circle cx="12.5" cy="12" r="2" fill="#8b5cf6"/>
-            <circle cx="9" cy="13.5" r="2" fill="#6d28d9"/>
-            <rect x="11.5" y="6" width="1.2" height="3" fill="#166534"/>
+            <defs>
+                <radialGradient id="g-grape-1" cx="35%" cy="35%" r="65%">
+                    <stop offset="0" stop-color="#ddd6fe"/>
+                    <stop offset="1" stop-color="#6d28d9"/>
+                </radialGradient>
+                <radialGradient id="g-grape-2" cx="35%" cy="35%" r="65%">
+                    <stop offset="0" stop-color="#e9d5ff"/>
+                    <stop offset="1" stop-color="#7c3aed"/>
+                </radialGradient>
+            </defs>
+            <!-- Cluster with three highlighted berries and a vine stem -->
+            <circle cx="10" cy="10" r="2.2" fill="url(#g-grape-1)" stroke="#4c1d95" stroke-width=".7"/>
+            <circle cx="12.8" cy="12.2" r="2.2" fill="url(#g-grape-2)" stroke="#4c1d95" stroke-width=".7"/>
+            <circle cx="8.6" cy="14" r="2.2" fill="url(#g-grape-1)" stroke="#4c1d95" stroke-width=".7"/>
+            <path d="M10.8 6.2c1 .2 1.8.8 2.2 1.8" stroke="#14532d" stroke-width=".9" stroke-linecap="round"/>
+            <path d="M11.6 6l-1.1 2.9" stroke="#166534" stroke-width="1.1" stroke-linecap="round"/>
         </symbol>
         <symbol id="achv-jar" viewBox="0 0 24 24">
             <rect x="8" y="6" width="8" height="12" rx="3" fill="#fbbf24"/>
@@ -1139,11 +1485,26 @@
             <rect x="11" y="7" width="2" height="12" fill="#111827"/>
         </symbol>
         <symbol id="achv-olivebranch" viewBox="0 0 24 24">
-            <path fill="#16a34a" d="M4 16c5-3 10-6 16-8c-3 3-8 6-12 9c-1 1.5-2 1.7-3 .9c-.7-.6-.7-1.2-.3-1.8Z"/>
+            <defs>
+                <linearGradient id="g-oliveb-1" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stop-color="#16a34a"/>
+                    <stop offset="1" stop-color="#22c55e"/>
+                </linearGradient>
+            </defs>
+            <path d="M4 16c5-3 10-6 16-8c-3 3-8 6-12 9c-1 1.5-2 1.7-3 .9c-.7-.6-.7-1.2-.3-1.8Z" fill="url(#g-oliveb-1)" stroke="#166534" stroke-width=".8"/>
+            <path d="M7 14c.8-.8 1.8-1.3 2.9-1.6" stroke="#14532d" stroke-width=".9" stroke-linecap="round"/>
         </symbol>
         <symbol id="achv-sundial" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="8" fill="#eab308"/>
-            <path d="M12 12L17 7" stroke="#92400e" stroke-width="1.2"/>
+            <defs>
+                <linearGradient id="g-sund-1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#fde68a"/>
+                    <stop offset="1" stop-color="#eab308"/>
+                </linearGradient>
+            </defs>
+            <circle cx="12" cy="12" r="8.2" fill="url(#g-sund-1)" stroke="#b45309" stroke-width=".9"/>
+            <g stroke="#b45309" stroke-width=".8"><path d="M12 4.8v1.6M19.2 12h-1.6M12 19.2v-1.6M4.8 12h1.6"/></g>
+            <path d="M12 12L17 7" stroke="#92400e" stroke-width="1.3" stroke-linecap="round"/>
+            <circle cx="12" cy="12" r=".9" fill="#92400e"/>
         </symbol>
         <symbol id="achv-map" viewBox="0 0 24 24">
             <path fill="#34d399" d="M4 6l5 2l6-2l5 2v12l-5-2l-6 2l-5-2V6Z"/>
@@ -1166,24 +1527,50 @@
             <path d="M8 6c0 8 4 10 4 14" stroke="#0f172a" stroke-width=".9"/>
         </symbol>
         <symbol id="achv-temple" viewBox="0 0 24 24">
-            <rect x="4" y="10" width="16" height="9" fill="#9ca3af"/>
-            <rect x="9" y="7" width="6" height="3" fill="#6b7280"/>
+            <defs>
+                <linearGradient id="g-temple-1" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stop-color="#e5e7eb"/>
+                    <stop offset="1" stop-color="#cbd5e1"/>
+                </linearGradient>
+            </defs>
+            <rect x="4" y="10" width="16" height="9" fill="url(#g-temple-1)" stroke="#64748b" stroke-width=".8"/>
+            <rect x="9" y="7" width="6" height="3" fill="#9ca3af" stroke="#475569" stroke-width=".7"/>
             <rect x="6" y="12" width="3" height="7" fill="#374151"/>
             <rect x="15" y="12" width="3" height="7" fill="#374151"/>
+            <path d="M4 10h16" stroke="#475569" stroke-width=".8"/>
         </symbol>
         <symbol id="achv-alpha" viewBox="0 0 24 24">
             <path fill="#f97316" d="M8 17l4-10l4 10h-2l-1-3H11l-1 3H8Zm4-7l-1 3h2l-1-3Z"/>
         </symbol>
         <!-- Extra richer icons -->
         <symbol id="achv-linkedrings" viewBox="0 0 24 24">
-            <circle cx="9" cy="12" r="4" fill="#a78bfa"/>
-            <circle cx="15" cy="12" r="4" fill="#60a5fa"/>
-            <circle cx="12" cy="12" r="2.2" fill="#e0e7ff"/>
+            <defs>
+                <radialGradient id="g-rings-1" cx="40%" cy="40%" r="70%">
+                    <stop offset="0" stop-color="#ede9fe"/>
+                    <stop offset="1" stop-color="#8b5cf6"/>
+                </radialGradient>
+                <radialGradient id="g-rings-2" cx="40%" cy="40%" r="70%">
+                    <stop offset="0" stop-color="#dbeafe"/>
+                    <stop offset="1" stop-color="#60a5fa"/>
+                </radialGradient>
+            </defs>
+            <circle cx="9" cy="12" r="4.2" fill="url(#g-rings-1)" stroke="#5b21b6" stroke-width=".8"/>
+            <circle cx="15" cy="12" r="4.2" fill="url(#g-rings-2)" stroke="#1d4ed8" stroke-width=".8"/>
+            <circle cx="12" cy="12" r="2.3" fill="#e0e7ff" stroke="#94a3b8" stroke-width=".6"/>
         </symbol>
         <symbol id="achv-clock" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="8.5" fill="#e5e7eb" stroke="#9ca3af" stroke-width=".9"/>
-            <rect x="11.4" y="7" width="1.2" height="6" fill="#111827"/>
-            <rect x="12" y="12" width="4.5" height="1.2" transform="rotate(45 12 12)" fill="#111827"/>
+            <defs>
+                <linearGradient id="g-clock-1" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#e5e7eb"/>
+                    <stop offset="1" stop-color="#cbd5e1"/>
+                </linearGradient>
+            </defs>
+            <circle cx="12" cy="12" r="8.8" fill="url(#g-clock-1)" stroke="#9ca3af" stroke-width=".9"/>
+            <circle cx="12" cy="12" r="7.2" fill="#ffffff" stroke="#94a3b8" stroke-width=".7"/>
+            <g stroke="#64748b" stroke-width=".8"><path d="M12 4.8v1.8M19.2 12h-1.8M12 19.2v-1.8M4.8 12h1.8"/></g>
+            <path d="M12 12v-4" stroke="#1f2937" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M12 12l3.6 2.1" stroke="#1f2937" stroke-width="1.2" stroke-linecap="round"/>
+            <circle cx="12" cy="12" r=".9" fill="#1f2937"/>
         </symbol>
         <symbol id="achv-chariot" viewBox="0 0 24 24">
             <circle cx="8" cy="16" r="2.5" fill="#0ea5e9"/>
@@ -1192,10 +1579,16 @@
             <rect x="5" y="10" width="2" height="2" fill="#7c2d12"/>
         </symbol>
         <symbol id="achv-steps" viewBox="0 0 24 24">
-            <rect x="5" y="15" width="14" height="2" fill="#94a3b8"/>
-            <rect x="7" y="12" width="12" height="2" fill="#9ca3af"/>
-            <rect x="9" y="9" width="10" height="2" fill="#cbd5e1"/>
-            <path d="M5 16l3-3l3-3l3-3" stroke="#f59e0b" stroke-width=".9"/>
+            <defs>
+                <linearGradient id="g-steps-1" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stop-color="#cbd5e1"/>
+                    <stop offset="1" stop-color="#94a3af"/>
+                </linearGradient>
+            </defs>
+            <rect x="5" y="15" width="14" height="2.2" rx=".6" fill="url(#g-steps-1)" stroke="#64748b" stroke-width=".7"/>
+            <rect x="7" y="12" width="12" height="2.2" rx=".6" fill="url(#g-steps-1)" stroke="#64748b" stroke-width=".7"/>
+            <rect x="9" y="9" width="10" height="2.2" rx=".6" fill="url(#g-steps-1)" stroke="#64748b" stroke-width=".7"/>
+            <path d="M5 16l3-3l3-3l3-3" stroke="#f59e0b" stroke-width="1" stroke-linecap="round"/>
         </symbol>
         <!-- New enriched symbols for improved clarity/rarity -->
         <symbol id="achv-gears" viewBox="0 0 24 24">
@@ -1347,6 +1740,50 @@
             <path d="M7 12c-1.5-.2-2.8-.8-3.8-1.8c.4 2 1.6 3.6 3.3 4.5c.6.3 1.3.5 2 .6" fill="none" stroke="#93c5fd" stroke-width="1.1"/>
             <path d="M17 12c1.5-.2 2.8-.8 3.8-1.8c-.4 2-1.6 3.6-3.3 4.5c-.6.3-1.3.5-2 .6" fill="none" stroke="#93c5fd" stroke-width="1.1"/>
         </symbol>
+        <!-- New icons: average pace dial and bolt-chain for ultrafast chains -->
+        <symbol id="achv-avgpace" viewBox="0 0 24 24">
+            <defs>
+                <linearGradient id="g-avgpace-1" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#cffafe"/>
+                    <stop offset="1" stop-color="#38bdf8"/>
+                </linearGradient>
+                <linearGradient id="g-avgpace-2" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#fde68a"/>
+                    <stop offset="1" stop-color="#f59e0b"/>
+                </linearGradient>
+            </defs>
+            <!-- Dial base -->
+            <circle cx="12" cy="12" r="8.8" fill="url(#g-avgpace-1)" stroke="#0ea5e9" stroke-width=".9"/>
+            <!-- Tick marks -->
+            <g stroke="#0369a1" stroke-width=".8">
+                <path d="M12 4.2v2.1"/>
+                <path d="M19.8 12h-2.1"/>
+                <path d="M12 19.8v-2.1"/>
+                <path d="M4.2 12h2.1"/>
+            </g>
+            <!-- Needle -->
+            <path d="M12 12l4.8-2.4" stroke="#0c4a6e" stroke-width="1.4" stroke-linecap="round"/>
+            <circle cx="12" cy="12" r="1.1" fill="#0c4a6e"/>
+            <!-- Pace band -->
+            <path d="M6.5 15.5A7 7 0 0 0 17.5 6.5" fill="none" stroke="url(#g-avgpace-2)" stroke-width="2.2" stroke-linecap="round"/>
+        </symbol>
+        <symbol id="achv-boltchain" viewBox="0 0 24 24">
+            <defs>
+                <linearGradient id="g-boltchain-1" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#fde68a"/>
+                    <stop offset="1" stop-color="#f59e0b"/>
+                </linearGradient>
+                <linearGradient id="g-boltchain-2" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#93c5fd"/>
+                    <stop offset="1" stop-color="#3b82f6"/>
+                </linearGradient>
+            </defs>
+            <!-- Chain links -->
+            <path d="M7 9a3 3 0 0 1 4.2 0l.8.8a3 3 0 0 1 0 4.2l-1.1 1.1a3 3 0 0 1-4.2 0l-.8-.8" fill="none" stroke="url(#g-boltchain-2)" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M17 7a3 3 0 0 1 0 4.2l-1.1 1.1a3 3 0 0 1-4.2 0" fill="none" stroke="url(#g-boltchain-2)" stroke-width="1.6" stroke-linecap="round"/>
+            <!-- Lightning accent -->
+            <path d="M10 5h5l-2 3h3l-6 9l2.1-5H9.2L10 5Z" fill="url(#g-boltchain-1)" stroke="#92400e" stroke-width=".8"/>
+        </symbol>
     </svg>
     <!-- Startup images are preloaded dynamically below based on a quick pick; remove static duplicates to save bandwidth. -->
     <script>
@@ -1451,44 +1888,106 @@
         }
         function ensureCategory(a){
             if (a.category) return a.category;
-            try { return (a.mode==='survival') ? 'survival' : 'classic'; } catch(_) { return 'classic'; }
+            try { if (a.mode==='survival') return 'survival'; if (a.mode==='any') return 'any'; return 'classic'; } catch(_) { return 'classic'; }
         }
         function updateCatalogTabCounts(){
             try {
                 const tabs = document.getElementById('achvCatalogTabs'); if (!tabs) return;
                 const defs = getDefs();
-                const totals = {all:0,classic:0,survival:0};
+                const totals = {all:0,classic:0,survival:0,any:0};
                 defs.forEach(d=>{ const c=ensureCategory(d); totals[c] = (totals[c]||0)+1; totals.all++; });
                 tabs.querySelectorAll('button[data-achv-cat]').forEach(btn=>{
                     const cat = btn.getAttribute('data-achv-cat');
                     const span = btn.querySelector('[data-role="count"]');
                     if (span) span.textContent = ` ${totals[cat]||0}`;
                 });
+                // Update totals header text if present
+                const hdr = document.getElementById('achvTotalsHeader');
+                if (hdr) {
+                    const map = { all:'全部', any:'共通', classic:'闖關', survival:'生存' };
+                    Object.keys(map).forEach(k=>{
+                        const el = hdr.querySelector(`.val[data-role="${k}"]`);
+                        if (el) el.textContent = String(totals[k]||0);
+                    });
+                }
             } catch(_) {}
         }
+        // 將高級化飾層注入成就卡（置於最前，避免蓋住內容）
+        if (!window.__injectAchvDecor) {
+            window.__injectAchvDecor = function(card){
+                try{
+                    if (!card) return;
+                    // vignette
+                    if (!card.querySelector(':scope > .vignette')){
+                        const d=document.createElement('div'); d.className='vignette'; card.insertBefore(d, card.firstChild);
+                    }
+                    // corner glints
+                    if (!card.querySelector(':scope > .corner-glint.gl1')){
+                        const g1=document.createElement('div'); g1.className='corner-glint gl1'; card.insertBefore(g1, card.firstChild);
+                    }
+                    if (!card.querySelector(':scope > .corner-glint.gl2')){
+                        const g2=document.createElement('div'); g2.className='corner-glint gl2'; card.insertBefore(g2, card.firstChild);
+                    }
+                    // tier particles
+                    if (!card.querySelector(':scope > .tier-particles')){
+                        const p=document.createElement('div'); p.className='tier-particles'; card.insertBefore(p, card.firstChild);
+                    }
+                }catch(_){}
+            }
+        }
+
         function renderAchievementsCatalog(){
             try{
                 const host=document.getElementById('achievementsCatalog'); if(!host) return;
                 host.innerHTML='';
                 const defs = getDefs();
                 const cat = window.__achvCatalogCat || 'all';
-                const list = defs.filter(a=> cat==='all' ? true : ensureCategory(a)===cat).sort((a,b)=> {
-                    const ad = (typeof getDisplayTier==='function') ? getDisplayTier(a) : (5 - Math.max(1, Math.min(4, a.tier||4)));
-                    const bd = (typeof getDisplayTier==='function') ? getDisplayTier(b) : (5 - Math.max(1, Math.min(4, b.tier||4)));
-                    return ad - bd || a.id.localeCompare(b.id);
-                });
+                const list = defs.filter(a=> cat==='all' ? true : ensureCategory(a)===cat);
+                // 依稀有度分組 T1..T4，再各組內照名稱排序
+                const groups = new Map();
                 list.forEach(a=>{
-                    const icon = (typeof getAchievementIcon==='function') ? getAchievementIcon(a) : '★';
                     const dt = (typeof getDisplayTier==='function') ? getDisplayTier(a) : (5 - Math.max(1, Math.min(4, a.tier||4)));
-                    const item=document.createElement('div'); item.className=`achv-card rarity-t${dt} flex items-start gap-3`;
-                    const iconBox=document.createElement('div'); iconBox.className='achv-icon'; iconBox.innerHTML=icon;
-                    const mid=document.createElement('div'); mid.className='min-w-0 flex-1';
-                    const title=document.createElement('div'); title.className='achv-title'; title.textContent=a.name;
-                    const desc=document.createElement('div'); desc.className='achv-desc mt-1'; desc.textContent=a.desc||'';
-                    const mode=document.createElement('div'); mode.className='achv-mode';
-                    mode.textContent = (a.mode==='survival') ? '生存' : '闖關';
-                    item.appendChild(mode); item.appendChild(iconBox); mid.appendChild(title); mid.appendChild(desc); item.appendChild(mid);
-                    host.appendChild(item);
+                    if (!groups.has(dt)) groups.set(dt, []);
+                    groups.get(dt).push(a);
+                });
+                const orderedTiers = [1,2,3,4].filter(t=> groups.has(t));
+                orderedTiers.forEach(tier=>{
+                    const section=document.createElement('section'); section.className='achv-section';
+                    // Header
+                    const header=document.createElement('div'); header.className='achv-section-header';
+                    const titleWrap=document.createElement('div'); titleWrap.className='title';
+                    const dot=document.createElement('span'); dot.style.cssText='width:.6rem;height:.6rem;border-radius:999px;background:var(--rim,#93c5fd); display:inline-block; box-shadow:0 0 0 1px rgba(0,0,0,.08) inset;';
+                    const label=document.createElement('div'); label.className='text-sm font-extrabold tracking-wide'; label.textContent = `T${tier}`;
+                    titleWrap.appendChild(dot); titleWrap.appendChild(label);
+                    const count=document.createElement('div'); count.className='count';
+                    const arr = groups.get(tier).sort((a,b)=> a.name.localeCompare(b.name,'zh-Hant'));
+                    count.textContent = `${arr.length} 項`;
+                    header.appendChild(titleWrap); header.appendChild(count);
+                    // Divider
+                    const divider=document.createElement('div'); divider.className='soft-divider my-2';
+                    // Grid
+                    const grid=document.createElement('div'); grid.className='achv-grid';
+                    arr.forEach(a=>{
+                        const icon = (typeof getAchievementIcon==='function') ? getAchievementIcon(a) : '★';
+                        const dt = tier;
+                        const item=document.createElement('div'); item.className=`achv-card rarity-t${dt} flex items-start gap-3`;
+                        // 注入飾層
+                        try { window.__injectAchvDecor(item); } catch(_) {}
+                        // T1 邊緣掃光
+                        if (dt===1 && !item.querySelector(':scope > .edge-sweep')){
+                            const es=document.createElement('div'); es.className='edge-sweep'; item.appendChild(es);
+                        }
+                        const iconBox=document.createElement('div'); iconBox.className='achv-icon'; iconBox.innerHTML=icon;
+                        const mid=document.createElement('div'); mid.className='min-w-0 flex-1';
+                        const title=document.createElement('div'); title.className='achv-title'; title.textContent=a.name;
+                        const desc=document.createElement('div'); desc.className='achv-desc mt-1'; desc.textContent=a.desc||'';
+                        const mode=document.createElement('div'); mode.className='achv-mode';
+                        mode.textContent = (a.mode==='survival') ? '生存' : (a.mode==='any' ? '共通' : '闖關');
+                        item.appendChild(mode); item.appendChild(iconBox); mid.appendChild(title); mid.appendChild(desc); item.appendChild(mid);
+                        grid.appendChild(item);
+                    });
+                    section.appendChild(header); section.appendChild(divider); section.appendChild(grid);
+                    host.appendChild(section);
                 });
             }catch(e){ console.warn('renderAchievementsCatalog error', e); }
         }
@@ -1500,11 +1999,8 @@
                 window.__achvCatalogCat = cat;
                 tabs.querySelectorAll('button[data-achv-cat]').forEach(x=>{
                     const act = x===b;
-                    x.classList.toggle('bg-purple-600', act);
-                    x.classList.toggle('text-white', act);
-                    x.classList.toggle('shadow', act);
-                    x.classList.toggle('bg-purple-100', !act);
-                    x.classList.toggle('text-purple-700', !act);
+                    x.setAttribute('aria-pressed', act ? 'true' : 'false');
+                    x.setAttribute('aria-selected', act ? 'true' : 'false');
                 });
                 renderAchievementsCatalog();
             });
@@ -1909,8 +2405,8 @@
             document.dispatchEvent(new CustomEvent('modal:opened', { detail:{ id: modal.id } }));
             return true;
         }
-        function closeModal(id){
-            let modal = null; let entryIndex=-1;
+    function closeModal(id){
+            let modal = null; let entryIndex=-1; let closedEntry=null;
             if (id){ modal = typeof id === 'string' ? document.getElementById(id) : id; }
             else if (stack.length){ const top = stack[stack.length-1]; modal = document.getElementById(top.id); }
             if (!modal) return false;
@@ -1925,17 +2421,20 @@
                 }
             } catch(_) {}
             // remove from stack
-            for (let i=stack.length-1;i>=0;i--){ if (stack[i].id === modal.id){ entryIndex=i; break; } }
+            for (let i=stack.length-1;i>=0;i--){ if (stack[i].id === modal.id){ entryIndex=i; closedEntry = stack[i]; break; } }
             if (entryIndex>=0) stack.splice(entryIndex,1);
             releaseFocus(modal);
             modal.classList.add('hidden');
             modal.setAttribute('aria-hidden','true');
-            // restore focus to trigger if present & top-level close
-            if (entryIndex === stack.length){
-                const prev = stack[stack.length-1];
-                if (!stack.length){ unlockScroll(); }
-                if (prev && prev.trigger) { try { prev.trigger.focus(); } catch(_){} }
-            } else if (!stack.length){ unlockScroll(); }
+            // restore focus: if still stacked, focus previous modal's trigger; else focus the trigger that opened this modal
+            if (!stack.length){
+                unlockScroll();
+            }
+            try {
+                const top = stack[stack.length-1];
+                const target = top && top.trigger ? top.trigger : (closedEntry && closedEntry.trigger ? closedEntry.trigger : null);
+                if (target && typeof target.focus === 'function') target.focus();
+            } catch(_) {}
             document.dispatchEvent(new CustomEvent('modal:closed', { detail:{ id: modal.id } }));
             return true;
         }
@@ -3792,35 +4291,166 @@
 
         /* 成就卡片（新樣式）與反轉稀有度色系：T1=紅(最稀有), T2=金, T3=紫, T4=藍(最常見) */
         :root{
-            --t1-from:#b91c1c; --t1-to:#ef4444; --t1-border:#dc2626; --t1-glow:rgba(239,68,68,.35);
-            --t2-from:#f59e0b; --t2-to:#fde68a; --t2-border:#fbbf24; --t2-glow:rgba(251,191,36,.35);
-            --t3-from:#7c3aed; --t3-to:#c084fc; --t3-border:#9333ea; --t3-glow:rgba(147,51,234,.35);
-            --t4-from:#2563eb; --t4-to:#93c5fd; --t4-border:#3b82f6; --t4-glow:rgba(59,130,246,.3);
+            /* Darker T1 red tones with strong contrast */
+            --t1-from:#dc2626; --t1-to:#991b1b; --t1-border:#7f1d1d; --t1-glow:rgba(127,29,29,.36);
+            --t2-from:#f59e0b; --t2-to:#fde68a; --t2-border:#fbbf24; --t2-glow:rgba(251,191,36,.30);
+            --t3-from:#ddd6fe; --t3-to:#a78bfa; --t3-border:#8b5cf6; --t3-glow:rgba(139,92,246,.26);
+            --t4-from:#bfdbfe; --t4-to:#60a5fa; --t4-border:#3b82f6; --t4-glow:rgba(59,130,246,.22);
         }
-        .achv-card{ position:relative; overflow:hidden; border-radius:0.75rem; padding:0.6rem; border:2px solid transparent; background:linear-gradient(135deg,#fff,#fafafa); box-shadow:0 2px 6px rgba(0,0,0,.08); transition:transform .2s ease, box-shadow .2s ease; }
-        .achv-card:hover{ transform:translateY(-1px); box-shadow:0 6px 16px rgba(0,0,0,.12); }
-        .achv-card .achv-icon{ width:2.25rem; height:2.25rem; border-radius:0.6rem; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.65); backdrop-filter:saturate(140%) blur(4px); border:1px solid rgba(0,0,0,0.06); }
-        .achv-card .achv-title{ font-size:.78rem; font-weight:800; line-height:1.05; color:#0f172a; }
-        .achv-card .achv-desc{ font-size:.68rem; color:#475569; }
+        .achv-card{ position:relative; overflow:hidden; border-radius:0.9rem; padding:0.7rem; border:2px solid transparent; background:
+            linear-gradient(135deg,#ffffff,#f8fafc);
+            box-shadow:
+                0 0 0 1px rgba(0,0,0,.04),
+                0 2px 6px rgba(0,0,0,.08),
+                inset 0 1px 0 rgba(255,255,255,.75),
+                inset 0 -1px 0 rgba(0,0,0,.02);
+            transition:transform .25s ease, box-shadow .25s ease, filter .25s ease; }
+    .achv-card:hover{ transform:translateY(-1px) scale(1.01); box-shadow:
+                0 0 0 1px rgba(0,0,0,.06),
+                0 8px 18px rgba(0,0,0,.14),
+                inset 0 1px 0 rgba(255,255,255,.8);
+            filter:saturate(1.08); }
+    .achv-card:focus-visible{ outline:none; box-shadow:
+        0 0 0 2px rgba(255,255,255,.9) inset,
+        0 0 0 2px rgba(255,255,255,.65),
+        0 0 0 4px var(--rim, rgba(99,102,241,.45));
+    }
+        /* Premium rim highlight */
+    .achv-card::before{ content:""; position:absolute; inset:0; border-radius:inherit; padding:1px; background:linear-gradient(135deg, rgba(255,255,255,.92), rgba(255,255,255,.5) 22%, var(--rim, rgba(0,0,0,.06)) 55%, rgba(255,255,255,.28) 85%); -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none; opacity:.75; }
+    /* Border coating sheen (outer rim) */
+    .achv-card::after{ content:""; position:absolute; inset:0; border-radius:inherit; background:
+        radial-gradient(80% 60% at 50% -10%, rgba(255,255,255,.35), rgba(255,255,255,0) 60%),
+        radial-gradient(70% 40% at 50% 110%, rgba(0,0,0,.06), rgba(0,0,0,0) 60%);
+        pointer-events:none; mix-blend-mode:overlay; opacity:.55; }
+    .achv-card .vignette{ position:absolute; inset:0; border-radius:inherit; pointer-events:none; box-shadow:inset 0 10px 30px rgba(0,0,0,.03), inset 0 -10px 25px rgba(0,0,0,.03); }
+
+    /* Corner glints */
+    .achv-card .corner-glint{ position:absolute; width:38%; height:38%; pointer-events:none; filter:blur(.2px); opacity:.5; }
+    .achv-card .corner-glint.gl1{ top:-2%; left:-2%; background:radial-gradient(60% 60% at 100% 100%, rgba(255,255,255,.7), rgba(255,255,255,0) 60%); }
+    .achv-card .corner-glint.gl2{ bottom:-2%; right:-2%; background:radial-gradient(60% 60% at 0% 0%, rgba(255,255,255,.45), rgba(255,255,255,0) 60%); }
+
+    /* Tier micro-particles (subtle) */
+    .achv-card .tier-particles{ position:absolute; inset:0; border-radius:inherit; pointer-events:none; opacity:.35; mix-blend-mode:screen; }
+    .rarity-t1 .tier-particles{ background:
+        radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,.9), transparent 60%),
+        radial-gradient(2px 2px at 70% 20%, rgba(255,255,255,.85), transparent 60%),
+        radial-gradient(2px 2px at 85% 65%, rgba(255,255,255,.75), transparent 60%);
+    }
+    .rarity-t2 .tier-particles{ background:
+        radial-gradient(2px 2px at 25% 25%, rgba(255,255,255,.85), transparent 60%),
+        radial-gradient(2px 2px at 60% 35%, rgba(255,255,255,.75), transparent 60%),
+        radial-gradient(2px 2px at 80% 70%, rgba(255,255,255,.7), transparent 60%);
+    }
+    .rarity-t3 .tier-particles{ background:
+        radial-gradient(2px 2px at 28% 22%, rgba(255,255,255,.8), transparent 60%),
+        radial-gradient(2px 2px at 62% 38%, rgba(255,255,255,.7), transparent 60%),
+        radial-gradient(2px 2px at 78% 66%, rgba(255,255,255,.65), transparent 60%);
+    }
+    .rarity-t4 .tier-particles{ background:
+        radial-gradient(2px 2px at 30% 26%, rgba(255,255,255,.75), transparent 60%),
+        radial-gradient(2px 2px at 58% 34%, rgba(255,255,255,.65), transparent 60%),
+        radial-gradient(2px 2px at 76% 64%, rgba(255,255,255,.6), transparent 60%);
+    }
+
+    /* Reduced motion: tone down decorative layers */
+    @media (prefers-reduced-motion: reduce){
+        .achv-card::after{ opacity:.35; }
+        .achv-card .tier-particles{ opacity:.2; }
+    }
+        .achv-card .achv-icon{ width:2.5rem; height:2.5rem; border-radius:0.7rem; position:relative; display:flex; align-items:center; justify-content:center; background:
+            radial-gradient(60% 60% at 50% 45%, var(--rim-weak, rgba(0,0,0,0.05)) 0 60%, transparent 70%),
+            rgba(255,255,255,.7);
+            backdrop-filter:saturate(140%) blur(4px); border:1px solid rgba(0,0,0,0.06); box-shadow:inset 0 0 0 1px rgba(255,255,255,.65), 0 1px 0 rgba(255,255,255,.85);
+        }
+        .achv-card .achv-icon::before{ content:""; position:absolute; inset:-2px; border-radius:inherit; background:
+            radial-gradient(60% 60% at 50% 45%, var(--rim, rgba(0,0,0,.08)) 0 55%, transparent 72%);
+            opacity:.55; filter:blur(.2px); pointer-events:none; }
+        .achv-card .achv-icon::after{ content:""; position:absolute; inset:0; border-radius:inherit; background:
+            linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0) 35%),
+            radial-gradient(60% 50% at 50% 0%, rgba(255,255,255,.45), rgba(255,255,255,0) 60%);
+            mix-blend-mode:screen; pointer-events:none; opacity:.85; }
+        .achv-card .achv-icon svg{ filter:drop-shadow(0 1px 0 rgba(255,255,255,.65)); }
+        .achv-card:hover .achv-icon{ transform:translateY(-1px) scale(1.035); box-shadow:inset 0 0 0 1px rgba(255,255,255,.7), 0 2px 8px rgba(0,0,0,.12); }
+        /* Rarity-based SVG strengthening */
+        .achv-icon-svg{ stroke-linecap:round; stroke-linejoin:round; }
+    .rarity-t1 .achv-icon-svg.t1{ filter:drop-shadow(0 0 6px rgba(127,29,29,.50)) drop-shadow(0 0 14px rgba(127,29,29,.30)); }
+        .rarity-t2 .achv-icon-svg.t2{ filter:drop-shadow(0 0 5px rgba(251,191,36,.35)) drop-shadow(0 0 10px rgba(251,191,36,.2)); }
+        .rarity-t3 .achv-icon-svg.t3{ filter:drop-shadow(0 0 4px rgba(139,92,246,.26)); }
+        .rarity-t4 .achv-icon-svg.t4{ filter:drop-shadow(0 0 3px rgba(59,130,246,.22)); }
+        @media (prefers-reduced-motion: reduce){
+            .achv-icon-svg{ filter:none !important; }
+        }
+    .achv-card .achv-title{ font-size:.8rem; font-weight:900; line-height:1.05; color:#0f172a; text-shadow:0 1px 0 rgba(255,255,255,.6); letter-spacing:.1px; }
+    .achv-card .achv-desc{ font-size:.7rem; color:#475569; }
     .achv-badge{ display:none; }
-    .achv-mode{ position:absolute; top:6px; right:6px; font-size:.6rem; font-weight:900; padding:.16rem .42rem; border-radius:.4rem; border:1px solid rgba(0,0,0,.07); background:rgba(255,255,255,.9); color:#000; }
+    .achv-mode{ position:absolute; top:6px; right:6px; font-size:.62rem; font-weight:900; padding:.18rem .5rem; border-radius:.55rem; border:1px solid rgba(0,0,0,.06); background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.8)); color:#0f172a; box-shadow:0 1px 0 rgba(255,255,255,.85) inset, 0 1px 6px rgba(0,0,0,.08); }
+    .rarity-t1 .achv-mode{ box-shadow:0 1px 0 rgba(255,255,255,.85) inset, 0 1px 6px rgba(127,29,29,.30); }
+    .rarity-t2 .achv-mode{ box-shadow:0 1px 0 rgba(255,255,255,.85) inset, 0 1px 6px rgba(251,191,36,.25); }
+    .rarity-t3 .achv-mode{ box-shadow:0 1px 0 rgba(255,255,255,.85) inset, 0 1px 6px rgba(139,92,246,.22); }
+    .rarity-t4 .achv-mode{ box-shadow:0 1px 0 rgba(255,255,255,.85) inset, 0 1px 6px rgba(59,130,246,.2); }
         /* 稀有度漸層與光澤，不影響版面（使用 ::after 背景位移、pointer-events:none）*/
-        .rarity-t1{ border-color:var(--t1-border); background:linear-gradient(145deg,var(--t1-from),var(--t1-to)); color:#fff; box-shadow:0 0 0 1px var(--t1-border) inset, 0 8px 28px var(--t1-glow); }
-        .rarity-t1 .achv-icon{ color:#7f1d1d; }
+    .rarity-t1{ --rim:#fda4af; --rim-weak:rgba(253,164,175,.32); border-color:var(--t1-border); background:linear-gradient(145deg,var(--t1-from),var(--t1-to)); color:#fff; box-shadow:0 0 0 1px var(--t1-border) inset, 0 14px 30px var(--t1-glow); }
+    .rarity-t1 .achv-icon{ color:#7f1d1d; box-shadow:inset 0 0 0 1px rgba(255,255,255,.7), 0 0 0 1px rgba(127,29,29,.28), 0 10px 18px rgba(127,29,29,.28); }
+        .rarity-t1 .achv-title, .rarity-t1 .achv-desc{ color:#fff; text-shadow:0 1px 0 rgba(0,0,0,.25), 0 0 14px rgba(255,255,255,.35); }
+        .rarity-t1 .achv-icon::after{ opacity:.95; }
         .rarity-t1::after{ content:""; position:absolute; inset:-20%; background:conic-gradient(from 0deg, rgba(255,255,255,.0) 0 40%, rgba(255,255,255,.45) 50%, rgba(255,255,255,.0) 60%); transform:translateX(-60%); animation:shineLoop 3.2s linear infinite; mix-blend-mode:overlay; }
-        .rarity-t2{ border-color:var(--t2-border); background:linear-gradient(145deg,var(--t2-from),var(--t2-to)); color:#1f2937; box-shadow:0 0 0 1px var(--t2-border) inset, 0 6px 22px var(--t2-glow); position:relative; }
+    .rarity-t2{ --rim:#fbbf24; --rim-weak:rgba(251,191,36,.22); border-color:var(--t2-border); background:linear-gradient(145deg,var(--t2-from),var(--t2-to)); color:#1f2937; box-shadow:0 0 0 1px var(--t2-border) inset, 0 8px 26px var(--t2-glow); position:relative; }
+    .rarity-t2 .achv-icon{ box-shadow:inset 0 0 0 1px rgba(255,255,255,.7), 0 0 0 1px rgba(251,191,36,.22), 0 8px 14px rgba(251,191,36,.22); }
         .rarity-t2::after{ content:""; position:absolute; inset:-10%; background:radial-gradient(circle at 20% -10%, rgba(255,255,255,.7), rgba(255,255,255,0) 40%), radial-gradient(circle at 80% 0%, rgba(255,255,255,.5), rgba(255,255,255,0) 35%); animation:glint 4.2s ease-in-out infinite; mix-blend-mode:overlay; }
-        .rarity-t3{ border-color:var(--t3-border); background:linear-gradient(145deg,var(--t3-from),var(--t3-to)); color:#fff; box-shadow:0 0 0 1px var(--t3-border) inset, 0 4px 16px var(--t3-glow); }
-        .rarity-t4{ border-color:var(--t4-border); background:linear-gradient(145deg,var(--t4-from),var(--t4-to)); color:#0f172a; box-shadow:0 0 0 1px var(--t4-border) inset, 0 2px 10px var(--t4-glow); }
+    .rarity-t3{ --rim:#c4b5fd; --rim-weak:rgba(196,181,253,.32); border-color:var(--t3-border); background:linear-gradient(145deg,var(--t3-from),var(--t3-to)); color:#0f172a; box-shadow:0 0 0 1px var(--t3-border) inset, 0 8px 20px var(--t3-glow); }
+    .rarity-t4{ --rim:#93c5fd; --rim-weak:rgba(147,197,253,.30); border-color:var(--t4-border); background:linear-gradient(145deg,var(--t4-from),var(--t4-to)); color:#0f172a; box-shadow:0 0 0 1px var(--t4-border) inset, 0 6px 16px var(--t4-glow); }
+        .rarity-t3 .achv-icon{ box-shadow:inset 0 0 0 1px rgba(255,255,255,.7), 0 0 0 1px rgba(139,92,246,.18), 0 6px 12px rgba(139,92,246,.18); }
+        .rarity-t4 .achv-icon{ box-shadow:inset 0 0 0 1px rgba(255,255,255,.7), 0 0 0 1px rgba(59,130,246,.16), 0 5px 10px rgba(59,130,246,.16); }
+        
+        /* Subtle animated glow for high tiers */
+        .rarity-t1 .achv-icon, .rarity-t2 .achv-icon{ animation:pulseGlow 3.6s ease-in-out infinite; }
+        @keyframes pulseGlow{ 0%,100%{ filter:brightness(1) saturate(1); } 50%{ filter:brightness(1.06) saturate(1.08); } }
         @keyframes shineLoop{ 0%{ transform:translateX(-60%) rotate(0deg);} 100%{ transform:translateX(60%) rotate(360deg);} }
         @keyframes glint{ 0%,100%{ opacity:.55; } 50%{ opacity:.85; } }
-        @media (prefers-reduced-motion: reduce){ .rarity-t1::after, .rarity-t2::after{ animation:none !important; opacity:.6; } }
+        @media (prefers-reduced-motion: reduce){
+            .rarity-t1::after, .rarity-t2::after{ animation:none !important; opacity:.6; }
+            .rarity-t1 .achv-icon, .rarity-t2 .achv-icon{ animation:none !important; }
+        }
         /* Toast 色系對齊（不改結構，僅以 .rarity-t* 著色）*/
-        .achievement-toast{ border-radius:.75rem; }
+        .achievement-toast{ position:relative; border-radius:.75rem; }
+        .achievement-toast::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--rim, rgba(0,0,0,.08)); border-radius:.75rem 0 0 .75rem; opacity:.8; }
         .achievement-toast.rarity-t1{ border-color:var(--t1-border); box-shadow:0 12px 24px var(--t1-glow), 0 0 0 1px var(--t1-border) inset; }
         .achievement-toast.rarity-t2{ border-color:var(--t2-border); box-shadow:0 10px 20px var(--t2-glow), 0 0 0 1px var(--t2-border) inset; }
-        .achievement-toast.rarity-t3{ border-color:var(--t3-border); box-shadow:0 8px 16px var(--t3-glow), 0 0 0 1px var(--t3-border) inset; }
-        .achievement-toast.rarity-t4{ border-color:var(--t4-border); box-shadow:0 6px 12px var(--t4-glow), 0 0 0 1px var(--t4-border) inset; }
+        .achievement-toast.rarity-t3{ border-color:var(--t3-border); box-shadow:0 7px 14px var(--t3-glow), 0 0 0 1px var(--t3-border) inset; }
+        .achievement-toast.rarity-t4{ border-color:var(--t4-border); box-shadow:0 5px 12px var(--t4-glow), 0 0 0 1px var(--t4-border) inset; }
+        /* Shared mode-switch tabs look (use in full leaderboard and achievements) */
+    .mode-switch { display:inline-flex; background:#f1f5f9; padding:4px; border-radius:999px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.05); gap:6px; }
+    .mode-switch button { position:relative; flex:1 1 auto; padding:.45rem 1rem; font-size:.75rem; font-weight:600; border-radius:999px; color:#475569; transition:color .25s, background .25s, box-shadow .25s; }
+        .mode-switch button[aria-pressed="true"], .mode-switch button[aria-selected="true"] { background:linear-gradient(90deg,#6366f1,#818cf8); color:#fff; box-shadow:0 4px 10px -2px rgba(99,102,241,.45); }
+        /* Achievements catalog section header & divider */
+        .achv-section{ position:relative; }
+        .achv-section-header{ display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.25rem .25rem .35rem; }
+        .achv-section-header .title{ display:flex; align-items:center; gap:.5rem; min-width:0; }
+        .achv-section-header .count{ font-size:.7rem; font-weight:800; color:#64748b; white-space:nowrap; }
+        .achv-section .soft-divider{ height:1px; width:100%; background:linear-gradient(90deg, rgba(0,0,0,.08), rgba(0,0,0,.02)); border-radius:999px; }
+        .achv-grid{ display:grid; grid-template-columns:repeat(1,minmax(0,1fr)); gap:0.75rem; }
+        @media (min-width:640px){ .achv-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+        @media (min-width:1024px){ .achv-grid{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+        /* T1 edge sweep (very subtle) */
+        .rarity-t1 .edge-sweep{ position:absolute; inset:-18% -30%; transform:rotate(8deg) translateX(-65%); background:linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.38) 50%, rgba(255,255,255,0) 100%); mix-blend-mode:screen; pointer-events:none; opacity:.85; animation:edgeSweep 6.2s linear infinite; }
+        @keyframes edgeSweep{ 0%{ transform:rotate(8deg) translateX(-68%);} 100%{ transform:rotate(8deg) translateX(68%);} }
+        @media (prefers-reduced-motion: reduce){ .rarity-t1 .edge-sweep{ animation:none; opacity:.4; } }
+        /* Achievements modal: color-code tabs by category */
+        #achievementsModal .mode-switch button[data-achv-cat="classic"][aria-pressed="true"],
+        #achievementsModal .mode-switch button[data-achv-cat="classic"][aria-selected="true"]{
+            background:linear-gradient(90deg,#f43f5e,#ef4444); /* rose/red */
+            box-shadow:0 4px 10px -2px rgba(244,63,94,.45);
+        }
+        #achievementsModal .mode-switch button[data-achv-cat="survival"][aria-pressed="true"],
+        #achievementsModal .mode-switch button[data-achv-cat="survival"][aria-selected="true"]{
+            background:linear-gradient(90deg,#10b981,#22c55e); /* emerald/green */
+            box-shadow:0 4px 10px -2px rgba(16,185,129,.45);
+        }
+        #achievementsModal .mode-switch button[data-achv-cat="all"][aria-pressed="true"],
+        #achievementsModal .mode-switch button[data-achv-cat="all"][aria-selected="true"]{
+            background:linear-gradient(90deg,#64748b,#94a3b8); /* neutral slate */
+            box-shadow:0 4px 10px -2px rgba(100,116,139,.35);
+        }
         /* 舊 medal class 相容（保持原本最少變動）：將 tierN 映射為最常見藍色外觀，後續卡片改用 achv-card + rarity-tX */
         #achievementGrid .achievement-medal{ min-height:78px; }
         @keyframes pulseFun { 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-2px);} }
@@ -4811,7 +5441,7 @@
                                     <li><span class="font-medium">題型變化：</span> 單局時間 0–139 / 140–279 / 280s+ 三階段調整書卷分布與混淆度（不受連擊回落）。</li>
                                     <li><span class="font-medium">經文罕見度：</span> 最近 8 題均速 ≤5s 偏冷門；≤8s 混合；其餘常見（速度驅動，獨立）。</li>
                                     <li><span class="font-medium">錯誤緩衝：</span> 掉連擊只影響配對；時間&罕見度不重置，避免連鎖挫折。</li>
-                                    <li><span class="font-medium">觀察期：</span> 前 3 題僅蒐集速度，不調整罕見度。</li>
+                                    <li><span class="font-medium">觀察期：</span>前 2 關僅蒐集速度，不調整罕見度。</li>
                                 </ul>
                             </div>
                         </div>
@@ -4953,13 +5583,14 @@
                     </div>
                 </div>
                 <p id="achievementsModalDesc" class="sr-only">此視窗列出所有成就的名稱與解鎖條件，僅供參考。</p>
-                <div class="relative z-10 mt-1 flex-1 overflow-y-auto" style="min-height:0; -webkit-overflow-scrolling:touch;">
-                    <div id="achvCatalogTabs" class="flex flex-wrap gap-2 mb-3 text-sm font-bold">
-                        <button data-achv-cat="all" class="px-3 py-1 rounded-full bg-purple-600 text-white shadow">全部 <span class="achv-cat-count" data-role="count"></span></button>
-                        <button data-achv-cat="classic" class="px-3 py-1 rounded-full bg-purple-100 text-purple-700">闖關 <span class="achv-cat-count" data-role="count"></span></button>
-                        <button data-achv-cat="survival" class="px-3 py-1 rounded-full bg-purple-100 text-purple-700">生存 <span class="achv-cat-count" data-role="count"></span></button>
+                <div class="relative z-10 mt-1 flex-1 overflow-y-auto overflow-x-hidden" style="min-height:0; -webkit-overflow-scrolling:touch;">
+                    <div id="achvCatalogTabs" class="mode-switch mb-3" role="tablist" aria-label="勳章分類切換">
+                        <button type="button" data-achv-cat="all" class="focus:outline-none" role="tab" aria-pressed="true" aria-selected="true">全部 <span class="achv-cat-count" data-role="count"></span></button>
+                        <button type="button" data-achv-cat="any" class="focus:outline-none" role="tab" aria-pressed="false" aria-selected="false">共通 <span class="achv-cat-count" data-role="count"></span></button>
+                        <button type="button" data-achv-cat="classic" class="focus:outline-none" role="tab" aria-pressed="false" aria-selected="false">闖關 <span class="achv-cat-count" data-role="count"></span></button>
+                        <button type="button" data-achv-cat="survival" class="focus:outline-none" role="tab" aria-pressed="false" aria-selected="false">生存 <span class="achv-cat-count" data-role="count"></span></button>
                     </div>
-                    <div id="achievementsCatalog" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-2"></div>
+                    <div id="achievementsCatalog" class="space-y-2 pb-2" style="overflow-x:hidden;"></div>
                 </div>
             </div>
         </div>
@@ -5000,9 +5631,7 @@
 
     <!-- 遊戲畫面 -->
     <div id="gameScreen" class="min-h-screen p-4 hidden bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-        <div id="replayModeBadge" class="hidden mb-2 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-200 text-yellow-900 shadow-sm">
-            <span>🔁 同題重播 (難度凍結)</span>
-        </div>
+        <!-- 重播指示移入遊戲資訊卡，移除舊的獨立角標 -->
         <!-- 遊戲背景裝飾 -->
     <div id="difficultyTintOverlay" class=""></div>
     <div class="fixed inset-0 pointer-events-none z-0">
@@ -5016,7 +5645,7 @@
         
     <!-- 遊戲主要資訊區 -->
         <div class="max-w-7xl mx-auto mb-6 relative z-10">
-            <div id="gameHeaderLayout" class="flex items-start justify-between gap-6">
+            <div id="gameHeaderLayout" class="flex flex-col items-stretch gap-4 md:flex-row md:items-start md:justify-between md:gap-6">
                 <!-- 左側：進度條區域 -->
                 <div id="levelProgressWrapper" class="flex-1 space-y-4">
                     <!-- 關卡進度條 -->
@@ -5048,7 +5677,7 @@
                 </div>
 
                 <!-- 中間：分數顯示 -->
-                <div id="scoreCardWrapper" class="cute-card bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 p-8 text-center min-w-[320px] border-2 border-slate-600 shadow-2xl relative overflow-hidden">
+                <div id="scoreCardWrapper" class="cute-card bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 p-8 text-center min-w-[320px] border-2 border-slate-600 shadow-2xl relative overflow-hidden mx-auto">
                     <!-- 分數背景裝飾 -->
                     <div class="absolute inset-0 bg-gradient-to-br from-slate-700/40 to-slate-800/40 rounded-3xl"></div>
                     <div class="relative z-10">
@@ -5093,8 +5722,8 @@
                 </div>
                 
                 <!-- 右側：遊戲資訊/題目進度卡片（裝備課程時顯示題目進度） -->
-                <div id="questionProgressWrapper" class="shrink-0 w-[360px] hidden md:block">
-                    <div id="questionProgressCard" class="cute-card bg-gradient-to-r from-blue-50 to-cyan-50 p-3 border-2 border-blue-200 shadow-xl">
+                <div id="questionProgressWrapper" class="flex-1 hidden md:flex md:justify-end">
+                    <div id="questionProgressCard" class="w-[360px] cute-card bg-gradient-to-r from-blue-50 to-cyan-50 p-3 border-2 border-blue-200 shadow-xl">
                         <div class="flex items-start gap-3">
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 mb-1">
@@ -5243,7 +5872,7 @@
         </div>
 
         <!-- 結算視窗 -->
-    <div id="playerNameModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-labelledby="playerNameModalTitle" aria-describedby="playerNameModalDesc" tabindex="-1">
+    <div id="playerNameModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[200]" style="z-index:200;" role="dialog" aria-modal="true" aria-labelledby="playerNameModalTitle" aria-describedby="playerNameModalDesc" tabindex="-1">
             <div class="cute-card bg-gradient-to-br from-white via-blue-50 to-purple-50 p-6 md:p-8 max-w-2xl mx-4 text-center rounded-3xl border-2 border-purple-200 shadow-2xl max-h-[90vh]">
                 <button type="button" class="absolute top-3 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold" data-close-modal="playerNameModal" aria-label="關閉結算視窗 (Esc)">&times;</button>
                 <div class="modal-body" style="overflow-y:auto; max-height: calc(90vh - 84px); padding-right: 0.25rem;"> 
@@ -5333,6 +5962,20 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- 成就條件詳情 Modal（堆疊於結算視窗之上） -->
+    <div id="achievementDetailModal" class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-[12030]" style="z-index:12030;" role="dialog" aria-modal="true" aria-labelledby="achievementDetailTitle" aria-describedby="achievementDetailDesc" tabindex="-1">
+        <div id="achievementDetailCard" class="cute-card achv-card relative bg-white p-5 md:p-6 max-w-lg mx-4 rounded-3xl shadow-2xl" tabindex="0" data-autofocus>
+            <div class="flex items-start gap-3 mb-3">
+                <div id="achievementDetailIcon" class="achv-icon"></div>
+                <div class="min-w-0 flex-1">
+                    <h3 id="achievementDetailTitle" class="text-xl font-extrabold text-gray-900">成就名稱</h3>
+                    <div id="achievementDetailMeta" class="text-xs font-bold text-gray-600 mt-1"></div>
+                </div>
+            </div>
+            <div id="achievementDetailDesc" class="text-sm text-gray-700">—</div>
+        </div>
     </div>
 
     <script>
@@ -8132,6 +8775,17 @@
                     try { window.openModal && window.openModal('playerNameModal'); } catch(_) { modal.classList.remove('hidden'); }
                     // attach record object for later use
                     modal.dataset.currentRecord = JSON.stringify(record);
+                    // If this saved record has achievements, populate UI accordingly
+                    try {
+                        if (Array.isArray(record.achievements)) {
+                            // temporarily set unlocked list and render
+                            const prev = gameState.unlockedAchievements;
+                            gameState.unlockedAchievements = record.achievements.map(a=>({ id:a.id, name:a.name, tier:a.tier, mode:a.mode }));
+                            try { renderAchievementsIntoModal(); } catch(_) {}
+                            // restore to avoid leaking into gameplay state
+                            gameState.unlockedAchievements = prev;
+                        }
+                    } catch(_) {}
                     // 不再手動隱藏/還原 full leaderboard，改由 modal stack 處理
                 }
             };
@@ -8226,7 +8880,7 @@
                 // remember the original record so end-of-replay modal can reuse its static fields (closing verse, date/time)
                 gameState.replaySourceRecord = record;
                 console.log('[REPLAY] initialized replay flags', { skipLeaderboardOnComplete: gameState.skipLeaderboardOnComplete, replaySourceRecordId: gameState.replaySourceRecord && gameState.replaySourceRecord.id });
-                try { const badge = document.getElementById('replayModeBadge'); if (badge) badge.classList.remove('hidden'); } catch(_) {}
+                // 改為於遊戲資訊卡顯示重播狀態，移除舊有角標切換
                 // Diagnostic: verify snapshot hash integrity if available (best-effort, non-security)
                 try {
                     if (gameState._replaySnapshotHash) {
@@ -8290,6 +8944,12 @@
                 gameState.firstNoScoreMissToastShown = false;
                 // Reset per-level failed counter for the replay session
                 gameState.levelFailedCount = 0;
+                // Reset combo state at the beginning of replay
+                gameState.combo = 0;
+                gameState.comboProgress = 0;
+                gameState.comboTotalBonus = 0;
+                try { if (gameState.comboDecayTimer) { clearTimeout(gameState.comboDecayTimer); gameState.comboDecayTimer = null; } } catch(_) {}
+                try { updateComboUI(true); } catch(_) {}
 
                 // 初始化題目相關 UI
                 updateGameUI();
@@ -10084,7 +10744,7 @@
             gameState._adaptiveDisabled = false;
             gameState._forcedChapterOrder = null;
             gameState._sessionQuestions = [];
-            try { const badge = document.getElementById('replayModeBadge'); if (badge) badge.classList.add('hidden'); } catch(_) {}
+            // 改為於遊戲資訊卡顯示重播狀態，移除舊有角標切換
             console.log('[GAME] actuallyStartGame: cleared replay flags', { skipLeaderboardOnComplete: gameState.skipLeaderboardOnComplete, replaySourceRecord: gameState.replaySourceRecord });
             // If the player-name modal was left in viewing mode, reset it so normal save flow works
             try {
@@ -13044,21 +13704,7 @@
             function renderAchievementsIntoModal(){
                 try {
                     const box = document.getElementById('achievementBox'); if(!box) return;
-                    // Prefer saved achievements when viewing a record from leaderboard
-                    let list = gameState.unlockedAchievements || [];
-                    try {
-                        const modal = document.getElementById('playerNameModal');
-                        if (modal && modal.dataset.viewingRecord === 'true' && modal.dataset.currentRecord) {
-                            const rec = JSON.parse(modal.dataset.currentRecord || '{}');
-                            if (Array.isArray(rec.achievementsUnlocked) && rec.achievementsUnlocked.length) {
-                                // Map ids -> defs for consistent rendering (name/tier/icon)
-                                const defs = (AchievementManager && AchievementManager.defs) ? AchievementManager.defs : [];
-                                const byId = Object.create(null);
-                                defs.forEach(d=>{ byId[d.id]=d; });
-                                list = rec.achievementsUnlocked.map(id => byId[id]).filter(Boolean);
-                            }
-                        }
-                    } catch(_) {}
+                    const list = gameState.unlockedAchievements || [];
                     const grid = document.getElementById('achievementGrid');
                     const empty = document.getElementById('achievementHintEmpty');
                     grid.innerHTML='';
@@ -13070,22 +13716,204 @@
                         const tb=(typeof getDisplayTier==='function')?getDisplayTier(b):4;
                         return ta - tb || a.name.localeCompare(b.name,'zh-Hant');
                     });
-                    sorted.forEach(a=>{
+                    sorted.forEach((a, i)=>{
                         const dt = (typeof getDisplayTier==='function') ? getDisplayTier(a) : (5 - Math.max(1, Math.min(4, a.tier||4)));
                         const card=document.createElement('div');
-                        // 緊湊卡片：僅圖示與名稱，移除右上角模式與點擊彈窗
-                        card.className=`achv-card rarity-t${dt} p-2 flex flex-col items-center gap-1 select-none`;
-                        const icon=document.createElement('div'); icon.className='achv-icon text-purple-700';
+                        // 緊湊卡片：圖示與名稱；可點擊開啟詳情（置於結算之上）
+                        card.className=`achv-card rarity-t${dt} p-2 flex flex-col items-center gap-1 select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400 rounded-xl`;
+                        // 保存顯示等級與索引，供進場動畫使用
+                        try { card.dataset.dt = String(dt); card.dataset.idx = String(i); } catch(_) {}
+                        // 注入飾層
+                        try { window.__injectAchvDecor(card); } catch(_) {}
+                        // T1 邊緣掃光
+                        if (dt===1) {
+                            try { if (!card.querySelector(':scope > .edge-sweep')){ const es=document.createElement('div'); es.className='edge-sweep'; card.appendChild(es); } } catch(_) {}
+                        }
+                        card.setAttribute('role','button');
+                        card.setAttribute('tabindex','0');
+                        card.setAttribute('aria-label', `查看成就「${a.name}」詳情`);
+                        const icon=document.createElement('div'); icon.className='achv-icon';
                         try { icon.innerHTML = (typeof getAchievementIcon==='function') ? getAchievementIcon(a) : '★'; } catch(_) { icon.textContent='★'; }
                         // 放大圖示一些以凸顯精緻感
                         try { icon.querySelector('svg')?.classList?.add('w-7','h-7'); } catch(_) {}
                         const title=document.createElement('div'); title.className='achv-title text-center text-[12px] font-extrabold tracking-tight'; title.textContent=a.name;
                         card.appendChild(icon); card.appendChild(title);
+                        // 互動：點擊 / Enter / Space 打開詳情
+                        const openDetail = () => { try { if (typeof window.openAchievementDetail==='function') window.openAchievementDetail(a.id); } catch(_) {} };
+                        card.addEventListener('click', openDetail);
+                        card.addEventListener('keydown', (ev)=>{
+                            if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openDetail(); }
+                        });
                         grid.appendChild(card);
                     });
+                    // 在卡片渲染完成後，觸發一次性進場動畫
+                    try {
+                        if (typeof window.animateSettlementAchievements === 'function') {
+                            // 以最小延遲確保 DOM 已繪製
+                            setTimeout(()=>{ try { window.animateSettlementAchievements(); } catch(_) {} }, 0);
+                        }
+                    } catch(_) {}
                 } catch(e){ console.warn('renderAchievementsIntoModal error', e); }
             }
-            // 結算視窗不再提供彈出視窗；細節改為其他介面呈現（提案見下）
+            // 結算視窗成就卡片：依稀有度進場動畫（淡入 + 上飛）
+            if (!window.animateSettlementAchievements) {
+                window.animateSettlementAchievements = function(){
+                    try {
+                        const grid = document.getElementById('achievementGrid');
+                        if (!grid) return;
+                        const cards = Array.from(grid.querySelectorAll('.achv-card'));
+                        if (!cards.length) return;
+                        // 尊重使用者「減少動態效果」
+                        try { if (typeof getReducedMotion === 'function' && getReducedMotion()) { cards.forEach(el=>{ el.style.opacity=''; el.style.transform=''; el.style.transition=''; el.style.willChange=''; }); return; } } catch(_) {}
+                        // 稀有度對應：越稀有，位移更大、時間略長
+                        function cfgFor(dt){
+                            const t = parseInt(dt || '4', 10) || 4;
+                            switch (t) {
+                                case 1: return { dy: 34, dur: 560, scale: 0.96 };
+                                case 2: return { dy: 28, dur: 520, scale: 0.97 };
+                                case 3: return { dy: 22, dur: 480, scale: 0.985 };
+                                default: return { dy: 16, dur: 440, scale: 0.99 };
+                            }
+                        }
+                        const stagger = 36; // 毫秒，逐一錯開
+                        // 設定初始狀態（無轉場），下一幀再套上 transition 與目標狀態
+                        cards.forEach((card, i)=>{
+                            const dt = card.dataset && card.dataset.dt ? parseInt(card.dataset.dt,10) : (/rarity-t(\d)\b/.exec(card.className||'')?.[1]|0) || 4;
+                            const cfg = cfgFor(dt);
+                            // 初始：隱藏並位移
+                            try {
+                                card.style.transition = 'none';
+                                card.style.opacity = '0';
+                                card.style.transform = `translateY(${cfg.dy}px) scale(${cfg.scale})`;
+                                card.style.willChange = 'transform, opacity';
+                            } catch(_) {}
+                        });
+                        // 兩次 rAF 確保前一狀態布局生效
+                        requestAnimationFrame(()=>{
+                            requestAnimationFrame(()=>{
+                                cards.forEach((card, i)=>{
+                                    const dt = card.dataset && card.dataset.dt ? parseInt(card.dataset.dt,10) : (/rarity-t(\d)\b/.exec(card.className||'')?.[1]|0) || 4;
+                                    const cfg = cfgFor(dt);
+                                    const delay = Math.min(400, i * stagger);
+                                    try {
+                                        card.style.transition = `transform ${cfg.dur}ms cubic-bezier(.22,.9,.3,1), opacity ${Math.max(280, Math.round(cfg.dur*0.85))}ms ease-out`;
+                                        card.style.transitionDelay = `${delay}ms`;
+                                        card.style.opacity = '1';
+                                        card.style.transform = 'translateY(0) scale(1)';
+                                        // 清理 will-change 以免長期佔用資源
+                                        const cleanup = ()=>{ try { card.style.willChange=''; card.removeEventListener('transitionend', cleanup); } catch(_) {} };
+                                        card.addEventListener('transitionend', cleanup);
+                                    } catch(_) {}
+                                });
+                            });
+                        });
+                    } catch(_) { /* ignore */ }
+                }
+            }
+            // 結算視窗：點擊勳章開啟「成就詳情」子視窗
+
+            // 成就詳情渲染 & 開啟
+            ;(function(){
+                const detailId = 'achievementDetailModal';
+                function $(id){ return document.getElementById(id); }
+                function elIcon(){ return $('achievementDetailIcon'); }
+                function elTitle(){ return $('achievementDetailTitle'); }
+                function elMeta(){ return $('achievementDetailMeta'); }
+                function elDesc(){ return $('achievementDetailDesc'); }
+                
+
+                function getDefById(id){ try { return (AchievementManager && AchievementManager.defs || []).find(d=>d.id===id) || null; } catch(_) { return null; } }
+                function esc(str){ return String(str).replace(/[&<>"']/g, s=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[s])); }
+                function tierBadge(t){
+                    // Force black text for badges regardless of tier
+                    const map={
+                        1:{text:'T1',cls:'bg-amber-50 text-black border-amber-200'},
+                        2:{text:'T2',cls:'bg-purple-50 text-black border-purple-200'},
+                        3:{text:'T3',cls:'bg-indigo-50 text-black border-indigo-200'},
+                        4:{text:'T4',cls:'bg-gray-100 text-black border-gray-200'}
+                    };
+                    const x = map[t] || map[4];
+                    return `<span class="inline-flex items-center px-2 py-0.5 text-[11px] font-bold rounded-md border ${x.cls}">${x.text}</span>`;
+                }
+                function modeBadge(mode){
+                    const map={ classic:{text:'闖關',cls:'bg-rose-50 text-rose-700 border-rose-200'}, survival:{text:'生存',cls:'bg-emerald-50 text-emerald-700 border-emerald-200'}, any:{text:'共通',cls:'bg-gray-50 text-gray-700 border-gray-200'} };
+                    const x = map[mode] || map.any; return `<span class="inline-flex items-center px-2 py-0.5 text-[11px] font-bold rounded-md border ${x.cls}">${x.text}</span>`;
+                }
+                function labelKey(k){
+                    const map={
+                        answeredQuestions:'完成題數', totalQuestions:'總題數', correctCount:'答對題數', wrongCount:'答錯題數',
+                        accuracy:'正確率', avgAnswerMs:'平均作答', fastestAnswerMs:'最快作答', slowestAnswerMs:'最慢作答',
+                        longestStreak:'最高連擊', maxConsecutivePerfect:'連續完美層數', levelsPerfectCount:'完美層數',
+                        hintsUsed:'使用提示', survivalDuration:'存活時間', maxTime:'時間峰值', maxTimeOverStart:'超過起始值峰值', timeStdDev:'時間標準差',
+                        ultraFastCorrectMax:'極速連擊峰值'
+                    };
+                    return map[k] || k;
+                }
+                function fmt(metrics, key){
+                    if (!metrics) return '-'; const v = metrics[key]; if (v==null) return '-';
+                    if (key==='accuracy') return Math.round((v||0)*100) + '%';
+                    if (/Ms$/.test(key)) return (typeof v==='number'? (v/1000).toFixed(2): v) + ' 秒';
+                    if (/time|Time|Duration|Seconds/i.test(key)) return (typeof v==='number'? v.toFixed(0): v) + ' 秒';
+                    return String(v);
+                }
+                function humanize(rule, m){
+                    if (!rule) return '';
+                    try {
+                        if (rule.type==='metric'){
+                            const my = fmt(m, rule.field);
+                            return `本局「${labelKey(rule.field)}」 ${rule.op} ${rule.value}（你的：${esc(my)}）`;
+                        } else if (rule.type==='and' && Array.isArray(rule.children)){
+                            return rule.children.map(r=> humanize(r,m)).filter(Boolean).join('\n');
+                        } else if (rule.type==='or' && Array.isArray(rule.children)){
+                            const parts = rule.children.map(r=> humanize(r,m)).filter(Boolean);
+                            return ['滿足以下任一條件：', ...parts.map(p=>'・'+p)].join('\n');
+                        } else if (rule.type==='custom'){
+                            return '';
+                        }
+                    } catch(_) { return ''; }
+                    return '';
+                }
+                function setIcon(def){
+                    const box = elIcon();
+                    try {
+                        box.innerHTML = (typeof getAchievementIcon==='function')? getAchievementIcon(def) : '🏅';
+                        // Make SVG icon slightly larger to match settlement cards
+                        box.querySelector('svg')?.classList?.add('w-7','h-7');
+                    } catch(_) { box.textContent='🏅'; }
+                }
+                function openDetail(def){
+                    if (!def) return;
+                    setIcon(def);
+                    elTitle().textContent = def.name || def.title || def.id;
+                    const dt = (typeof getDisplayTier==='function')? getDisplayTier(def) : (5 - Math.max(1, Math.min(4, def.tier||4)));
+                    elMeta().innerHTML = `${tierBadge(dt)} <span class="mx-1">·</span> ${modeBadge(def.mode||'any')}`;
+                    elDesc().textContent = def.desc || def.description || '';
+                    // 依稀有度為詳情卡上色
+                    try {
+                        const card = document.getElementById('achievementDetailCard');
+                        if (card) {
+                            card.classList.remove('rarity-t1','rarity-t2','rarity-t3','rarity-t4');
+                            card.classList.add(`rarity-t${dt}`);
+                            // 注入飾層
+                            try { window.__injectAchvDecor(card); } catch(_) {}
+                            // T1 邊緣掃光
+                            if (dt===1) {
+                                try { if (!card.querySelector(':scope > .edge-sweep')){ const es=document.createElement('div'); es.className='edge-sweep'; card.appendChild(es); } } catch(_) {}
+                            }
+                        }
+                    } catch(_) {}
+                    try {
+                        // Ensure detail modal is opened as top-most
+                        openModal(detailId);
+                        const detail = document.getElementById(detailId);
+                        if (detail) detail.style.zIndex = '12030';
+                    } catch(_) {
+                        const modal=$(detailId);
+                        if (modal) { modal.classList.remove('hidden'); modal.style.zIndex='12030'; }
+                    }
+                }
+                window.openAchievementDetail = function(id){ const def = getDefById(id); openDetail(def); };
+            })();
         
     // 結束後：依是否為排行模式計算名次並顯示對應結算視窗
     // After completion: compute potential rank and show end modal
@@ -13121,13 +13949,20 @@
                     // 補充 SFX 觸發標記
                     if (m) m.__sfxFlags = gameState.__sfxFlags;
                     const mode = (gameState.playMode === 'survival') ? 'survival' : 'classic';
-                    const unlocked = AchievementManager.evaluateAll(m || {}, {mode, isReplay:false});
-                    gameState.unlockedAchievements = unlocked;
+                    // If a prepared gameRecord already carries achievements, reuse it; otherwise evaluate now.
+                    let unlocked = (gameRecord && Array.isArray(gameRecord.achievements)) ? gameRecord.achievements : null;
+                    if (!unlocked) unlocked = AchievementManager.evaluateAll(m || {}, {mode, isReplay:false});
+                    gameState.unlockedAchievements = unlocked || [];
                     gameState.finalMetrics = m;
-                    try { if(typeof updateAchievementTabCounts==='function') updateAchievementTabCounts(unlocked); } catch(_){}
-                    try { logAchievementRun(m, unlocked, mode); } catch(_){}
-                    // Optional: 上傳到 Supabase 以利採樣（近 100 局）
-                    try { if (typeof sendAchievementRunToSupabase==='function') sendAchievementRunToSupabase(m, unlocked, mode); } catch(_){}
+                    try { if(typeof updateAchievementTabCounts==='function') updateAchievementTabCounts(unlocked); } catch(_){ }
+                    try { logAchievementRun(m, unlocked, mode); } catch(_){ }
+                    // Optional: 上傳到 Supabase 以利採樣（近 100 局）。
+                    // 若稍後會線上儲存分數，會在成功後再補上 score_id 鍊結；否則先紀錄不含 score_id 的資料。
+                    try {
+                        const willOnlineSave = !!(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url && window.SUPABASE_CONFIG.anonKey && !gameState.skipLeaderboardOnComplete);
+                        if (!willOnlineSave && typeof sendAchievementRunToSupabase==='function') sendAchievementRunToSupabase(m, unlocked, mode);
+                        else window.__pendingAchvTelemetry = { metrics: m, unlocked, mode };
+                    } catch(_){ }
                 } else {
                     gameState.unlockedAchievements = [];
                 }
@@ -14463,6 +15298,14 @@
                 // persist chosen closing verse so record view uses the same verse as game end
                 closingVerse: gameState.closingVerse || null,
                 closingVerseRef: gameState.closingVerseRef || null,
+                // persist unlocked achievements for this run (ids + minimal metadata)
+                achievements: (function(){
+                    try {
+                        const list = Array.isArray(gameState.unlockedAchievements) ? gameState.unlockedAchievements : [];
+                        // store only stable fields to keep payload small
+                        return list.map(a=>({ id: a.id, name: a.name, tier: a.tier, mode: a.mode }));
+                    } catch(_) { return []; }
+                })(),
                 // questionSnapshot v2/v3 builder:
                 // v2 = single-level (backward compatibility)
                 // v3 = multi-level sequence (levels[])
@@ -14510,14 +15353,6 @@
                     }
                 })()
             };
-            // persist achievements unlocked this run (IDs only for compact storage)
-            try {
-                if (Array.isArray(gameState.unlockedAchievements) && gameState.unlockedAchievements.length) {
-                    gameRecord.achievementsUnlocked = gameState.unlockedAchievements.map(a => a && a.id).filter(Boolean);
-                } else {
-                    gameRecord.achievementsUnlocked = [];
-                }
-            } catch(_) { gameRecord.achievementsUnlocked = []; }
             // attach local anti-cheat signature (non-authoritative)
             try { const sig = __makeSignature(gameRecord); gameRecord.sig_ts = sig.ts; gameRecord.sig_hash = sig.hash; } catch(_) {}
             
@@ -15421,8 +16256,10 @@
             } else {
                 // 闖關/練習/生存：動態難度現況（顯示三軸）
                 try { const t = document.getElementById('gameInfoTitle'); if (t) t.textContent = '遊戲資訊'; } catch(_) {}
+                const replayPill = (gameState && (gameState._replaySequence || gameState.replaySourceRecord)) ? `<div class="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-yellow-200 text-yellow-900 border border-yellow-300">🔁 同題重播 (難度凍結)</div>` : '';
                 el.innerHTML = `
                     <div class="space-y-1">
+                        ${replayPill}
                         <div class="flex flex-wrap gap-x-6 gap-y-1"><span class="whitespace-nowrap">配對模式：${diffLabel}</span><span class="whitespace-nowrap">型態：${pairText}</span></div>
                         <div class="flex flex-wrap gap-x-4 gap-y-1 items-center">
                             <span class="whitespace-nowrap">題型階段：${patternStageLabel}</span>
@@ -15566,14 +16403,6 @@
                 timeReward: (typeof gameState.timeReward === 'number') ? gameState.timeReward : null,
                 usedHintsCount: (gameState.usedHints ? gameState.usedHints.size : 0)
             };
-            // attach unlocked achievements (IDs) for this run if available
-            try {
-                if (Array.isArray(gameState.unlockedAchievements) && gameState.unlockedAchievements.length) {
-                    gameRecord.achievementsUnlocked = gameState.unlockedAchievements.map(a => a && a.id).filter(Boolean);
-                } else {
-                    gameRecord.achievementsUnlocked = [];
-                }
-            } catch(_) { gameRecord.achievementsUnlocked = []; }
             // attach signature for local anti-cheat
             try { const sig = __makeSignature(gameRecord); gameRecord.sig_ts = sig.ts; gameRecord.sig_hash = sig.hash; } catch(_) {}
             // 儲存題組快照（最小必要資訊以便重播）
@@ -15752,23 +16581,6 @@
                                         card.setAttribute('role','button');
                                         const dateText = record.date || '';
                                         const elapsedText = record.elapsed || record.time || '';
-                                        // Build achievements badge strip (up to 4 icons)
-                                        let achHTML = '';
-                                        try {
-                                            const achIds = Array.isArray(record.achievementsUnlocked) ? record.achievementsUnlocked : [];
-                                            if (achIds.length) {
-                                                const defs = (AchievementManager && AchievementManager.defs) ? AchievementManager.defs : [];
-                                                const byId = Object.create(null); defs.forEach(d=>byId[d.id]=d);
-                                                const icons = achIds.slice(0,4).map(id => {
-                                                    const def = byId[id]; if (!def) return '';
-                                                    const icon = (typeof getAchievementIcon==='function') ? getAchievementIcon(def) : '★';
-                                                    const tier = (typeof getDisplayTier==='function') ? getDisplayTier(def) : 4;
-                                                    return `<span class="ach-badge t${tier}" title="${def.name}" aria-label="成就：${def.name}">${icon}</span>`;
-                                                }).filter(Boolean).join('');
-                                                const more = achIds.length > 4 ? `<span class="ach-more" aria-label="還有 ${achIds.length-4} 個成就">+${achIds.length-4}</span>` : '';
-                                                if (icons || more) achHTML = `<div class="fl-achievements" aria-hidden="false">${icons}${more}</div>`;
-                                            }
-                                        } catch(_) {}
                                         card.innerHTML = `
                                             <div class="fl-rank">${rankNumber}</div>
                                             <div class="fl-body">
@@ -15780,7 +16592,6 @@
                                                     <span class="fl-date">${dateText}</span>
                                                     <span class="fl-elapsed">${elapsedText}</span>
                                                 </div>
-                                                ${achHTML}
                                             </div>`;
                                         card.addEventListener('click', () => { openLeaderboardRecordById(record.id, record.playMode || mode || 'classic'); });
                                     } else {
@@ -15891,23 +16702,6 @@
                         const rankClass = (rankNumber === 1) ? 'rank-1' : (rankNumber === 2) ? 'rank-2' : (rankNumber === 3) ? 'rank-3' : 'rank-default';
                         const medal = (rankNumber === 1) ? '🥇' : (rankNumber === 2) ? '🥈' : (rankNumber === 3) ? '🥉' : '';
                         const aria = `第${rankNumber}名，${playerName}，${record.score}分`;
-                        // Build compact badges strip (max 4 icons)
-                        let achHTML = '';
-                        try {
-                            const achIds = Array.isArray(record.achievementsUnlocked) ? record.achievementsUnlocked : [];
-                            if (achIds.length) {
-                                const defs = (AchievementManager && AchievementManager.defs) ? AchievementManager.defs : [];
-                                const byId = Object.create(null); defs.forEach(d=>byId[d.id]=d);
-                                const icons = achIds.slice(0,4).map(id => {
-                                    const def = byId[id]; if (!def) return '';
-                                    const icon = (typeof getAchievementIcon==='function') ? getAchievementIcon(def) : '★';
-                                    const tier = (typeof getDisplayTier==='function') ? getDisplayTier(def) : 4;
-                                    return `<span class="ach-badge t${tier}" title="${def.name}" aria-label="成就：${def.name}">${icon}</span>`;
-                                }).filter(Boolean).join('');
-                                const more = achIds.length > 4 ? `<span class="ach-more" aria-label="還有 ${achIds.length-4} 個成就">+${achIds.length-4}</span>` : '';
-                                if (icons || more) achHTML = `<div class="lb-achievements mt-1" aria-hidden="false">${icons}${more}</div>`;
-                            }
-                        } catch(_) {}
                         column.innerHTML = `
                             <div class="leaderboard-card ${rankClass}" data-record-id="${record.id}" title="${playerName}" role="button" aria-label="${aria}">
                                 <div class="lb-rank-ribbon"><span>${rankNumber}</span></div>
@@ -15919,7 +16713,6 @@
                                     </div>
                                     <div class="lb-meta">${record.date || ''}${record.time ? ' · ' + record.time : ''}${record.elapsed ? ' · ' + record.elapsed : ''}</div>
                                     ${rarityLabel ? `<div class=\"mt-1\">\n                                        <span class=\"lb-pill ${rarity === 'all' ? 'rarity-all' : rarity === 'rare' ? 'rarity-rare' : 'rarity-common'}\">${rarityLabel}</span>\n                                    </div>` : ''}
-                                    ${achHTML}
                                 </div>
                             </div>
                         `;
@@ -15979,7 +16772,20 @@
                     if (playerName && window.Leaderboard && typeof window.Leaderboard.load === 'function') {
                         const cfg = window.SUPABASE_CONFIG;
                         if (cfg && window.supabase && window.supabase.createClient) {
-                            const client = window.supabase.createClient(cfg.url, cfg.anonKey, cfg.options || {});
+                            const baseOpts = cfg.options || {};
+                            const opts = cfg.projectTag
+                                ? {
+                                    ...baseOpts,
+                                    global: {
+                                        ...(baseOpts.global || {}),
+                                        headers: {
+                                            ...(((baseOpts.global || {}).headers) || {}),
+                                            'x-project-tag': cfg.projectTag
+                                        }
+                                    }
+                                  }
+                                : baseOpts;
+                            const client = window.supabase.createClient(cfg.url, cfg.anonKey, opts);
                             const topList = difficultyLeaderboard;
                             const selfTop = topList.find(r => (r.playerName||'') === playerName);
                             if (!selfTop) {
@@ -16345,19 +17151,26 @@
         // Online Leaderboard Adapter (Supabase) — optional
         // Provide a global window.Leaderboard with methods: load(), save(record), clear()
         // Requires a config file bible-challenge/leaderboard-config.js that defines window.SUPABASE_CONFIG = { url, anonKey, table }
-    //
-    // Supabase schema migration (SQL) to store achievements per record:
-    //   alter table scores add column if not exists achievements jsonb default '[]'::jsonb;
-    //   -- Optional index to query by achievement id inside the array
-    //   create index if not exists scores_achievements_gin on scores using gin (achievements jsonb_path_ops);
-    //   -- If your project uses play_mode/project_tag columns, ensure they already exist as per prior setup.
         ;(function initOnlineLeaderboard(){
             try {
                 const cfg = (window && window.SUPABASE_CONFIG) || null;
                 if (!cfg || !cfg.url || !cfg.anonKey) return; // not configured
                 if (!(window.supabase && typeof window.supabase.createClient === 'function')) return; // client not loaded
 
-                const client = window.supabase.createClient(cfg.url, cfg.anonKey, cfg.options || {});
+                const baseOpts = cfg.options || {};
+                const opts = cfg.projectTag
+                    ? {
+                        ...baseOpts,
+                        global: {
+                            ...(baseOpts.global || {}),
+                            headers: {
+                                ...(((baseOpts.global || {}).headers) || {}),
+                                'x-project-tag': cfg.projectTag
+                            }
+                        }
+                      }
+                    : baseOpts;
+                const client = window.supabase.createClient(cfg.url, cfg.anonKey, opts);
                 const table = cfg.table || 'scores';
 
                 function toPublicRecord(row){
@@ -16389,7 +17202,7 @@
                         closingVerse: row.closing_verse ?? null,
                         closingVerseRef: row.closing_verse_ref ?? null,
                         questionSnapshot: row.question_snapshot ?? null,
-                        achievementsUnlocked: row.achievements ?? row.achievements_unlocked ?? row.achievementsunlocked ?? []
+                        achievements: row.achievements ?? row.achievement_list ?? []
                     };
                 }
 
@@ -16486,11 +17299,24 @@
                             closing_verse: record.closingVerse ?? null,
                             closing_verse_ref: record.closingVerseRef ?? null,
                             question_snapshot: keepSnapshot ? (record.questionSnapshot || null) : null,
-                            achievements: Array.isArray(record.achievementsUnlocked) ? record.achievementsUnlocked : [],
+                            achievements: Array.isArray(record.achievements) ? record.achievements : [],
                             project_tag: cfg.projectTag || null
                         };
                         const { data, error } = await client.from(table).insert(row).select('*').single();
                         if (error) throw error;
+                        // Link achv_runs -> score_id best-effort
+                        try { if (data && data.id && typeof window.linkLatestAchievementRunToScore==='function') window.linkLatestAchievementRunToScore(data.id); } catch(_) {}
+                        // Link telemetry to this score if pending
+                        try {
+                            const pending = window.__pendingAchvTelemetry;
+                            if (pending && data && data.id && typeof window.sendAchievementRunToSupabase==='function') {
+                                await window.sendAchievementRunToSupabase(pending.metrics, pending.unlocked, pending.mode, { linkToScoreId: data.id });
+                                window.__pendingAchvTelemetry = null;
+                            } else if (data && data.id && typeof window.linkLatestAchievementRunToScore==='function') {
+                                // If telemetry was already inserted earlier, attempt to attach it
+                                await window.linkLatestAchievementRunToScore(data.id);
+                            }
+                        } catch(_) {}
                         // Optimistic cache update: merge into __lbLatestData if within top 20 of its mode
                         try {
                             if (data) {

@@ -1,6 +1,6 @@
 // Service Worker (Wave1 refactor): split caches + version broadcast
 // Cache layers
-const VERSION = 'wave1-v1';
+const VERSION = 'wave1-v7';
 const CACHE_CORE  = `bc-core-${VERSION}`;      // app shell & html
 const CACHE_DATA  = `bc-data-${VERSION}`;      // json verse/equip data
 const CACHE_MEDIA = `bc-media-${VERSION}`;     // images / logos
@@ -8,6 +8,7 @@ const CORE_ASSETS = [
   './',
   './index.html',
   './bible-challenge.html',
+  './manifest.webmanifest',
   './logo/logo1-light.png',
   './logo/logo2-light.png',
   './logo/logo1-dark.png',
@@ -25,7 +26,19 @@ try { bc = new BroadcastChannel('bc-sw-version'); } catch(_) { bc = null; }
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_CORE).then((cache) => cache.addAll(CORE_ASSETS)).then(() => self.skipWaiting())
+    (async () => {
+      // Core shell
+      await caches.open(CACHE_CORE).then((cache) => cache.addAll(CORE_ASSETS));
+      // Data prefetch (best-effort)
+      try {
+        const dataCache = await caches.open(CACHE_DATA);
+        await Promise.all([
+          dataCache.add('./external-verses.json'),
+          dataCache.add('./equip-course-growth.json')
+        ]);
+      } catch (_) {}
+      await self.skipWaiting();
+    })()
   );
 });
 
@@ -46,7 +59,35 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return; // GET-only guard (S5)
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return; // same-origin only
+  // Allowlist selected cross-origin assets for caching (Google Fonts, jsDelivr Supabase UMD)
+  const isGoogleFonts = url.origin.includes('fonts.googleapis.com') || url.origin.includes('fonts.gstatic.com');
+  const isJsDelivrSupabase = /cdn\.jsdelivr\.net$/.test(url.hostname) && /@supabase\/supabase-js/.test(url.pathname);
+  // If cross-origin and not allowlisted, ignore
+  if (url.origin !== self.location.origin && !(isGoogleFonts || isJsDelivrSupabase)) return;
+
+  if (isGoogleFonts || isJsDelivrSupabase) {
+    event.respondWith((async () => {
+      // Strategy: cache-first for font files and UMD; SWR for stylesheets
+      const cacheName = isGoogleFonts ? CACHE_MEDIA : CACHE_CORE;
+      const cache = await caches.open(cacheName);
+      const cached = await cache.match(req);
+      if (cached) {
+        // Revalidate in background for stylesheets (fonts.googleapis.com)
+        if (isGoogleFonts && url.hostname === 'fonts.googleapis.com') {
+          fetch(req).then(res => cache.put(req, res.clone())).catch(()=>{});
+        }
+        return cached;
+      }
+      try {
+        const res = await fetch(req, { mode: 'cors' });
+        cache.put(req, res.clone()).catch(()=>{});
+        return res;
+      } catch (_) {
+        return cached || Response.error();
+      }
+    })());
+    return;
+  }
 
   // HTML navigations: network-first + cache write-through
   if (req.mode === 'navigate' || url.pathname.endsWith('.html')) {

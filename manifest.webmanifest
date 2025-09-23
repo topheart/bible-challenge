@@ -1,16 +1,23 @@
 {
   "name": "經夠盃挑戰",
   "short_name": "經夠盃",
+  "id": "/bible-challenge/",
   "start_url": "./bible-challenge.html",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay"],
+  "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#6366f1",
   "lang": "zh-TW",
   "description": "聖經經文快問快答 + 裝備課程三階段（書卷/章節/排序），支援難度與題庫範圍、罕見度篩選、離線快取與雲端排行榜。",
   "categories": ["games", "education"],
   "icons": [
-    { "src": "./logo/logo1-light.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "./logo/logo2-light.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "./logo/logo1-light.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "./logo/logo2-light.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "闖關模式", "url": "./bible-challenge.html#classic" },
+    { "name": "生存模式", "url": "./bible-challenge.html#survival" }
   ]
 }

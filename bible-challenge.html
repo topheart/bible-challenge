@@ -182,7 +182,12 @@
                 currentLevelHead5Seen: 0,
                 currentLevelHead5AllPerfect: true,
                 currentLevelHead5TimeMs: 0,
-                levelHead5QualifyFlags: [], // 每關是否「頭五題皆 Perfect 且均速≤1.8s」
+                levelHead5QualifyFlags: [], // 每關是否「頭五題皆 Perfect 且均速≤5s」
+                // 每關開局 3 題（頭三題）追蹤（僅 classic 使用）
+                currentLevelHead3Seen: 0,
+                currentLevelHead3AllPerfect: true,
+                currentLevelHead3TimeMs: 0,
+                levelHead3QualifyFlags: [], // 每關是否「頭三題皆 Perfect 且均速≤3s」
                 // 完美題目的時間樣本（無提示且正確），供穩定度/變異係數計算
                 perfectTimes: [],
                 perfectTimeStdDev: 0,
@@ -190,6 +195,9 @@
                 // 超快（≤1200ms）完美作答次數統計
                 superFastCorrectCount: 0,
                 // 衍生值於結束時計算：accuracy, avgAnswerMs, timeStdDev
+                // Survival 區間累計（新：成就用）
+                timeInBand0to30: 0,   // 倒數 0–30 秒區間的累計秒數
+                timeInBand60to90: 0,  // 倒數 60–90 秒區間的累計秒數
             };
         }
         function recordAnswer(isCorrect, answerMs){
@@ -201,8 +209,8 @@
             if(isCorrect){
                 m.correctCount++; m.currentStreak++; if(m.currentStreak>m.longestStreak) m.longestStreak=m.currentStreak;
                 if(m.answeredQuestions<=5) m.firstFiveCorrect++;
-                // 極速連擊（<=2000ms，且不得用提示；完美限定）
-                if(answerMs<=2000 && !usedHint){
+                // 極速連擊（<=3000ms，且不得用提示；完美限定）
+                if(answerMs<=3000 && !usedHint){
                     m.ultraFastCorrectChain++;
                     if(m.ultraFastCorrectChain>m.ultraFastCorrectMax) m.ultraFastCorrectMax=m.ultraFastCorrectChain;
                 } else {
@@ -229,16 +237,26 @@
                 m.totalAnswerTimeMs += answerMs;
                 m.perQuestionTimes.push(answerMs);
             }
-            // 每關開局 5 題度量（classic 模式）
+            // 每關開局 5 題 / 3 題度量（classic 模式）
             try{
-                if(m.mode==='classic' && m.currentLevelHead5Seen < 5){
-                    m.currentLevelHead5Seen++;
-                    // 頭五題需「皆 Perfect」：若有使用提示或答錯，則整關不符合
-                    if(!(isCorrect && !usedHint)){
-                        m.currentLevelHead5AllPerfect = false;
-                    } else if(answerMs!=null){
-                        const clamped = Math.max(200, answerMs||0);
-                        m.currentLevelHead5TimeMs += clamped;
+                if(m.mode==='classic'){
+                    if(m.currentLevelHead5Seen < 5){
+                        m.currentLevelHead5Seen++;
+                        if(!(isCorrect && !usedHint)){
+                            m.currentLevelHead5AllPerfect = false;
+                        } else if(answerMs!=null){
+                            const clamped = Math.max(200, answerMs||0);
+                            m.currentLevelHead5TimeMs += clamped;
+                        }
+                    }
+                    if(m.currentLevelHead3Seen < 3){
+                        m.currentLevelHead3Seen++;
+                        if(!(isCorrect && !usedHint)){
+                            m.currentLevelHead3AllPerfect = false;
+                        } else if(answerMs!=null){
+                            const clamped3 = Math.max(200, answerMs||0);
+                            m.currentLevelHead3TimeMs += clamped3;
+                        }
                     }
                 }
             }catch(_){}
@@ -263,6 +281,12 @@
             if(currentTimeSec>m.maxTime) m.maxTime=currentTimeSec;
             // 取樣顯示時間
             m.timeSamples.push(currentTimeSec);
+            // 區間累計：每秒取樣 +1
+            try {
+                const t = Number(currentTimeSec|0);
+                if (t >= 0 && t <= 30) m.timeInBand0to30 = (m.timeInBand0to30|0) + 1;
+                if (t >= 60 && t <= 90) m.timeInBand60to90 = (m.timeInBand60to90|0) + 1;
+            } catch(_) {}
             // 以虛擬時間估算「超過起始值」的峰值（不受 cap 影響）
             try {
                 if (typeof m.virtualTime === 'number') {
@@ -295,21 +319,36 @@
             } else {
                 m.consecutivePerfectLevels=0;
             }
-            // finalize 頭五題條件：需看見至少 5 題、皆 Perfect、且 5 題平均 ≤ 1800ms
+            // finalize：
+            // - 頭五題：需看見至少 5 題、皆 Perfect、且 5 題平均 ≤ 5000ms
+            // - 頭三題：需看見至少 3 題、皆 Perfect、且 3 題平均 ≤ 3000ms
             try{
-                const ok = (m.currentLevelHead5Seen>=5) && m.currentLevelHead5AllPerfect && ((m.currentLevelHead5TimeMs/5)<=1800);
-                m.levelHead5QualifyFlags.push(!!ok);
+                const ok5 = (m.currentLevelHead5Seen>=5) && m.currentLevelHead5AllPerfect && ((m.currentLevelHead5TimeMs/5)<=5000);
+                m.levelHead5QualifyFlags.push(!!ok5);
+                const ok3 = (m.currentLevelHead3Seen>=3) && m.currentLevelHead3AllPerfect && ((m.currentLevelHead3TimeMs/3)<=3000);
+                if (Array.isArray(m.levelHead3QualifyFlags)) m.levelHead3QualifyFlags.push(!!ok3);
             }catch(_){ m.levelHead5QualifyFlags.push(false); }
             // Reset for next level
             m.currentLevelHead5Seen = 0;
             m.currentLevelHead5AllPerfect = true;
             m.currentLevelHead5TimeMs = 0;
+            m.currentLevelHead3Seen = 0;
+            m.currentLevelHead3AllPerfect = true;
+            m.currentLevelHead3TimeMs = 0;
         }
         function finalizeMetrics(){
             if(!gameMetrics) return null;
             const m=gameMetrics; m.endTime=Date.now();
             m.accuracy = m.answeredQuestions? (m.correctCount / m.answeredQuestions):0;
             m.avgAnswerMs = m.answeredQuestions? (m.totalAnswerTimeMs / m.answeredQuestions):0;
+            // 從遊戲狀態補充：闖關每關平均失誤、失敗關卡數（供成就判斷）
+            try{
+                const lr = (gameState && Array.isArray(gameState.levelResults)) ? gameState.levelResults : [];
+                m.totalMistakes = (gameState && typeof gameState.totalMistakes==='number') ? gameState.totalMistakes : (m.totalMistakes||0);
+                const levelsPlayed = (Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>0) ? m.levelPerfectFlags.length : (lr ? lr.length : 0);
+                m.levelFailedCount = (gameState && typeof gameState.levelFailedCount==='number') ? gameState.levelFailedCount : (m.levelFailedCount||0);
+                m.classicAvgMistakesPerLevel = levelsPlayed>0 ? (m.totalMistakes / levelsPlayed) : 0;
+            }catch(_){ /* no-op */ }
             // 無提示（Perfect）彙總
             const nhDen = Math.max(1, m.noHintAnsweredCount||0);
             m.accuracyNoHint = (m.noHintCorrectCount||0) / nhDen;
@@ -398,14 +437,24 @@
                 try{
                     if(a && a.groupKey && typeof a.rung==='number'){
                         if(!gameState._rtGroupBestShown) gameState._rtGroupBestShown = Object.create(null);
+                        if(!gameState._rtGroupShownAt) gameState._rtGroupShownAt = Object.create(null);
                         const prev = gameState._rtGroupBestShown[a.groupKey];
-                        if(typeof prev==='number' && a.rung>prev){
-                            label = `晉級：${a.name}`;
+                        const now = Date.now();
+                        const lastTs = gameState._rtGroupShownAt[a.groupKey] || 0;
+                        // 僅當「嚴格上升 rung」時才顯示『晉級』；若同一 rung 重覆出現且 30s 內，直接忽略本次 toast。
+                        if(typeof prev==='number'){
+                            if (a.rung > prev) {
+                                label = `晉級：${a.name}`;
+                            } else if (a.rung === prev && (now - lastTs) < 30000) {
+                                // 抑制 30 秒內的同級重覆提示
+                                return;
+                            }
                         }
                         gameState._rtGroupBestShown[a.groupKey] = Math.max(a.rung, prev||0);
+                        gameState._rtGroupShownAt[a.groupKey] = now;
                     }
                 }catch(_){ /* no-op */ }
-                el.innerHTML=`<span class="text-xl">${icon}</span><span>${label}</span>`;
+                el.innerHTML=`<div class="achv-icon">${icon}</div><span>${label}</span>`;
                 try { if (typeof window.__injectAchvDecor==='function') window.__injectAchvDecor(el); } catch(_) {}
                 stack.appendChild(el);
                 // announce
@@ -435,9 +484,9 @@
             const iconMap={
              // Any-mode：完美限定 Accuracy 梯隊（使用無提示正確率 accuracyNoHint）→ 臉盆（潔淨）
              any_acc_t5:'achv-basin', any_acc_t4:'achv-basin', any_acc_t3:'achv-basin', any_acc_t2:'achv-basin',
-             // Any-mode：完美限定 平均速度 梯隊（使用 avgPerfectAnswerMs）→ 腳印（替換單腿）
+             // Any-mode：完美限定 平均速度 梯隊（奔跑不困倦）→ 兩個鞋印（放大且更像鞋印）
              any_speed_t5:'achv-footprints', any_speed_t4:'achv-footprints', any_speed_t3:'achv-footprints', any_speed_t2:'achv-footprints',
-             // Any-mode：極速連鎖（無提示且 <=2s）→ 老鷹側身展翅
+             // Any-mode：極速連鎖（無提示且 ≤3s）→ 老鷹（更大更明顯）
              any_ultra_chain_t5:'achv-eagle', any_ultra_chain_t4:'achv-eagle', any_ultra_chain_t3:'achv-eagle', any_ultra_chain_t2:'achv-eagle',
              // Any-mode：連擊（Longest streak）→ 葡萄更多一點（更新符號）
              any_streak_t5:'achv-grapes-rich', any_streak_t4:'achv-grapes-rich', any_streak_t3:'achv-grapes-rich', any_streak_t2:'achv-grapes-rich',
@@ -445,33 +494,36 @@
              any_low_miss_t5:'achv-battlement', any_low_miss_t4:'achv-battlement', any_low_miss_t3:'achv-battlement', any_low_miss_t2:'achv-battlement',
              // Classic：開局完美（初熟的果子）→ 蘋果
              c_opening_perfect_t5:'achv-apple', c_opening_perfect_t4:'achv-apple', c_opening_perfect_t3:'achv-apple', c_opening_perfect_t2:'achv-apple',
-             // Classic：層數完美（無瑕之路）→ 橋
-             c_levels_perfect_t5:'achv-bridge', c_levels_perfect_t4:'achv-bridge', c_levels_perfect_t3:'achv-bridge', c_levels_perfect_t2:'achv-bridge',
+             // Classic：層數完美（無瑕無疵）→ 寶石（象徵無瑕）
+             c_levels_perfect_t5:'achv-gem', c_levels_perfect_t4:'achv-gem', c_levels_perfect_t3:'achv-gem', c_levels_perfect_t2:'achv-gem',
              // Classic：倒數 N 關皆 Perfect（全副軍裝）→ 盔甲
              c_lastN_perfect_t5:'achv-armor', c_lastN_perfect_t4:'achv-armor', c_lastN_perfect_t3:'achv-armor', c_lastN_perfect_t2:'achv-armor',
              // Survival：存活時長（恆久忍耐）
              s_duration_t5:'achv-clock', s_duration_t4:'achv-clock', s_duration_t3:'achv-clock', s_duration_t2:'achv-clock',
-             // Survival：高峰時間庫存（警醒守望）→ 盾牌（帶十字）
-             s_time_peak_t5:'achv-crossshield', s_time_peak_t4:'achv-crossshield', s_time_peak_t3:'achv-crossshield', s_time_peak_t2:'achv-crossshield',
-             // Survival：低峰穩定梯隊（安穩心志）→ 齒輪
-             s_low_peak_stability_t5:'achv-gears', s_low_peak_stability_t4:'achv-gears', s_low_peak_stability_t3:'achv-gears', s_low_peak_stability_t2:'achv-gears',
-             // Any：穩定如影（CV 梯隊）→ 節拍器
-             any_stability_t5:'achv-metronome', any_stability_t4:'achv-metronome', any_stability_t3:'achv-metronome', any_stability_t2:'achv-metronome',
+             // Survival：中段時間庫存（警醒守望，60–90 秒區間）→ 盾牌（帶十字）
+             s_time_band_60_90_t5:'achv-crossshield', s_time_band_60_90_t4:'achv-crossshield', s_time_band_60_90_t3:'achv-crossshield', s_time_band_60_90_t2:'achv-crossshield',
+             // Survival：低段時間庫存（耐心等候，0–30 秒區間）→ 沙漏（等待）
+             s_time_band_0_30_t5:'achv-hourglass2', s_time_band_0_30_t4:'achv-hourglass2', s_time_band_0_30_t3:'achv-hourglass2', s_time_band_0_30_t2:'achv-hourglass2',
+             // Any：穩定如影（CV 梯隊）→ 高山（山寨高台意象）
+             any_stability_t5:'achv-sinai', any_stability_t4:'achv-sinai', any_stability_t3:'achv-sinai', any_stability_t2:'achv-sinai',
              // T1 Specials（單一高難度/組合）
              // 聖靈充滿 → 十字架
              t1_chariot_fire:'achv-cross',
-             // 分別為聖 → 資料夾
+             // 分別為聖 → 資料夾（填色）
              t1_near_holy:'achv-folder',
              // 新增 T1 特別成就圖示
              t1_truth_and_love:'achv-gemcross',
              t1_rock_solid:'achv-anchor',
              t1_deer_for_streams:'achv-sea',
+             // 明亮晨星 → 將於 getAchievementIcon 中使用星芒 + 星核組合強化細節
              t1_morning_star:'achv-starburst',
              t1_saints_endurance:'achv-dumbbell',
              t1_much_fruit:'achv-cherries',
              t1_blameless_worship:'achv-temple',
-             t1_kings_way:'achv-steps',
-             t1_calm_sea:'achv-calmwave',
+             // 成聖之路 → 鞋子（更貼近行走於聖潔道路）
+             t1_kings_way:'achv-sandals',
+             // 風平浪靜 → 小船安穩於海面
+             t1_calm_sea:'achv-boat',
              t1_resurrection_power:'achv-heartpulse'
             };
             // 提供給審核工具使用（唯讀暴露）
@@ -483,6 +535,132 @@
                 const dt = (typeof getDisplayTier==='function')
                     ? getDisplayTier(a)
                     : (a && typeof a.tier==='number' ? (6 - Math.max(1, Math.min(5, a.tier))) : 5);
+                                // 特製：明亮晨星（更強烈）— 大星芒 + 星核 + 外環輝光
+                                if (a && a.id === 't1_morning_star') {
+                                        return `<svg aria-hidden="true" class="w-7 h-7 achv-icon-svg t${dt}" viewBox="0 0 24 24">
+    <defs>
+        <radialGradient id="ms_glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="currentColor" stop-opacity="0.55"/>
+            <stop offset="60%" stop-color="currentColor" stop-opacity="0.15"/>
+            <stop offset="100%" stop-color="currentColor" stop-opacity="0"/>
+        </radialGradient>
+    </defs>
+    <circle cx="12" cy="12" r="10" fill="url(#ms_glow)"/>
+    <use href="#achv-starburst"></use>
+    <g transform="translate(12 12) scale(0.72) translate(-12 -12)">
+        <use href="#achv-star"></use>
+    </g>
+    </svg>`;
+                                }
+                                                // 特製：奔跑不困倦 — 兩個鞋印（更像鞋印、放大並加刻紋）
+                                                if (a && /^any_speed_t[2-5]$/.test(a.id)) {
+                                                                        return `<svg aria-hidden="true" class="w-7 h-7 achv-icon-svg t${dt}" viewBox="0 0 24 24">
+                                    <use href="#achv-footprints"></use>
+                                    <g stroke="currentColor" stroke-width="1" opacity=".85" fill="none">
+                                        <!-- heel/tread accents for realism -->
+                                        <path d="M8 16c1-1 2-1.4 3-1.2"/>
+                                        <path d="M7.2 14.6c.7-.5 1.4-.7 2.1-.6"/>
+                                        <path d="M14 8c1-1 2-1.4 3-1.2"/>
+                                        <path d="M13.2 6.6c.7-.5 1.4-.7 2.1-.6"/>
+                                    </g>
+                                    <!-- enlarge heel patches -->
+                                    <circle cx="8.8" cy="16.2" r="2.0" fill="currentColor" opacity=".28"/>
+                                    <circle cx="14.8" cy="8.2" r="2.0" fill="currentColor" opacity=".28"/>
+                                    </svg>`;
+                                                                }
+                        // 特製：成聖之路 — 單個雨鞋側面（置中，補齊鞋底）
+                        if (a && a.id === 't1_kings_way') {
+                            return `<svg aria-hidden="true" class="w-7 h-7 achv-icon-svg t${dt}" viewBox="0 0 24 24">
+            <!-- rain boot side silhouette -->
+            <path d="M9 4h6a1 1 0 0 1 1 1v7c3 0 5 1.6 5 4v2H7a2 2 0 0 1-2-2v-1c1 .4 2 .6 3 .6h6V5a1 1 0 0 0-1-1Z" fill="currentColor"/>
+            <!-- sole fill to fix missing piece -->
+            <rect x="7" y="17.3" width="14" height="1.4" fill="currentColor"/>
+            <path d="M12 5v7" stroke="#fff" stroke-width="1" opacity=".35"/>
+            <path d="M7 18h14" stroke="#fff" stroke-width="1" opacity=".6"/>
+            </svg>`;
+                        }
+                                                // 特製：聖徒忍耐 — 放大
+                        if (a && a.id === 't1_saints_endurance') {
+                            return `<svg aria-hidden="true" class="w-7 h-7 achv-icon-svg t${dt}">
+            <use href="#achv-dumbbell"></use>
+            <!-- bar highlight lines -->
+            <g stroke="currentColor" stroke-width=".8" opacity=".6" fill="none">
+            <path d="M7 12h2"/>
+            <path d="M15 12h2"/>
+            </g>
+            </svg>`;
+                        }
+                // 特製：如鷹展翅 — 老鷹剪影（更像老鷹）
+            if (a && /^any_ultra_chain_t[2-5]$/.test(a.id)) {
+                return `<svg aria-hidden="true" class="w-7 h-7 achv-icon-svg t${dt}" viewBox="0 0 24 24">
+            <path d="M3 13c3-3 6-4 9-4s6 1 9 4h-3l-2 2-4 1-4-1-2-2H3Z" fill="currentColor"/>
+            <!-- white neck patch -->
+            <path d="M12.6 10.2c1 .2 1.8.6 2.4 1.2c-.8.2-1.6.2-2.4 0Z" fill="#fff" opacity=".9"/>
+            <circle cx="14.5" cy="10" r=".4" fill="#fff" opacity=".9"/>
+            <path d="M15.2 10.4l1 .5l-1 .5" stroke="#fff" stroke-width=".8" opacity=".85" fill="none"/>
+            </svg>`;
+            }
+                                // 特製：耐心等候 — 透明外框 + 白色粉末（微縮）
+                                if (a && /^s_time_band_0_30_t[2-5]$/.test(a.id)) {
+                                                        return `<svg aria-hidden="true" class="w-6 h-6 achv-icon-svg t${dt}" viewBox="0 0 24 24">
+                    <!-- frame -->
+                    <g stroke="currentColor" stroke-width="1" fill="none" opacity=".95">
+                        <path d="M7 5h10"/>
+                        <path d="M7 19h10"/>
+                        <path d="M7 7c3 3 7 3 10 0"/>
+                        <path d="M7 17c3-3 7-3 10 0"/>
+                    </g>
+                    <!-- white powder -->
+                    <path d="M9.3 9.2h5.4l-2.7 1.6Z" fill="#fff" opacity=".9"/>
+                    <path d="M9 15h6l-3 2Z" fill="#fff" opacity=".9"/>
+                    <path d="M12 11v2.2" stroke="#fff" stroke-width="1" opacity=".8"/>
+                    </svg>`;
+                                }
+                                // 特製：無瑕無疵 — 鑽石刻面加強（外框置於最上層）
+                                if (a && /^c_levels_perfect_t[2-5]$/.test(a.id)) {
+                                                        return `<svg aria-hidden="true" class="w-7 h-7 achv-icon-svg t${dt}" viewBox="0 0 24 24">
+                    <!-- inner facets first -->
+                    <path d="M7 4l5 16l5-16" fill="none" stroke="#ffffff" stroke-width="1" opacity=".92"/>
+                    <path d="M3 10h18" fill="none" stroke="#ffffff" stroke-width="1" opacity=".92"/>
+                    <path d="M9 4l-3 6m12-6l3 6" fill="none" stroke="#ffffff" stroke-width="1" opacity=".92"/>
+                    <!-- outer border on top -->
+                    <path d="M7 4h10l4 6l-9 10L3 10l4-6Z" fill="none" stroke="currentColor" stroke-width="1"/>
+                    </svg>`;
+                                }
+                                // 特製：分別為聖（資料夾填色）
+                                if (a && a.id === 't1_near_holy') {
+                                        return `<svg aria-hidden="true" class="w-6 h-6 achv-icon-svg t${dt}" viewBox="0 0 24 24">
+    <use href="#achv-folder"></use>
+    <rect x="3" y="7" width="18" height="12" rx="2" fill="currentColor" opacity=".25"/>
+    </svg>`;
+                                }
+                                // 特製：連擊（葡萄枝子放大且置中微調）
+                                if (a && /^any_streak_t[2-5]$/.test(a.id)) {
+                                                        return `<svg aria-hidden="true" class="w-7 h-7 achv-icon-svg t${dt}" viewBox="0 0 24 24">
+    <g transform="translate(12 12) scale(1.15) translate(-12 -12)">
+        <g transform="translate(0.6,0.6)"><use href="#achv-grapes-rich"></use></g>
+    </g>
+</svg>`;
+                                }
+                                // 特製：風平浪靜（小船加旗）
+                                if (a && a.id === 't1_calm_sea') {
+                                                        return `<svg aria-hidden="true" class="w-6 h-6 achv-icon-svg t${dt}" viewBox="0 0 24 24">
+    <use href="#achv-boat"></use>
+    <!-- mast + flag overlay -->
+    <path d="M12 6v5" stroke="currentColor" stroke-width="1"/>
+    <path d="M12 7l2 1l-2 1Z" fill="currentColor"/>
+</svg>`;
+                                }
+                                // 特製：初熟果子（蘋果加色塊高光）
+                                if (a && /^c_opening_perfect_t[2-5]$/.test(a.id)) {
+                                                        return `<svg aria-hidden="true" class="w-7 h-7 achv-icon-svg t${dt}" viewBox="0 0 24 24">
+    <use href="#achv-apple"></use>
+                    <circle cx="12" cy="13" r="5.2" fill="currentColor" opacity=".26"/>
+                    <ellipse cx="10.2" cy="10.8" rx="2.8" ry="1.5" fill="#fff" opacity=".45"/>
+                    <!-- leaf/stem highlight -->
+                    <path d="M14 8c.8-.4 1.4-.8 1.8-1.2" stroke="#fff" stroke-width="1" opacity=".6" fill="none"/>
+    </svg>`;
+                                }
                 if(sym.startsWith('achv-')) return `<svg aria-hidden="true" class="w-6 h-6 achv-icon-svg t${dt}"><use href="#${sym}"></use></svg>`;
                 return sym; // fallback legacy emoji path if any
             }
@@ -649,30 +827,33 @@
             const DT = (n)=> Math.max(1, Math.min(5, n|0));
 
             // Any — AccuracyNoHint 梯隊（同名：聖潔器皿），僅結算判定，需最低樣本門檻避免偶發
-            D({ id:'any_acc_t5', mode:'any', name:'聖潔器皿', desc:'完美限定 Acc ≥85%（樣本≥10）', displayTier:5, groupKey:'ladder_any_acc', rung:2, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintAnsweredCount||0)>=10 && (m.accuracyNoHint||0)>=0.85 } });
-            D({ id:'any_acc_t4', mode:'any', name:'聖潔器皿', desc:'完美限定 Acc ≥90%（樣本≥12）', displayTier:4, groupKey:'ladder_any_acc', rung:3, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintAnsweredCount||0)>=12 && (m.accuracyNoHint||0)>=0.90 } });
-            D({ id:'any_acc_t3', mode:'any', name:'聖潔器皿', desc:'完美限定 Acc ≥95%（樣本≥15）', displayTier:3, groupKey:'ladder_any_acc', rung:4, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintAnsweredCount||0)>=15 && (m.accuracyNoHint||0)>=0.95 } });
-            D({ id:'any_acc_t2', mode:'any', name:'聖潔器皿', desc:'完美限定 Acc ≥98%（樣本≥18）', displayTier:2, groupKey:'ladder_any_acc', rung:5, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintAnsweredCount||0)>=18 && (m.accuracyNoHint||0)>=0.98 } });
+            // 新門檻：T5 ≥60%（≥10）、T4 ≥70%（≥12）、T3 ≥80%（≥15）、T2 ≥90%（≥18）
+            D({ id:'any_acc_t5', mode:'any', name:'聖潔器皿', desc:'完美限定 Acc ≥60%（樣本≥10）', displayTier:5, groupKey:'ladder_any_acc', rung:2, realtime:false,
+                condition:{ type:'custom', fn:m=> (m.noHintAnsweredCount||0)>=10 && (m.accuracyNoHint||0)>=0.60 } });
+            D({ id:'any_acc_t4', mode:'any', name:'聖潔器皿', desc:'完美限定 Acc ≥70%（樣本≥12）', displayTier:4, groupKey:'ladder_any_acc', rung:3, realtime:false,
+                condition:{ type:'custom', fn:m=> (m.noHintAnsweredCount||0)>=12 && (m.accuracyNoHint||0)>=0.70 } });
+            D({ id:'any_acc_t3', mode:'any', name:'聖潔器皿', desc:'完美限定 Acc ≥80%（樣本≥15）', displayTier:3, groupKey:'ladder_any_acc', rung:4, realtime:false,
+                condition:{ type:'custom', fn:m=> (m.noHintAnsweredCount||0)>=15 && (m.accuracyNoHint||0)>=0.80 } });
+            D({ id:'any_acc_t2', mode:'any', name:'聖潔器皿', desc:'完美限定 Acc ≥90%（樣本≥18）', displayTier:2, groupKey:'ladder_any_acc', rung:5, realtime:false,
+                condition:{ type:'custom', fn:m=> (m.noHintAnsweredCount||0)>=18 && (m.accuracyNoHint||0)>=0.90 } });
 
             // Any — 平均速度（avgPerfectAnswerMs）梯隊（同名：奔跑不困倦）
-            D({ id:'any_speed_t5', mode:'any', name:'奔跑不困倦', desc:'完美限定 平均作答 <6.5 秒（樣本≥10）', displayTier:5, groupKey:'ladder_any_speed', rung:2, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0)>=10 && (m.avgPerfectAnswerMs||0)>0 && m.avgPerfectAnswerMs<6500 } });
-            D({ id:'any_speed_t4', mode:'any', name:'奔跑不困倦', desc:'完美限定 平均作答 <5.5 秒（樣本≥12）', displayTier:4, groupKey:'ladder_any_speed', rung:3, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0)>=12 && (m.avgPerfectAnswerMs||0)>0 && m.avgPerfectAnswerMs<5500 } });
-            D({ id:'any_speed_t3', mode:'any', name:'奔跑不困倦', desc:'完美限定 平均作答 <4.5 秒（樣本≥15）', displayTier:3, groupKey:'ladder_any_speed', rung:4, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0)>=15 && (m.avgPerfectAnswerMs||0)>0 && m.avgPerfectAnswerMs<4500 } });
-            D({ id:'any_speed_t2', mode:'any', name:'奔跑不困倦', desc:'完美限定 平均作答 <3.5 秒（樣本≥18）', displayTier:2, groupKey:'ladder_any_speed', rung:5, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0)>=18 && (m.avgPerfectAnswerMs||0)>0 && m.avgPerfectAnswerMs<3500 } });
+            // 新門檻：T5 ≤8s（≥10）、T4 ≤7s（≥12）、T3 ≤6s（≥15）、T2 ≤5s（≥18）
+            D({ id:'any_speed_t5', mode:'any', name:'奔跑不困倦', desc:'完美限定 平均作答 ≤8 秒（樣本≥10）', displayTier:5, groupKey:'ladder_any_speed', rung:2, realtime:false,
+                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0)>=10 && (m.avgPerfectAnswerMs||0)>0 && m.avgPerfectAnswerMs<=8000 } });
+            D({ id:'any_speed_t4', mode:'any', name:'奔跑不困倦', desc:'完美限定 平均作答 ≤7 秒（樣本≥12）', displayTier:4, groupKey:'ladder_any_speed', rung:3, realtime:false,
+                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0)>=12 && (m.avgPerfectAnswerMs||0)>0 && m.avgPerfectAnswerMs<=7000 } });
+            D({ id:'any_speed_t3', mode:'any', name:'奔跑不困倦', desc:'完美限定 平均作答 ≤6 秒（樣本≥15）', displayTier:3, groupKey:'ladder_any_speed', rung:4, realtime:false,
+                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0)>=15 && (m.avgPerfectAnswerMs||0)>0 && m.avgPerfectAnswerMs<=6000 } });
+            D({ id:'any_speed_t2', mode:'any', name:'奔跑不困倦', desc:'完美限定 平均作答 ≤5 秒（樣本≥18）', displayTier:2, groupKey:'ladder_any_speed', rung:5, realtime:false,
+                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0)>=18 && (m.avgPerfectAnswerMs||0)>0 && m.avgPerfectAnswerMs<=5000 } });
 
-            // Any — 極速連鎖（無提示且 <=2s，已在記錄處限制 no-hint）同名：如鷹展翅
-            D({ id:'any_ultra_chain_t5', mode:'any', name:'如鷹展翅', desc:'極速三連（≤2s）', displayTier:5, groupKey:'ladder_any_ultra', rung:2, condition:{ type:'custom', fn:m=> (m.ultraFastCorrectMax||0)>=3 } });
-            D({ id:'any_ultra_chain_t4', mode:'any', name:'如鷹展翅', desc:'極速五連（≤2s）', displayTier:4, groupKey:'ladder_any_ultra', rung:3, condition:{ type:'custom', fn:m=> (m.ultraFastCorrectMax||0)>=5 } });
-            D({ id:'any_ultra_chain_t3', mode:'any', name:'如鷹展翅', desc:'極速七連（≤2s）', displayTier:3, groupKey:'ladder_any_ultra', rung:4, condition:{ type:'custom', fn:m=> (m.ultraFastCorrectMax||0)>=7 } });
-            D({ id:'any_ultra_chain_t2', mode:'any', name:'如鷹展翅', desc:'極速九連（≤2s）', displayTier:2, groupKey:'ladder_any_ultra', rung:5, condition:{ type:'custom', fn:m=> (m.ultraFastCorrectMax||0)>=9 } });
+            // Any — 極速連鎖（無提示且 ≤3s，已在記錄處限制 no-hint）同名：如鷹展翅
+            // 新門檻：T5 二連、T4 三連、T3 四連、T2 五連（皆 ≤3s）
+            D({ id:'any_ultra_chain_t5', mode:'any', name:'如鷹展翅', desc:'極速二連（≤3s）', displayTier:5, groupKey:'ladder_any_ultra', rung:2, condition:{ type:'custom', fn:m=> (m.ultraFastCorrectMax||0)>=2 } });
+            D({ id:'any_ultra_chain_t4', mode:'any', name:'如鷹展翅', desc:'極速三連（≤3s）', displayTier:4, groupKey:'ladder_any_ultra', rung:3, condition:{ type:'custom', fn:m=> (m.ultraFastCorrectMax||0)>=3 } });
+            D({ id:'any_ultra_chain_t3', mode:'any', name:'如鷹展翅', desc:'極速四連（≤3s）', displayTier:3, groupKey:'ladder_any_ultra', rung:4, condition:{ type:'custom', fn:m=> (m.ultraFastCorrectMax||0)>=4 } });
+            D({ id:'any_ultra_chain_t2', mode:'any', name:'如鷹展翅', desc:'極速五連（≤3s）', displayTier:2, groupKey:'ladder_any_ultra', rung:5, condition:{ type:'custom', fn:m=> (m.ultraFastCorrectMax||0)>=5 } });
 
             // Any — 連擊梯隊（同名：葡萄枝子）
             D({ id:'any_streak_t5', mode:'any', name:'葡萄枝子', desc:'連擊 ≥5', displayTier:5, groupKey:'ladder_any_streak', rung:2, condition:{ type:'metric', field:'longestStreak', op:'>=', value:5 } });
@@ -680,12 +861,12 @@
             D({ id:'any_streak_t3', mode:'any', name:'葡萄枝子', desc:'連擊 ≥20', displayTier:3, groupKey:'ladder_any_streak', rung:4, condition:{ type:'metric', field:'longestStreak', op:'>=', value:20 } });
             D({ id:'any_streak_t2', mode:'any', name:'葡萄枝子', desc:'連擊 ≥35', displayTier:2, groupKey:'ladder_any_streak', rung:5, condition:{ type:'metric', field:'longestStreak', op:'>=', value:35 } });
 
-            // Any — 低失誤長局（同名：重建城牆）
-            // 說明：依 m.wrongCount（本局總失誤數）計算，僅結算時顯示（realtime:false）
-            D({ id:'any_low_miss_t5', mode:'any', name:'重建城牆', desc:'全局失誤 ≤20', displayTier:5, groupKey:'ladder_any_lowmiss', rung:2, realtime:false, condition:{ type:'custom', fn:m=> (m.wrongCount||0) <= 20 } });
-            D({ id:'any_low_miss_t4', mode:'any', name:'重建城牆', desc:'全局失誤 ≤10', displayTier:4, groupKey:'ladder_any_lowmiss', rung:3, realtime:false, condition:{ type:'custom', fn:m=> (m.wrongCount||0) <= 10 } });
-            D({ id:'any_low_miss_t3', mode:'any', name:'重建城牆', desc:'全局失誤 ≤5', displayTier:3, groupKey:'ladder_any_lowmiss', rung:4, realtime:false, condition:{ type:'custom', fn:m=> (m.wrongCount||0) <= 5 } });
-            D({ id:'any_low_miss_t2', mode:'any', name:'重建城牆', desc:'全局失誤 ≤0', displayTier:2, groupKey:'ladder_any_lowmiss', rung:5, realtime:false, condition:{ type:'custom', fn:m=> (m.wrongCount||0) <= 0 } });
+            // Any — 低失誤平均（重建城牆，沿用闖關指標）：從 Classic 改為 Any 類別
+            // 說明：依 m.classicAvgMistakesPerLevel（每關平均失誤）計算，僅結算時顯示（realtime:false）
+            D({ id:'any_low_miss_t5', mode:'any', name:'重建城牆', desc:'每關平均失誤 ≤4（樣本≥7）', displayTier:5, groupKey:'ladder_any_lowmiss', rung:2, realtime:false, condition:{ type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=7 && (m.classicAvgMistakesPerLevel||0) <= 4 } });
+            D({ id:'any_low_miss_t4', mode:'any', name:'重建城牆', desc:'每關平均失誤 ≤3（樣本≥7）', displayTier:4, groupKey:'ladder_any_lowmiss', rung:3, realtime:false, condition:{ type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=7 && (m.classicAvgMistakesPerLevel||0) <= 3 } });
+            D({ id:'any_low_miss_t3', mode:'any', name:'重建城牆', desc:'每關平均失誤 ≤2（樣本≥7）', displayTier:3, groupKey:'ladder_any_lowmiss', rung:4, realtime:false, condition:{ type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=7 && (m.classicAvgMistakesPerLevel||0) <= 2 } });
+            D({ id:'any_low_miss_t2', mode:'any', name:'重建城牆', desc:'每關平均失誤 ≤1（樣本≥7）', displayTier:2, groupKey:'ladder_any_lowmiss', rung:5, realtime:false, condition:{ type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=7 && (m.classicAvgMistakesPerLevel||0) <= 1 } });
 
             // Classic — 初熟的果子（開局完美梯隊：前 N 層皆 0 錯）
             D({ id:'c_opening_perfect_t5', mode:'classic', name:'初熟果子', desc:'開局 1 層完美', displayTier:5, groupKey:'ladder_c_opening', rung:2, condition:{ type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=1 && !!m.levelPerfectFlags[0] } });
@@ -699,49 +880,58 @@
             D({ id:'c_levels_perfect_t3', mode:'classic', name:'無瑕無疵', desc:'本局完美關卡 ≥5', displayTier:3, groupKey:'ladder_c_levels', rung:4, condition:{ type:'custom', fn:m=> (m.levelsPerfectCount||0)>=5 } });
             D({ id:'c_levels_perfect_t2', mode:'classic', name:'無瑕無疵', desc:'本局完美關卡 ≥7', displayTier:2, groupKey:'ladder_c_levels', rung:5, condition:{ type:'custom', fn:m=> (m.levelsPerfectCount||0)>=7 } });
 
-            // Survival — 恆久忍耐（連續正確不強制；以時長為主，門檻：T5≥5, T4≥10, T3≥20, T2≥35）
+            // Survival — 恆久忍耐（以時長為主，門檻：T5≥120s, T4≥180s, T3≥240s, T2≥300s）
             D({ id:'s_duration_t5', mode:'survival', name:'恆久忍耐', desc:'存活 ≥120 秒', displayTier:5, groupKey:'ladder_s_duration', rung:2, condition:{ type:'custom', fn:m=> (m.survivalDuration||0)>=120 } });
-            D({ id:'s_duration_t4', mode:'survival', name:'恆久忍耐', desc:'存活 ≥240 秒', displayTier:4, groupKey:'ladder_s_duration', rung:3, condition:{ type:'custom', fn:m=> (m.survivalDuration||0)>=240 } });
-            D({ id:'s_duration_t3', mode:'survival', name:'恆久忍耐', desc:'存活 ≥420 秒', displayTier:3, groupKey:'ladder_s_duration', rung:4, condition:{ type:'custom', fn:m=> (m.survivalDuration||0)>=420 } });
-            D({ id:'s_duration_t2', mode:'survival', name:'恆久忍耐', desc:'存活 ≥600 秒', displayTier:2, groupKey:'ladder_s_duration', rung:5, condition:{ type:'custom', fn:m=> (m.survivalDuration||0)>=600 } });
+            D({ id:'s_duration_t4', mode:'survival', name:'恆久忍耐', desc:'存活 ≥180 秒', displayTier:4, groupKey:'ladder_s_duration', rung:3, condition:{ type:'custom', fn:m=> (m.survivalDuration||0)>=180 } });
+            D({ id:'s_duration_t3', mode:'survival', name:'恆久忍耐', desc:'存活 ≥240 秒', displayTier:3, groupKey:'ladder_s_duration', rung:4, condition:{ type:'custom', fn:m=> (m.survivalDuration||0)>=240 } });
+            D({ id:'s_duration_t2', mode:'survival', name:'恆久忍耐', desc:'存活 ≥300 秒', displayTier:2, groupKey:'ladder_s_duration', rung:5, condition:{ type:'custom', fn:m=> (m.survivalDuration||0)>=300 } });
 
-            // Survival — 警醒守望（時間峰值相對起始的增量）
-            D({ id:'s_time_peak_t5', mode:'survival', name:'警醒守望', desc:'峰值 ≥80 秒', displayTier:5, groupKey:'ladder_s_peak', rung:2, condition:{ type:'metric', field:'maxTimeOverStart', op:'>=', value:80 } });
-            D({ id:'s_time_peak_t4', mode:'survival', name:'警醒守望', desc:'峰值 ≥100 秒', displayTier:4, groupKey:'ladder_s_peak', rung:3, condition:{ type:'metric', field:'maxTimeOverStart', op:'>=', value:100 } });
-            D({ id:'s_time_peak_t3', mode:'survival', name:'警醒守望', desc:'峰值 ≥120 秒', displayTier:3, groupKey:'ladder_s_peak', rung:4, condition:{ type:'metric', field:'maxTimeOverStart', op:'>=', value:120 } });
-            D({ id:'s_time_peak_t2', mode:'survival', name:'警醒守望', desc:'峰值 ≥140 秒', displayTier:2, groupKey:'ladder_s_peak', rung:5, condition:{ type:'metric', field:'maxTimeOverStart', op:'>=', value:140 } });
+            // Survival — 警醒守望：計時在 60–90 秒區間的累計秒數（T5/T4/T3/T2: 60/120/180/240）
+            D({ id:'s_time_band_60_90_t5', mode:'survival', name:'警醒守望', desc:'60–90 秒區間累計 ≥60 秒', displayTier:5, groupKey:'ladder_s_band_60_90', rung:2, realtime:false,
+                condition:{ type:'metric', field:'timeInBand60to90', op:'>=', value:60 } });
+            D({ id:'s_time_band_60_90_t4', mode:'survival', name:'警醒守望', desc:'60–90 秒區間累計 ≥120 秒', displayTier:4, groupKey:'ladder_s_band_60_90', rung:3, realtime:false,
+                condition:{ type:'metric', field:'timeInBand60to90', op:'>=', value:120 } });
+            D({ id:'s_time_band_60_90_t3', mode:'survival', name:'警醒守望', desc:'60–90 秒區間累計 ≥180 秒', displayTier:3, groupKey:'ladder_s_band_60_90', rung:4, realtime:false,
+                condition:{ type:'metric', field:'timeInBand60to90', op:'>=', value:180 } });
+            D({ id:'s_time_band_60_90_t2', mode:'survival', name:'警醒守望', desc:'60–90 秒區間累計 ≥240 秒', displayTier:2, groupKey:'ladder_s_band_60_90', rung:5, realtime:false,
+                condition:{ type:'metric', field:'timeInBand60to90', op:'>=', value:240 } });
 
             // T1 特別成就（單一高難度 / 複合條件）
-            D({ id:'t1_truth_and_love', mode:'any', name:'真理與慈愛', desc:'全程 Perfect + 平均 ≤2s + 連擊 ≥25', displayTier:1, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintAnsweredCount||0)>0 && (m.noHintCorrectCount||0)===m.noHintAnsweredCount && (m.avgPerfectAnswerMs||9999) <= 2000 && (m.longestStreak||0) >= 25 } });
-            D({ id:'t1_rock_solid', mode:'any', name:'聖靈寶劍', desc:'Perfect≥40 + CV≤0.25 + 最快 ≤900ms', displayTier:1, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0) >= 40 && (m.perfectCV||1) <= 0.25 && (m.fastestPerfectAnswerMs||9999) <= 900 } });
-            D({ id:'t1_deer_for_streams', mode:'any', name:'如鹿切慕溪水', desc:'極速鏈 ≥15 且其中 ≥5 題 ≤1.2s', displayTier:1, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.ultraFastCorrectMax||0) >= 15 && (m.superFastCorrectCount||0) >= 5 } });
-            D({ id:'t1_morning_star', mode:'classic', name:'明亮晨星', desc:'開局 5 關皆完美且均速 ≤1.8s', displayTier:1, realtime:false,
+            D({ id:'t1_truth_and_love', mode:'any', name:'真理與慈愛', desc:'全程 Perfect（無提示且全對）', displayTier:1, realtime:false,
+                condition:{ type:'custom', fn:m=> (m.answeredQuestions||0)>0 && (m.noHintCorrectCount||0) === (m.answeredQuestions||0) } });
+            D({ id:'t1_rock_solid', mode:'any', name:'聖靈寶劍', desc:'Perfect ≥40 + 最快 ≤1.5s', displayTier:1, realtime:false,
+                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0) >= 40 && (m.fastestPerfectAnswerMs||9999) <= 1500 } });
+            D({ id:'t1_deer_for_streams', mode:'any', name:'如鹿切慕溪水', desc:'連擊 ≥15 且其中 ≥5 題 ≤4s', displayTier:1, realtime:false,
+                condition:{ type:'custom', fn:m=> {
+                    const streakOK = (m.longestStreak||0) >= 15;
+                    const fast4s = Array.isArray(m.perfectTimes) ? m.perfectTimes.filter(t=> (t||99999) <= 4000).length : 0;
+                    return streakOK && fast4s >= 5; } } });
+            D({ id:'t1_morning_star', mode:'classic', name:'明亮晨星', desc:'開局 5 關皆完美且均速 ≤5s', displayTier:1, realtime:false,
                 condition:{ type:'custom', fn:m=> {
                     const f = m.levelHead5QualifyFlags||[]; if(!Array.isArray(f) || f.length<5) return false;
-                    let chain=0; for(let i=0;i<f.length;i++){ chain = f[i] ? chain+1 : 0; if(chain>=5) return true; }
-                    return false; } } });
-            D({ id:'t1_saints_endurance', mode:'survival', name:'聖徒忍耐', desc:'存活 ≥420 秒 + 峰值 ≤~1.08x 起始（保守）', displayTier:1, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.survivalDuration||0) >= 420 && (m.maxTimeOverStart||999) <= 65 } });
+                    // 需開局連續 5 關通過 head-5(≤5s) 檢核
+                    for(let i=0;i<5;i++){ if(!f[i]) return false; }
+                    return true; } } });
+            D({ id:'t1_saints_endurance', mode:'survival', name:'聖徒忍耐', desc:'存活 ≥420 秒（且未使用提示）', displayTier:1, realtime:false,
+                condition:{ type:'custom', fn:m=> (m.survivalDuration||0) >= 420 && (m.hintsUsed||0) === 0 } });
             D({ id:'t1_much_fruit', mode:'classic', name:'多結果子', desc:'同局達到：開局完美(4) + 無瑕無疵(7)', displayTier:1, realtime:false,
                 condition:{ type:'custom', fn:m=> (m.levelsPerfectCount||0) >= 7 && Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=4 && m.levelPerfectFlags[0] && m.levelPerfectFlags[1] && m.levelPerfectFlags[2] && m.levelPerfectFlags[3] } });
-            D({ id:'t1_blameless_worship', mode:'any', name:'辛苦勞碌', desc:'全程 Perfect + 平均 ≤2.2s + 最快 ≤0.8s', displayTier:1, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintAnsweredCount||0)>0 && (m.noHintCorrectCount||0)===m.noHintAnsweredCount && (m.avgPerfectAnswerMs||9999) <= 2200 && (m.fastestPerfectAnswerMs||9999) <= 800 } });
+            D({ id:'t1_blameless_worship', mode:'any', name:'辛苦勞碌', desc:'平均作答 ≤5s + 最快 ≤1.5s + 未使用提示', displayTier:1, realtime:false,
+                condition:{ type:'custom', fn:m=> (m.hintsUsed||0)===0 && (m.avgAnswerMs||99999) <= 5000 && (m.fastestPerfectAnswerMs||99999) <= 1500 } });
 
             // 新增 T1：闖關 1 項、生存 2 項
             // 闖關：王的大道（連續 3 關 Perfect 且頭五題均速 ≤2.2s，並且本局 Perfect 樣本 ≥20）
-            D({ id:'t1_kings_way', mode:'classic', name:'成聖之路', desc:'連續3關完美且各關開局 5 題均速≤2.2s', displayTier:1, realtime:false,
+            D({ id:'t1_kings_way', mode:'classic', name:'成聖之路', desc:'連續3關完美且各關開局 3 題均速≤3s', displayTier:1, realtime:false,
                 condition:{ type:'custom', fn:m=> {
                     const f = m.levelPerfectFlags||[]; if(f.length<3) return false;
-                    // 連3關 Perfect
-                    let okSeq=false; for(let i=0;i<=f.length-3;i++){ if(f[i]&&f[i+1]&&f[i+2]){ okSeq=true; break; } }
-                    if(!okSeq) return false;
-                    // 對應關卡的頭五題均速限制（寬鬆處理：至少有三次符合 head5）
-                    const h = m.levelHead5QualifyFlags||[]; const headOk = (h.filter(Boolean).length>=3);
-                    if(!headOk) return false;
-                    return (m.noHintCorrectCount||0) >= 20;
+                    // 尋找任一連續 3 關 Perfect 的區段
+                    for(let i=0;i<=f.length-3;i++){
+                        if(f[i]&&f[i+1]&&f[i+2]){
+                            const h3 = m.levelHead3QualifyFlags||[];
+                            if (h3[i] && h3[i+1] && h3[i+2]) return true;
+                        }
+                    }
+                    return false;
                 } } });
             // 生存：風平浪靜（時間曲線穩定）
             D({ id:'t1_calm_sea', mode:'survival', name:'風平浪靜', desc:'存活 ≥240 秒且時間波動低（timeStdDev ≤6）', displayTier:1, realtime:false,
@@ -750,15 +940,16 @@
             D({ id:'t1_resurrection_power', mode:'survival', name:'死裡復活', desc:'存活 ≥180 秒且瀕死回升 ≥3 次', displayTier:1, realtime:false,
                 condition:{ type:'custom', fn:m=> (m.survivalDuration||0)>=180 && (m.nearDeathRecoveries||0) >= 3 } });
 
-            // 任意模式 梯次（穩定如影）：以 Perfect 作答的變異係數衡量穩定度
-            D({ id:'any_stability_t5', mode:'any', name:'山寨高台', desc:'樣本≥20 且 CV≤0.55', displayTier:5, groupKey:'ladder_any_stability', rung:2, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0)>=20 && (m.perfectCV||1) <= 0.55 } });
-            D({ id:'any_stability_t4', mode:'any', name:'山寨高台', desc:'樣本≥30 且 CV≤0.45', displayTier:4, groupKey:'ladder_any_stability', rung:3, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0)>=30 && (m.perfectCV||1) <= 0.45 } });
-            D({ id:'any_stability_t3', mode:'any', name:'山寨高台', desc:'樣本≥40 且 CV≤0.35', displayTier:3, groupKey:'ladder_any_stability', rung:4, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0)>=40 && (m.perfectCV||1) <= 0.35 } });
-            D({ id:'any_stability_t2', mode:'any', name:'山寨高台', desc:'樣本≥50 且 CV≤0.25', displayTier:2, groupKey:'ladder_any_stability', rung:5, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0)>=50 && (m.perfectCV||1) <= 0.25 } });
+            // Any 梯次（山寨高台）：雙條件（失敗關數 + 完美關數），從 Classic 改為 Any（沿用闖關指標）
+            // 門檻：T5 失敗≤3 且 完美≤0；T4 失敗≤2 且 完美≤1；T3 失敗≤1 且 完美≤2；T2 失敗≤0 且 完美≤3
+            D({ id:'any_stability_t5', mode:'any', name:'山寨高台', desc:'失敗 ≤3 且 完美 ≤0（樣本≥7）', displayTier:5, groupKey:'ladder_any_stability', rung:2, realtime:false,
+                condition:{ type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=7 && (m.levelFailedCount||0) <= 3 && (m.levelsPerfectCount||0) <= 0 } });
+            D({ id:'any_stability_t4', mode:'any', name:'山寨高台', desc:'失敗 ≤2 且 完美 ≤1（樣本≥7）', displayTier:4, groupKey:'ladder_any_stability', rung:3, realtime:false,
+                condition:{ type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=7 && (m.levelFailedCount||0) <= 2 && (m.levelsPerfectCount||0) <= 1 } });
+            D({ id:'any_stability_t3', mode:'any', name:'山寨高台', desc:'失敗 ≤1 且 完美 ≤2（樣本≥7）', displayTier:3, groupKey:'ladder_any_stability', rung:4, realtime:false,
+                condition:{ type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=7 && (m.levelFailedCount||0) <= 1 && (m.levelsPerfectCount||0) <= 2 } });
+            D({ id:'any_stability_t2', mode:'any', name:'山寨高台', desc:'失敗 ≤0 且 完美 ≤3（樣本≥7）', displayTier:2, groupKey:'ladder_any_stability', rung:5, realtime:false,
+                condition:{ type:'custom', fn:m=> Array.isArray(m.levelPerfectFlags) && m.levelPerfectFlags.length>=7 && (m.levelFailedCount||0) <= 0 && (m.levelsPerfectCount||0) <= 3 } });
 
             // Classic 專屬 梯次（全副軍裝）：倒數 N 關皆 Perfect（T5≥1..T2≥4）
             D({ id:'c_lastN_perfect_t5', mode:'classic', name:'全副軍裝', desc:'倒數 1 關皆 Perfect', displayTier:5, groupKey:'ladder_c_lastN', rung:2, realtime:false,
@@ -770,20 +961,20 @@
             D({ id:'c_lastN_perfect_t2', mode:'classic', name:'全副軍裝', desc:'倒數 4 關皆 Perfect', displayTier:2, groupKey:'ladder_c_lastN', rung:5, realtime:false,
                 condition:{ type:'custom', fn:m=> { const f=m.levelPerfectFlags||[]; if(f.length<4) return false; return f[f.length-1] && f[f.length-2] && f[f.length-3] && f[f.length-4]; } } });
 
-            // Survival 專屬 梯次（安穩心志）：時長與低峰兼顧
-            D({ id:'s_low_peak_stability_t5', mode:'survival', name:'耐心等候', desc:'≥120s 且峰值 ≤~1.25x', displayTier:5, groupKey:'ladder_s_lowpeak', rung:2, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.survivalDuration||0)>=120 && (m.maxTimeOverStart||999) <= 75 } });
-            D({ id:'s_low_peak_stability_t4', mode:'survival', name:'耐心等候', desc:'≥240s 且峰值 ≤~1.20x', displayTier:4, groupKey:'ladder_s_lowpeak', rung:3, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.survivalDuration||0)>=240 && (m.maxTimeOverStart||999) <= 70 } });
-            D({ id:'s_low_peak_stability_t3', mode:'survival', name:'耐心等候', desc:'≥360s 且峰值 ≤~1.15x', displayTier:3, groupKey:'ladder_s_lowpeak', rung:4, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.survivalDuration||0)>=360 && (m.maxTimeOverStart||999) <= 65 } });
-            D({ id:'s_low_peak_stability_t2', mode:'survival', name:'耐心等候', desc:'≥480s 且峰值 ≤~1.10x', displayTier:2, groupKey:'ladder_s_lowpeak', rung:5, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.survivalDuration||0)>=480 && (m.maxTimeOverStart||999) <= 60 } });
+            // Survival 專屬 梯次（耐心等候）：計時在 0–30 秒區間的累計秒數（T5/T4/T3/T2: 45/60/75/90）
+            D({ id:'s_time_band_0_30_t5', mode:'survival', name:'耐心等候', desc:'0–30 秒區間累計 ≥45 秒', displayTier:5, groupKey:'ladder_s_band_0_30', rung:2, realtime:false,
+                condition:{ type:'metric', field:'timeInBand0to30', op:'>=', value:45 } });
+            D({ id:'s_time_band_0_30_t4', mode:'survival', name:'耐心等候', desc:'0–30 秒區間累計 ≥60 秒', displayTier:4, groupKey:'ladder_s_band_0_30', rung:3, realtime:false,
+                condition:{ type:'metric', field:'timeInBand0to30', op:'>=', value:60 } });
+            D({ id:'s_time_band_0_30_t3', mode:'survival', name:'耐心等候', desc:'0–30 秒區間累計 ≥75 秒', displayTier:3, groupKey:'ladder_s_band_0_30', rung:4, realtime:false,
+                condition:{ type:'metric', field:'timeInBand0to30', op:'>=', value:75 } });
+            D({ id:'s_time_band_0_30_t2', mode:'survival', name:'耐心等候', desc:'0–30 秒區間累計 ≥90 秒', displayTier:2, groupKey:'ladder_s_band_0_30', rung:5, realtime:false,
+                condition:{ type:'metric', field:'timeInBand0to30', op:'>=', value:90 } });
 
             // T1 Specials（可擇一定義，避免與梯隊重疊）
-            // 聖靈充滿：完美限定的平均速度 <3.0s 且 樣本≥20（極高難度）
-            D({ id:'t1_chariot_fire', mode:'any', name:'聖靈充滿', desc:'完美限定 平均作答 <3.0 秒（≥20 題）', displayTier:1, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0)>=20 && (m.avgPerfectAnswerMs||0)>0 && m.avgPerfectAnswerMs<3000 } });
+            // 聖靈充滿：改為 Any 類別；文案更新（條件不變）
+            D({ id:'t1_chariot_fire', mode:'any', name:'聖靈充滿', desc:'平均作答 <4.5 秒 且每關平均失誤 ≤2', displayTier:1, realtime:false,
+                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0)>=20 && (m.avgPerfectAnswerMs||0)>0 && m.avgPerfectAnswerMs<4500 && (m.classicAvgMistakesPerLevel||0) <= 2 } });
             // 分別為聖：完美限定 Acc≥99% 且 樣本≥25
             D({ id:'t1_near_holy', mode:'any', name:'分別為聖', desc:'完美限定 Acc ≥99%（樣本≥25）', displayTier:1, realtime:false,
                 condition:{ type:'custom', fn:m=> (m.noHintAnsweredCount||0)>=25 && (m.accuracyNoHint||0)>=0.99 } });
@@ -877,14 +1068,13 @@
                         'achv-boltchain': [/^any_ultrafast_chain_/],
                         'achv-metronome': [/^any_low_stddev_/, /^any_stability_t[245]$/],
                         'achv-lamp': [/^any_warm_start_/],
-                        'achv-wall': [/^any_low_miss_/],
                         'achv-basin': [/^any_acc_t[245]$/],
                         'achv-leg': [/^any_speed_t[245]$/],
                         'achv-eagle': [/^any_ultra_chain_t[245]$/],
                         'achv-clock': [/^s_60s$/, /^s_90s$/, /^s_150s$/, /^s_300s$/, /^s_360s_master$/, /^s_duration_t[245]$/],
-                        'achv-sundial': [/^s_time_/, /^s_time_peak_t[245]$/],
+                        'achv-sundial': [/^s_time_/, /^s_time_band_60_90_t[245]$/],
                         'achv-reticle': [/^s_accuracy_/, /^s_220s_guard$/],
-                        'achv-gears': [/^s_clocksmith$/, /^s_low_variance$/, /^s_low_peak_stability_t[245]$/],
+                        'achv-gears': [/^s_clocksmith$/, /^s_low_variance$/, /^s_time_band_0_30_t[245]$/],
                         'achv-hourglass2': [/^s_steady_rise$/],
                         'achv-breastplate': [/^s_no_rescue_/, /^c_lastN_perfect_t[245]$/],
                         'achv-dove': [/^s_recover_40$/, /^s_phoenix$/, /^s_three_recoveries$/],
@@ -992,18 +1182,23 @@
                     if(!(md==='classic' || md==='survival')) return;
                     const client = getClient(); if(!client) return;
                     const table = getRunsTable();
+                    // Align with schema: achv_runs(metrics jsonb, achievements jsonb, mode, project_tag, score_id?, created_at default)
+                    const unlockIds = (unlocked||[]).map(a=>a && a.id).filter(Boolean);
                     const row = {
-                        ts: Date.now(),
                         mode: md,
-                        answered: m.answeredQuestions||0,
-                        accuracy: m.accuracy||0,
-                        longest_streak: m.longestStreak||0,
-                        wrong: m.wrongCount||0,
-                        avg_ms: m.avgAnswerMs||0,
-                        survival_duration: m.survivalDuration||0,
-                        max_time: m.maxTime||0,
-                        unlock_ids: (unlocked||[]).map(a=>a.id),
-                        achievements_count: Array.isArray(unlocked) ? unlocked.length : 0,
+                        metrics: {
+                            answered: m.answeredQuestions||0,
+                            accuracy: m.accuracy||0,
+                            longestStreak: m.longestStreak||0,
+                            wrong: m.wrongCount||0,
+                            avgMs: m.avgAnswerMs||0,
+                            survivalDuration: m.survivalDuration||0,
+                            maxTime: m.maxTime||0
+                        },
+                        achievements: {
+                            ids: unlockIds,
+                            count: unlockIds.length
+                        },
                         project_tag: (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.projectTag)||'bible-challenge-prod'
                     };
                     // Optionally attach a score_id if provided
@@ -1023,7 +1218,7 @@
                         .select('id, score_id')
                         .is('score_id', null)
                         .eq('project_tag', tag)
-                        .order('ts', { ascending:false })
+                        .order('created_at', { ascending:false })
                         .limit(1);
                     const row = Array.isArray(list) && list[0];
                     if (row && row.id) {
@@ -1039,7 +1234,7 @@
                     const table = getRunsTable(); const L = Math.max(1, Math.min(1000, limit||100));
                     const { data, error } = await client.from(table)
                         .select('*')
-                        .order('ts', { ascending:false })
+                        .order('created_at', { ascending:false })
                         .limit(L);
                     if(error) return [];
                     return Array.isArray(data)? data: [];
@@ -1053,7 +1248,11 @@
                     const byMode = { classic: runs.filter(r=>r.mode==='classic'), survival: runs.filter(r=>r.mode==='survival') };
                     const totalByMode = { classic: byMode.classic.length||1, survival: byMode.survival.length||1 };
                     const freq = {};
-                    for(const r of runs){ const ids = (r.unlock_ids||r.unlockIds||[]); for(const id of ids){ freq[id]=(freq[id]||0)+1; } }
+                    for(const r of runs){
+                        // Support legacy unlock_ids[], or new achievements: { ids: [] }
+                        const ids = (r.unlock_ids||r.unlockIds||((r.achievements&&r.achievements.ids)||[])) || [];
+                        for(const id of ids){ freq[id]=(freq[id]||0)+1; }
+                    }
                     function tierByRate(rate){
                         // 目標分佈（可微調）：T1 40-60%, T2 20-40%, T3 7-20%, T4 <7%
                         if(rate>=0.40) return 1; if(rate>=0.20) return 2; if(rate>=0.07) return 3; return 4;
@@ -4702,19 +4901,19 @@
         .achv-card::after{ opacity:.35; }
         .achv-card .tier-particles{ opacity:.2; }
     }
-        .achv-card .achv-icon{ width:2.5rem; height:2.5rem; border-radius:0.75rem; position:relative; display:flex; align-items:center; justify-content:center; background:
+        .achv-icon{ width:2.5rem; height:2.5rem; border-radius:0.75rem; position:relative; display:flex; align-items:center; justify-content:center; background:
             radial-gradient(60% 60% at 50% 45%, var(--rim-weak, rgba(0,0,0,0.05)) 0 60%, transparent 70%),
             rgba(255,255,255,.7);
             backdrop-filter:saturate(140%) blur(4px); border:1px solid rgba(0,0,0,0.06); box-shadow:inset 0 0 0 1px rgba(255,255,255,.65), 0 1px 0 rgba(255,255,255,.85);
         }
-        .achv-card .achv-icon::before{ content:""; position:absolute; inset:-2px; border-radius:inherit; background:
+        .achv-icon::before{ content:""; position:absolute; inset:-2px; border-radius:inherit; background:
             radial-gradient(60% 60% at 50% 45%, var(--rim, rgba(0,0,0,.08)) 0 55%, transparent 72%);
             opacity:.55; filter:blur(.2px); pointer-events:none; }
-        .achv-card .achv-icon::after{ content:""; position:absolute; inset:0; border-radius:inherit; background:
+        .achv-icon::after{ content:""; position:absolute; inset:0; border-radius:inherit; background:
             linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0) 35%),
             radial-gradient(60% 50% at 50% 0%, rgba(255,255,255,.45), rgba(255,255,255,0) 60%);
             mix-blend-mode:screen; pointer-events:none; opacity:.85; }
-        .achv-card .achv-icon svg{ filter:drop-shadow(0 1px 0 rgba(255,255,255,.65)); }
+        .achv-icon svg{ filter:drop-shadow(0 1px 0 rgba(255,255,255,.65)); }
         .achv-card:hover .achv-icon{ transform:translateY(-1px) scale(1.035); box-shadow:inset 0 0 0 1px rgba(255,255,255,.7), 0 2px 8px rgba(0,0,0,.12); }
         /* Rarity-based SVG strengthening */
         .achv-icon-svg{ stroke-linecap:round; stroke-linejoin:round; }
@@ -4831,6 +5030,7 @@
         @media (prefers-reduced-motion: reduce){ .rarity-t4 .wave-sweep{ animation:none; opacity:.35; } }
         /* Toast 色系對齊（不改結構，僅以 .rarity-t* 著色）*/
     .achievement-toast{ position:relative; border-radius:.75rem; }
+    .achievement-toast{ display:flex; align-items:center; gap:.5rem; }
         .achievement-toast::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--rim, rgba(0,0,0,.08)); border-radius:.75rem 0 0 .75rem; opacity:.8; }
         .achievement-toast.rarity-t1{ border-color:var(--t1-border); box-shadow:0 12px 24px var(--t1-glow), 0 0 0 1px rgba(255,255,255,.22) inset, 0 0 0 1px var(--t1-border) inset; }
         .achievement-toast.rarity-t2{ border-color:var(--t2-border); box-shadow:0 10px 20px var(--t2-glow), 0 0 0 1px rgba(255,255,255,.22) inset, 0 0 0 1px var(--t2-border) inset; }
@@ -5855,7 +6055,7 @@
                                 <ul class="list-disc pl-5 space-y-1">
                                     <li><span class="font-medium">配對模式：</span> 連擊 < 8 → 簡單；≥8 → 普通；≥16 → 困難；改變配對型態與色彩。</li>
                                     <li><span class="font-medium">題型變化：</span> 單局時間 0–139 / 140–279 / 280s+ 三階段調整書卷分布與混淆度（不受連擊回落）。</li>
-                                    <li><span class="font-medium">經文罕見度：</span> 最近 8 題均速 ≤5s 偏冷門；≤8s 混合；其餘常見（速度驅動，獨立）。</li>
+                                    <li><span class="font-medium">經文罕見度：</span> 最近 8 題均速 ≤3s 偏冷門；≤6s 混合；其餘常見（速度驅動，獨立）。</li>
                                     <li><span class="font-medium">錯誤緩衝：</span> 掉連擊只影響配對；時間&罕見度不重置，避免連鎖挫折。</li>
                                     <li><span class="font-medium">觀察期：</span>前 2 關僅蒐集速度，不調整罕見度。</li>
                                 </ul>
@@ -5863,6 +6063,8 @@
                         </div>
                     </div>
                 </div>
+
+                
             </div>
             
             <!-- 排行榜區 -->
@@ -8986,7 +9188,171 @@
                 }
                 function closeDev(){ if (!modal) return; closeModal('devCommandModal'); }
                 function maybeEnable(){ if (!confirm || !input) return; const v = (input.value||'').trim(); if (v) { confirm.disabled=false; confirm.removeAttribute('aria-disabled'); confirm.classList.remove('opacity-60','cursor-not-allowed'); } else { confirm.disabled=true; confirm.setAttribute('aria-disabled','true'); confirm.classList.add('opacity-60','cursor-not-allowed'); } }
-                function execCommand(){ if (!input) return; const code = input.value.trim(); if (code === '7777'){ closeDev(); openClearModal(); }
+                async function execCommand(){
+                    if (!input) return;
+                    const code = (input.value || '').trim();
+                    if (code === '7777') {
+                        closeDev();
+                        openClearModal();
+                        return;
+                    }
+                    if (code === '6666' || /^(6666r)$/i.test(code)) {
+                        const onlineEnabled = !!(window.Leaderboard && typeof window.Leaderboard.save === 'function');
+                        const remoteAlso = /r$/i.test(code) || onlineEnabled;
+                        try { SFX && SFX.play && SFX.play('uiConfirm'); } catch(_) {}
+                        // Determine active leaderboard mode from selected tab; fallback to cached mode or classic
+                        let mode = 'classic';
+                        try {
+                            const active = document.querySelector('.leaderboard-tab[aria-selected="true"]');
+                            const m = active && (active.dataset.mode || '').toLowerCase();
+                            if (m === 'classic' || m === 'survival') mode = m;
+                            else if (window.__lbActiveMode) mode = window.__lbActiveMode;
+                        } catch(_) { try { if (window.__lbActiveMode) mode = window.__lbActiveMode; } catch(_) {} }
+
+                        // Load existing leaderboard (prefer online if available) and compute empty slots against LEADERBOARD_LIMIT
+                        const LIMIT = (window.__BC_CONSTS && window.__BC_CONSTS.LEADERBOARD_LIMIT) || 20;
+                        let effective = null;
+                        try {
+                            if (remoteAlso && window.Leaderboard && typeof window.Leaderboard.load === 'function') {
+                                const res = window.Leaderboard.load();
+                                effective = (res && typeof res.then === 'function') ? await res : res;
+                            }
+                        } catch(_) {}
+                        if (!effective) {
+                            try { effective = (window.LeaderboardLocal && window.LeaderboardLocal.load) ? window.LeaderboardLocal.load() : { classic: [], survival: [] }; } catch(_) { effective = { classic: [], survival: [] }; }
+                        }
+                        const list = (effective && effective[mode]) ? effective[mode] : [];
+                        const currentCount = Array.isArray(list) ? list.length : 0;
+                        const empty = Math.max(0, LIMIT - currentCount);
+                        if (empty <= 0) {
+                            closeDev();
+                            try { showCuteHint(`目前「${mode==='survival'?'生存計時':'闖關挑戰'}」沒有空白名次可填`, 'purple', 2400, 'ℹ️'); } catch(_) {}
+                            return;
+                        }
+
+                        // Prepare unique short cute/fun name generator (1~4 chars, avoid duplicates)
+                        const existingNames = new Set((list || []).map(r => (r && r.playerName) ? String(r.playerName) : '匿名'));
+                        const batchNames = new Set();
+                        function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+                        const cuteBase = [
+                            '豆豆','球球','咪咪','妞妞','牛牛','可可','樂樂','朵朵','多多','東東','天天','皮皮','巧巧','元元','花花','點點','泡泡','柚柚','果果','喵喵','汪汪','萌萌','熊熊','糖糖','餅乾','小白','小黑','小米','小光','小羽','阿樂','阿福','阿牧','阿喜','阿花','阿星','阿比','阿茉','阿寶','小鯊','小熊','小鹿','小魚','小貓','小汪','小狐','小松','小草','小豆','小皮','白白','黑皮','奈奈','比比','露露','奇奇','妙妙','圓圓','悠悠','可愛','軟綿','甜心','小萌','小可','米米'
+                        ];
+                        const syllables = ['小','阿','豆','米','果','樂','皮','球','花','糖','白','黑','萌','喵','汪','狐','鹿','熊','星','泡','點','朵','多','光','羽','茉','寶','比','奈','露','奇','妙','圓','悠'];
+                        function genName(){
+                            // 60% 直接使用可愛名單，40% 自行組合 1~3 個音節
+                            if (Math.random() < 0.6) return pick(cuteBase);
+                            const len = Math.min(4, Math.max(1, Math.floor(Math.random()*3)+1));
+                            let out = '';
+                            for (let i=0;i<len;i++) out += pick(syllables);
+                            return out.slice(0,4);
+                        }
+                        function uniqueName(){
+                            let tries = 0;
+                            while (tries++ < 400) {
+                                const name = genName();
+                                if (name && name.length >= 1 && name.length <= 4 && !existingNames.has(name) && !batchNames.has(name)) { batchNames.add(name); return name; }
+                            }
+                            // Fallback: 玩家 + 編號（不超過 4 個字）
+                            let idx = 1;
+                            let name = '';
+                            while (!name || existingNames.has(name) || batchNames.has(name)) { name = `玩${idx}`; idx++; if (idx>9999) break; }
+                            batchNames.add(name); return name;
+                        }
+
+                        // Random score by mode
+                        const scoreMin = mode === 'survival' ? 300 : 500;
+                        const scoreMax = mode === 'survival' ? 3000 : 5000;
+                        function randInt(min,max){ return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+                        const now = Date.now();
+                        const fmtTime = (ms)=>{ const secs = Math.max(0, Math.floor(ms/1000)); const m = Math.floor(secs/60); const s = String(secs%60).padStart(2,'0'); return `${m}:${s}`; };
+                        const added = [];
+                        for (let i = 0; i < empty; i++) {
+                            const playerName = uniqueName();
+                            // Target scoreboard分數範圍
+                            const targetScore = randInt(scoreMin, scoreMax);
+                            // 虛構題數/正確率/關卡結果
+                            const totalQuestions = mode === 'survival' ? randInt(8, 18) : randInt(8, 20);
+                            const levels = Math.min(10, Math.max(1, Math.ceil(totalQuestions / (mode==='survival'?4:5))));
+                            const perfectCount = randInt(0, levels);
+                            const levelBonus = perfectCount * 300 + (levels - perfectCount) * 100;
+                            const totalHints = 3; const hintsRemaining = randInt(0, totalHints); const hintBonus = hintsRemaining * 100;
+                            const maxMistakes = Math.max(0, Math.floor(totalQuestions / 2));
+                            let totalMistakes = randInt(0, maxMistakes);
+                            // 先估最大可用正確數，避免 base 超出分數
+                            const correctMax = Math.max(1, Math.min(totalQuestions, Math.floor((targetScore - levelBonus - hintBonus) / 100)));
+                            const correctMin = Math.max(1, Math.floor(correctMax * 0.6));
+                            let correctAnswers = Math.max(1, Math.min(correctMax, randInt(correctMin, correctMax)));
+                            let base = correctAnswers * 100;
+                            // 計算 timeReward 使最後分數接近目標
+                            let timeReward = targetScore - base - levelBonus - hintBonus + totalMistakes * 50;
+                            if (timeReward < 0) { timeReward = 0; }
+                            // 最終分數（保證在範圍內）
+                            let score = base + levelBonus + hintBonus - totalMistakes * 50 + timeReward;
+                            if (score < scoreMin) { timeReward += (scoreMin - score); score = scoreMin; }
+                            if (score > scoreMax) { const over = score - scoreMax; timeReward = Math.max(0, timeReward - over); score = scoreMax; }
+                            // 用時
+                            const timeMs = (mode==='survival' ? randInt(60, 480) : randInt(120, 720)) * 1000;
+                            const timeStr = fmtTime(timeMs);
+                            // 關卡結果明細
+                            const levelResults = {}; for (let L=1; L<=levels; L++){ levelResults[L] = (L <= perfectCount) ? 'perfect' : 'complete'; }
+                            // 構建完整可檢視的排行榜紀錄（供點卡片開啟結算視窗）
+                            const rec = {
+                                id: `seed-${now}-${mode}-${i}-${Math.floor(Math.random()*1e6)}`,
+                                playerName,
+                                score,
+                                difficulty: 'normal',
+                                date: new Date().toLocaleDateString('zh-TW'),
+                                time: timeStr,
+                                elapsed: timeStr,
+                                timeMs,
+                                completed: true,
+                                correctAnswers,
+                                accuracy: Math.round((correctAnswers / Math.max(1,totalQuestions)) * 100),
+                                totalQuestions,
+                                totalMistakes,
+                                levelResults,
+                                range: 'all',
+                                rarity: null,
+                                mode: 'ranking',
+                                playMode: mode,
+                                hintsRemaining,
+                                totalHints,
+                                showTimeReward: true,
+                                timeReward,
+                                usedHintsCount: (totalHints - hintsRemaining),
+                                createdAt: now + i,
+                                achievements: []
+                            };
+                            try { window.LeaderboardLocal && window.LeaderboardLocal.save && window.LeaderboardLocal.save(rec, mode); } catch(_) {}
+                            if (remoteAlso && window.Leaderboard && typeof window.Leaderboard.save === 'function') {
+                                try { await window.Leaderboard.save(rec); } catch(e){ console.warn('[DEV] remote seed save failed', e); }
+                            }
+                            added.push(rec);
+                        }
+
+                        // Update in-memory cache to reflect latest local data immediately (avoid online-empty overriding UI)
+                        try {
+                            const latest = window.__lbLatestData || effective || { classic: [], survival: [] };
+                            const arr = (latest[mode] || []).slice();
+                            added.forEach(r => arr.push(r));
+                            arr.sort((a,b)=> (b.score||0)-(a.score||0) || (new Date(a.createdAt||a.date||'').getTime() - new Date(b.createdAt||b.date||'').getTime()));
+                            latest[mode] = arr.slice(0, LIMIT);
+                            window.__lbLatestData = latest;
+                            window.__lbLatestTs = Date.now();
+                        } catch(_) {}
+                        // Invalidate any other caches if present
+                        try { window.invalidateLeaderboardCache && window.invalidateLeaderboardCache(); } catch(_) {}
+                        closeDev();
+                        try { await updateLeaderboardDisplay(mode, { force: true }); } catch(_) { try { updateLeaderboardDisplay && updateLeaderboardDisplay(mode); } catch(_) {} }
+                        try {
+                            const msg = remoteAlso
+                                ? `已為「${mode==='survival'?'生存計時':'闖關挑戰'}」補上 ${empty} 筆測試紀錄（本機 + 線上）`
+                                : `已為「${mode==='survival'?'生存計時':'闖關挑戰'}」補上 ${empty} 筆測試紀錄`;
+                            showCuteHint(msg, mode==='survival'?'green':'rose', 2800, remoteAlso ? '🌐' : '🧪');
+                        } catch(_) {}
+                        return;
+                    }
                 }
                 openBtn && openBtn.addEventListener('click', openDev);
                 cancel && cancel.addEventListener('click', closeDev);
@@ -9556,6 +9922,8 @@
             // 安全停止所有計時器（避免生存模式殘留）
             try { if (gameState.timerInterval) { clearInterval(gameState.timerInterval); gameState.timerInterval = null; } } catch(_) {}
             try { if (gameState.survivalTimerInterval) { clearInterval(gameState.survivalTimerInterval); gameState.survivalTimerInterval = null; } } catch(_) {}
+            // 停止任何殘留的星星雨特效並清除節點
+            try { if (typeof stopStarRain === 'function') stopStarRain(true); } catch(_) {}
             document.getElementById('startScreen').classList.remove('hidden');
             document.getElementById('gameScreen').classList.add('hidden');
             document.getElementById('verseMarquee').style.display = 'block';
@@ -11145,7 +11513,14 @@
             gameState.comboTotalBonus = 0;
             try { if (gameState.comboDecayTimer) { clearTimeout(gameState.comboDecayTimer); gameState.comboDecayTimer = null; } } catch(_) {}
             // 設定初始內部難度（自適應起點：easy）
-            if (!gameState.difficulty) gameState.difficulty = 'easy';
+            // 生存模式一律重置為 easy，避免承襲前一局的動態難度；闖關模式則保留選擇/預設。
+            try {
+                if (isSurvival()) {
+                    gameState.difficulty = 'easy';
+                } else if (!gameState.difficulty) {
+                    gameState.difficulty = 'easy';
+                }
+            } catch(_) { if (!gameState.difficulty) gameState.difficulty = 'easy'; }
             // 記錄目前難度以供自適應切換時比對
             gameState._lastAdaptiveDifficulty = gameState.difficulty;
 
@@ -11250,9 +11625,9 @@
     // Shared helpers for combo thresholds and difficulty mapping
     function getComboTierGlobal(c) {
             const v = Number(c || 0);
-            if (v > 16) return 2; // hard tier (17+)
-            if (v > 8) return 1;  // normal tier (9..16)
-            return 0;             // easy tier (<=8)
+            if (v >= 16) return 2; // hard tier (16+)
+            if (v >= 8) return 1;  // normal tier (8..15)
+            return 0;              // easy tier (<8)
         }
         function getDifficultyFromCombo(c) {
             const v = Number(c || 0);
@@ -11261,12 +11636,12 @@
                 if (typeof gameState === 'object' && gameState && gameState.range === 'custom') {
                     const books = Array.isArray(gameState.customBooks) ? gameState.customBooks : [];
                     if (books.length === 1) {
-                        // easy: <=8；9..16 本應 normal -> 改為 hard；>=17 仍 hard
-                        return (v > 8) ? 'hard' : 'easy';
+                        // easy: <8；>=8 直接 hard（跳過 normal）
+                        return (v >= 8) ? 'hard' : 'easy';
                     }
                 }
             } catch(_) { /* ignore, fallback to default */ }
-            return (v > 16) ? 'hard' : (v > 8) ? 'normal' : 'easy';
+            return (v >= 16) ? 'hard' : (v >= 8) ? 'normal' : 'easy';
         }
 
         // ===== 題型變化：改為依單局時間(0~420s)分階段，而非連擊 =====
@@ -11303,8 +11678,8 @@
             //   平均 <= FAST_THRESHOLD  → tier 2 (高速度，提升 rare)
             //   平均 <= MED_THRESHOLD   → tier 1 (中等)
             //   其餘                     → tier 0 (維持常見)
-            const FAST_THRESHOLD = 5;   // 秒
-            const MED_THRESHOLD  = 8;   // 秒
+            const FAST_THRESHOLD = 3;   // 秒（原 5）
+            const MED_THRESHOLD  = 6;   // 秒（原 8）
             function getSpeedTier(){
                 try {
                     const arr = Array.isArray(gameState.recentAnswerTimes) ? gameState.recentAnswerTimes : [];
@@ -14246,7 +14621,8 @@
                         1:{text:'T1',cls:'bg-amber-50 text-black border-amber-200'},
                         2:{text:'T2',cls:'bg-purple-50 text-black border-purple-200'},
                         3:{text:'T3',cls:'bg-indigo-50 text-black border-indigo-200'},
-                        4:{text:'T4',cls:'bg-gray-100 text-black border-gray-200'}
+                        4:{text:'T4',cls:'bg-gray-100 text-black border-gray-200'},
+                        5:{text:'T5',cls:'bg-emerald-50 text-black border-emerald-200'}
                     };
                     const x = map[t] || map[4];
                     return `<span class="inline-flex items-center px-2 py-0.5 text-[11px] font-bold rounded-md border ${x.cls}">${x.text}</span>`;
@@ -16630,7 +17006,7 @@
                     if (arr.length < 3) {
                         raritySpeedLabel = '觀察中';
                     } else {
-                        raritySpeedLabel = avg <= 5 ? '冷門提升' : avg <= 8 ? '混合' : '常見偏多';
+                        raritySpeedLabel = avg <= 3 ? '冷門提升' : avg <= 6 ? '混合' : '常見偏多';
                     }
                 }
             } catch(_) { raritySpeedLabel = '常見偏多'; }

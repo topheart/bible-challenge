@@ -456,6 +456,37 @@
                 }catch(_){ /* no-op */ }
                 el.innerHTML=`<div class="achv-icon">${icon}</div><span>${label}</span>`;
                 try { if (typeof window.__injectAchvDecor==='function') window.__injectAchvDecor(el); } catch(_) {}
+                // 若為 T2（天堂風格），注入雲霧與上帝光圖層（加入隨機動畫時長/延遲以提升自然感）
+                try {
+                    if (/\brarity-t2\b/.test(el.className)){
+                        const clouds = document.createElement('div'); clouds.className='heaven-clouds';
+                        clouds.style.setProperty('--cloudDurL', (10 + Math.random()*3).toFixed(2)+'s');
+                        clouds.style.setProperty('--cloudDurR', (11 + Math.random()*3).toFixed(2)+'s');
+                        // 追加 2~3 層 cloud-band，均分整張卡片高度
+                        const bandCount = 2 + Math.floor(Math.random()*2); // 2 or 3
+                        for(let bi=0; bi<bandCount; bi++){
+                            const b=document.createElement('div'); b.className='cloud-band cb'+(bi+1);
+                            const topPct = 12 + (bi+0.5)*(60/(bandCount)); // roughly 12%~72%
+                            b.style.top = topPct+'%';
+                            b.style.setProperty('--cbDur', (11 + Math.random()*3).toFixed(2)+'s');
+                            b.style.setProperty('--cbDelay', (Math.random()*1.2).toFixed(2)+'s');
+                            clouds.appendChild(b);
+                        }
+                        el.insertBefore(clouds, el.firstChild);
+                        const rays = document.createElement('div'); rays.className='god-rays';
+                        const n = 3 + Math.floor(Math.random()*3);
+                        for(let i=0;i<n;i++){
+                            const r=document.createElement('div'); r.className='ray';
+                            const left = Math.floor(8 + Math.random()*84);
+                            const w = Math.floor(6 + Math.random()*12);
+                            r.style.left = left+'%'; r.style.width = w+'%';
+                            r.style.setProperty('--rDur', (5.2 + Math.random()*2.4).toFixed(2)+'s');
+                            r.style.setProperty('--rDelay', (Math.random()*1.6).toFixed(2)+'s');
+                            rays.appendChild(r);
+                        }
+                        el.insertBefore(rays, el.firstChild);
+                    }
+                } catch(_) {}
                 stack.appendChild(el);
                 // announce
                 try { const live=document.getElementById('achievementLiveRegion'); if(live){ live.textContent=`成就解鎖：${a.name}`; } } catch(_) {}
@@ -740,6 +771,39 @@
                     const icon=getAchievementIcon(a);
                     wrap.innerHTML=`<div class=\"text-[64px] drop-shadow-lg w-[96px] h-[96px] flex items-center justify-center rounded-2xl bg-gradient-to-br from-white to-purple-50 border border-purple-200\">${icon.replace('w-6 h-6','w-14 h-14')}</div><div class=\"px-4 py-2 rounded-full text-sm font-extrabold bg-white/90 border border-purple-300 shadow\">${a.name}</div>`;
                     layer.appendChild(wrap);
+                    // 若該成就對應視覺為 T2（顯示等級 2），套用天堂雲霧與上帝光層
+                    try{
+                        const dt = (typeof getDisplayTier==='function') ? getDisplayTier(a) : 5;
+                        if (dt === 2){
+                            wrap.classList.add('rarity-t2');
+                            const clouds = document.createElement('div'); clouds.className='heaven-clouds';
+                            clouds.style.setProperty('--cloudDurL', (10 + Math.random()*3).toFixed(2)+'s');
+                            clouds.style.setProperty('--cloudDurR', (11 + Math.random()*3).toFixed(2)+'s');
+                            // 雲帶 2~3 層
+                            const bandCount = 2 + Math.floor(Math.random()*2);
+                            for(let bi=0; bi<bandCount; bi++){
+                                const b=document.createElement('div'); b.className='cloud-band cb'+(bi+1);
+                                const topPct = 12 + (bi+0.5)*(60/(bandCount));
+                                b.style.top = topPct+'%';
+                                b.style.setProperty('--cbDur', (11 + Math.random()*3).toFixed(2)+'s');
+                                b.style.setProperty('--cbDelay', (Math.random()*1.2).toFixed(2)+'s');
+                                clouds.appendChild(b);
+                            }
+                            wrap.insertBefore(clouds, wrap.firstChild);
+                            const rays = document.createElement('div'); rays.className='god-rays';
+                            const n = 3 + Math.floor(Math.random()*3);
+                            for(let i=0;i<n;i++){
+                                const r=document.createElement('div'); r.className='ray';
+                                const left = Math.floor(8 + Math.random()*84);
+                                const w = Math.floor(6 + Math.random()*12);
+                                r.style.left = left+'%'; r.style.width = w+'%';
+                                r.style.setProperty('--rDur', (5.2 + Math.random()*2.4).toFixed(2)+'s');
+                                r.style.setProperty('--rDelay', (Math.random()*1.6).toFixed(2)+'s');
+                                rays.appendChild(r);
+                            }
+                            wrap.insertBefore(rays, wrap.firstChild);
+                        }
+                    }catch(_){}
                     // initial style
                     wrap.style.opacity='0';
                     wrap.style.transform='scale(.6) translateY(20px)';
@@ -2437,6 +2501,8 @@
             window.__injectAchvDecor = function(card){
                 try{
                     if (!card) return;
+                    const isToast = card.classList && /\bachievement-toast\b/.test(card.className);
+                    const isFlash = card.classList && /\bflash-medal\b/.test(card.className);
                     // vignette
                     if (!card.querySelector(':scope > .vignette')){
                         const d=document.createElement('div'); d.className='vignette'; card.insertBefore(d, card.firstChild);
@@ -2458,6 +2524,7 @@
                     const isT2 = /\brarity-t2\b/.test(cls);
                     const isT3 = /\brarity-t3\b/.test(cls);
                     const isT4 = /\brarity-t4\b/.test(cls);
+                    const isT5 = /\brarity-t5\b/.test(cls);
                     // T1 flame
                     if (isT1 && !card.querySelector(':scope > .flame-layer')){
                         const flame=document.createElement('div'); flame.className='flame-layer';
@@ -2476,15 +2543,49 @@
                         }
                         card.insertBefore(flame, card.firstChild);
                     }
-                    // T2 edge sweep (moved from T1)
-                    if (isT2 && !card.querySelector(':scope > .edge-sweep')){
-                        const es=document.createElement('div'); es.className='edge-sweep'; card.appendChild(es);
+                    // T2 edge sweep (moved from T1) + heaven layers（雲與光束置於內容下方：使用 insertBefore）
+                    if (isT2){
+                        if (!card.querySelector(':scope > .edge-sweep')){
+                            const es=document.createElement('div'); es.className='edge-sweep'; card.appendChild(es);
+                        }
+                        if (!card.querySelector(':scope > .heaven-clouds')){
+                            const clouds=document.createElement('div'); clouds.className='heaven-clouds';
+                            clouds.style.setProperty('--cloudDurL', (10 + Math.random()*3).toFixed(2)+'s');
+                            clouds.style.setProperty('--cloudDurR', (11 + Math.random()*3).toFixed(2)+'s');
+                            // 追加雲帶層：2~3 層均分
+                            const bandCount = 2 + Math.floor(Math.random()*2);
+                            for(let bi=0; bi<bandCount; bi++){
+                                const b=document.createElement('div'); b.className='cloud-band cb'+(bi+1);
+                                const topPct = 12 + (bi+0.5)*(60/(bandCount));
+                                b.style.top = topPct+'%';
+                                b.style.setProperty('--cbDur', (11 + Math.random()*3).toFixed(2)+'s');
+                                b.style.setProperty('--cbDelay', (Math.random()*1.2).toFixed(2)+'s');
+                                clouds.appendChild(b);
+                            }
+                            card.insertBefore(clouds, card.firstChild);
+                        }
+                        if (!card.querySelector(':scope > .god-rays')){
+                            const rays=document.createElement('div'); rays.className='god-rays';
+                            // 生成 3~5 條垂直 ray
+                            const n = 3 + Math.floor(Math.random()*3);
+                            for(let i=0;i<n;i++){
+                                const r=document.createElement('div'); r.className='ray';
+                                const left = Math.floor(8 + Math.random()*84); // 8%~92%
+                                const w = Math.floor(6 + Math.random()*12);   // 6%~18%
+                                r.style.left = left+'%'; r.style.width = w+'%';
+                                r.style.setProperty('--rDur', (5.2 + Math.random()*2.4).toFixed(2)+'s');
+                                r.style.setProperty('--rDelay', (Math.random()*1.6).toFixed(2)+'s');
+                                rays.appendChild(r);
+                            }
+                            card.insertBefore(rays, card.firstChild);
+                        }
                     }
-                    // T3 starfield
+                    // T3 starfield + nebula + meteor + meteor-shower
                     if (isT3 && !card.querySelector(':scope > .starfield')){
                         const sf=document.createElement('div'); sf.className='starfield';
-                        // add stars at random positions
-                        for(let i=0;i<26;i++){
+                        // add stars at random positions（密度依情境調整）
+                        const starCount = isToast || isFlash ? 14 : 26;
+                        for(let i=0;i<starCount;i++){
                             const s=document.createElement('div'); s.className='s';
                             if(i%3===0) s.classList.add('s2');
                             if(i%5===0) s.classList.add('s3');
@@ -2493,10 +2594,64 @@
                             sf.appendChild(s);
                         }
                         card.insertBefore(sf, card.firstChild);
+                        // nebula
+                        const nb=document.createElement('div'); nb.className='nebula'; card.insertBefore(nb, card.firstChild);
+                        // meteor (rare) 30% chance
+                        if (Math.random() < 0.3){ const mt=document.createElement('div'); mt.className='meteor'; mt.style.setProperty('--mDur', (1.6+Math.random()*0.8)+'s'); mt.style.setProperty('--mDelay', (3+Math.random()*5)+'s'); card.insertBefore(mt, card.firstChild); }
+                        // meteor shower：多條白色長尾，低密度（2~4），置於旋轉包裹中
+                        if (!card.querySelector(':scope > .meteor-tilt')){
+                            const tilt=document.createElement('div'); tilt.className='meteor-tilt';
+                            const ms=document.createElement('div'); ms.className='meteor-shower';
+                            const cnt = 3 + Math.floor(Math.random()*3); // 3~5 條
+                            const used = [];
+                            for(let i=0;i<cnt;i++){
+                                const m=document.createElement('div'); m.className='meteor-line';
+                                m.style.setProperty('--msDur', (1.8+Math.random()*1.6)+'s');
+                                m.style.setProperty('--msDelay', (2+Math.random()*6)+'s');
+                                // 均分至全幅（避免集中），簡單避開彼此過近
+                                let top = Math.floor(Math.random()*100);
+                                let left = Math.floor(Math.random()*100);
+                                let tries=0;
+                                while(tries<10 && used.some(([t,l])=> Math.abs(t-top)<12 && Math.abs(l-left)<18)){
+                                    top = Math.floor(Math.random()*100); left = Math.floor(Math.random()*100); tries++;
+                                }
+                                used.push([top,left]);
+                                m.style.top = top+'%';
+                                m.style.left = left+'%';
+                                ms.appendChild(m);
+                            }
+                            tilt.appendChild(ms);
+                            card.insertBefore(tilt, card.firstChild);
+                        }
                     }
-                    // T4 wave-sweep
-                    if (isT4 && !card.querySelector(':scope > .wave-sweep')){
-                        const w=document.createElement('div'); w.className='wave-sweep'; card.insertBefore(w, card.firstChild);
+                    // T4 side waves field
+                    if (isT4 && !card.querySelector(':scope > .wave-field')){
+                        const f=document.createElement('div'); f.className='wave-field';
+                        const w1=document.createElement('div'); w1.className='wave-layer w1'; w1.style.setProperty('--wDur', (isToast||isFlash)?'8s':'9s');
+                        const w2=document.createElement('div'); w2.className='wave-layer w2'; w2.style.setProperty('--wDur', (isToast||isFlash)?'10s':'11s');
+                        const w3=document.createElement('div'); w3.className='wave-layer w3'; w3.style.setProperty('--wDur', (isToast||isFlash)?'12s':'13s');
+                        f.appendChild(w1); f.appendChild(w2); f.appendChild(w3);
+                        card.insertBefore(f, card.firstChild);
+                    }
+                    // T5 leaf field
+                    if (isT5 && !card.querySelector(':scope > .leaf-field')){
+                        const f=document.createElement('div'); f.className='leaf-field';
+                        const N = (isToast || isFlash) ? 4 : 7; // 降低密度
+                        for(let i=0;i<N;i++){
+                            const leaf=document.createElement('div'); leaf.className='leaf';
+                            // 分散生成（避免集中）
+                            const leftBase = (i+0.5)/N; // 分段中心
+                            const jitter = (Math.random()*0.18 - 0.09); // ±9%
+                            const leftPct = Math.max(0, Math.min(1, leftBase + jitter))*100;
+                            leaf.style.left = leftPct+'%';
+                            // 更快更自然的下落時長，並保留些微隨機
+                            leaf.style.setProperty('--lDur', (3.2+Math.random()*1.6)+'s');
+                            // 延遲更分散，避免同時出現
+                            leaf.style.setProperty('--lDelay', (Math.random()*6)+'s');
+                            leaf.style.opacity = String(0.6 + Math.random()*0.35);
+                            f.appendChild(leaf);
+                        }
+                        card.appendChild(f);
                     }
                 }catch(_){}
             }
@@ -4013,7 +4168,7 @@
     /* Full leaderboard modal enhancements */
     /* ---------------- Full Leaderboard (Rebuilt Layout) ---------------- */
     #fullLeaderboardModal #fullClassicBoard, #fullLeaderboardModal #fullSurvivalBoard { grid-template-columns:repeat(1,minmax(0,1fr)); }
-    /* Responsive expansion for full leaderboard: aim to display 20 cards (5 rows x 4 cols) per section on wide screens */
+    /* Responsive expansion for full leaderboard: aim to display 20 cards (4 rows x 5 cols) per section on wide screens */
     @media (min-width: 1100px){
     #fullLeaderboardModal #fullClassicBoard, #fullLeaderboardModal #fullSurvivalBoard { grid-template-columns:repeat(2,minmax(0,1fr)); }
     }
@@ -4043,7 +4198,7 @@
     #fullLeaderboardModal .single-board-wrapper { display:grid; gap:1rem; }
     @media (min-width:640px){ #fullLeaderboardModal .single-board-wrapper { grid-template-columns:repeat(2,minmax(0,1fr)); } }
     @media (min-width:1024px){ #fullLeaderboardModal .single-board-wrapper { grid-template-columns:repeat(3,minmax(0,1fr)); } }
-    @media (min-width:1280px){ #fullLeaderboardModal .single-board-wrapper { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+    @media (min-width:1280px){ #fullLeaderboardModal .single-board-wrapper { grid-template-columns:repeat(5,minmax(0,1fr)); } }
     #fullLeaderboardModal .empty-slot { opacity:.4; }
     /* Open animation */
     @keyframes flModalIn { 0% { transform:translateY(28px) scale(.96); opacity:0; filter:blur(3px); } 55% { transform:translateY(-4px) scale(1.005); opacity:1; filter:blur(0); } 100% { transform:translateY(0) scale(1); opacity:1; } }
@@ -4861,7 +5016,8 @@
         :root{
             /* Darker T1 red tones with strong contrast */
             --t1-from:#dc2626; --t1-to:#991b1b; --t1-border:#7f1d1d; --t1-glow:rgba(127,29,29,.36);
-            --t2-from:#f59e0b; --t2-to:#fde68a; --t2-border:#fbbf24; --t2-glow:rgba(251,191,36,.30);
+            /* T2 改為淡黃色系（與其它層級一致的風格強度） */
+            --t2-from:#fff7c2; --t2-to:#fef08a; --t2-border:#facc15; --t2-glow:rgba(250,204,21,.30);
             --t3-from:#ddd6fe; --t3-to:#a78bfa; --t3-border:#8b5cf6; --t3-glow:rgba(139,92,246,.26);
                         --t4-from:#bfdbfe; --t4-to:#60a5fa; --t4-border:#3b82f6; --t4-glow:rgba(59,130,246,.22);
                         /* T5 調整為淡綠色系 */
@@ -4918,7 +5074,7 @@
         /* Rarity-based SVG strengthening */
         .achv-icon-svg{ stroke-linecap:round; stroke-linejoin:round; }
     .rarity-t1 .achv-icon-svg.t1{ filter:drop-shadow(0 0 6px rgba(127,29,29,.50)) drop-shadow(0 0 14px rgba(127,29,29,.30)); }
-        .rarity-t2 .achv-icon-svg.t2{ filter:drop-shadow(0 0 5px rgba(251,191,36,.35)) drop-shadow(0 0 10px rgba(251,191,36,.2)); }
+        .rarity-t2 .achv-icon-svg.t2{ filter:drop-shadow(0 0 6px rgba(255,255,255,.55)) drop-shadow(0 0 16px rgba(250,250,210,.35)); }
         .rarity-t3 .achv-icon-svg.t3{ filter:drop-shadow(0 0 4px rgba(139,92,246,.26)); }
     .rarity-t4 .achv-icon-svg.t4{ filter:drop-shadow(0 0 3px rgba(59,130,246,.22)); }
     .rarity-t5 .achv-icon-svg.t5{ filter:drop-shadow(0 0 2px rgba(16,185,129,.20)); }
@@ -4940,18 +5096,74 @@
             conic-gradient(from 200deg at 80% 120%, rgba(255,120,0,.16), rgba(255,0,0,0) 40%),
             linear-gradient(180deg, var(--t1-from) 0%, var(--t1-to) 100%);
         }
-    .rarity-t1 .achv-icon{ color:#7f1d1d; box-shadow:inset 0 0 0 1px rgba(255,255,255,.7), 0 0 0 1px rgba(127,29,29,.28), 0 10px 18px rgba(127,29,29,.28); }
+    /* T1 火焰風格（淡化火焰，加入上紅下橘的底色漸層） */
+    .rarity-t1{ position:relative; background:
+        /* soft highlight (slightly reduced) */
+        radial-gradient(120% 80% at -10% -10%, rgba(255,255,255,.18), rgba(255,255,255,0) 60%),
+        /* top red → bottom orange gradient (deeper) */
+        linear-gradient(180deg, #ef4444 0%, #f97316 100%);
+    }
+    .rarity-t1 .achv-icon{ color:#7f1d1d; box-shadow:inset 0 0 0 1px rgba(255,255,255,.7), 0 0 0 1px rgba(127,29,29,.24), 0 8px 14px rgba(127,29,29,.22); }
         .rarity-t1 .achv-title, .rarity-t1 .achv-desc{ color:#fff; text-shadow:0 1px 0 rgba(0,0,0,.25), 0 0 14px rgba(255,255,255,.35); }
         .rarity-t1 .achv-icon::after{ opacity:.95; }
     .rarity-t1::after{ content:""; position:absolute; inset:-20%; background:conic-gradient(from 0deg, rgba(255,255,255,.0) 0 40%, rgba(255,255,255,.45) 50%, rgba(255,255,255,.0) 60%); transform:translateX(-60%); animation:shineLoop 3.2s linear infinite; mix-blend-mode:overlay; }
-    /* T2 黃金金屬（柔光高光 + 紋理條紋） */
-    .rarity-t2{ --rim:#fbbf24; --rim-weak:rgba(251,191,36,.18); border-color:var(--t2-border); color:#1f2937; box-shadow:0 10px 20px var(--t2-glow), inset 0 0 0 1px rgba(255,255,255,.25); position:relative; background:
-        linear-gradient(180deg, #fff7ed66, #ffffff00 50%, #fff7ed55) ,
-        repeating-linear-gradient( 90deg, rgba(255,255,255,.10) 0 2px, rgba(0,0,0,.04) 2px 4px, rgba(255,255,255,.06) 4px 6px, rgba(0,0,0,.03) 6px 8px ),
-        linear-gradient(160deg, #fde68a 0%, #fbbf24 35%, #d97706 65%, #fde68a 100%);
+    @media (prefers-reduced-motion: reduce){ .rarity-t1::after{ animation:none !important; opacity:.4; } }
+    /* T2 天堂風格：改為淡黃色底色主題，維持雲海與聚光燈置於內容下方 */
+    .rarity-t2{ --rim:#fde68a; --rim-weak:rgba(253,230,138,.22); border-color:var(--t2-border); color:#0f172a; box-shadow:0 10px 20px var(--t2-glow), inset 0 0 0 1px rgba(255,255,255,.35); position:relative; background:
+        radial-gradient(110% 90% at -10% -20%, rgba(255,255,255,.26), rgba(255,255,255,0) 60%),
+        linear-gradient(160deg, var(--t2-from) 0%, var(--t2-to) 100%);
     }
-    .rarity-t2 .achv-icon{ box-shadow:inset 0 0 0 1px rgba(255,255,255,.7), 0 0 0 1px rgba(251,191,36,.22), 0 8px 14px rgba(251,191,36,.22); }
-        .rarity-t2::after{ content:""; position:absolute; inset:-10%; background:radial-gradient(circle at 20% -10%, rgba(255,255,255,.7), rgba(255,255,255,0) 40%), radial-gradient(circle at 80% 0%, rgba(255,255,255,.5), rgba(255,255,255,0) 35%); animation:glint 4.2s ease-in-out infinite; mix-blend-mode:overlay; }
+    /* 文字一定在上層 */
+    .rarity-t2 .achv-icon, .rarity-t2 .achv-title, .rarity-t2 .achv-desc, .rarity-t2 .achv-mode { position:relative; z-index:1; }
+    .achievement-toast > *{ position:relative; z-index:1; }
+    .rarity-t2 .achv-title, .rarity-t2 .achv-desc { color:#0f172a; }
+    .rarity-t2 .achv-icon{ box-shadow:inset 0 0 0 1px rgba(255,255,255,.85), 0 0 0 1px rgba(240,240,220,.25), 0 10px 16px rgba(240,240,220,.28); }
+    /* 雲層容器：使用 before/after 作左右雲塊，避免覆蓋文字 */
+    .rarity-t2 .heaven-clouds{ position:absolute; inset:-12% -10% -10% -10%; border-radius:inherit; pointer-events:none; z-index:0; }
+    .rarity-t2 .heaven-clouds::before,
+    .rarity-t2 .heaven-clouds::after{ content:""; position:absolute; top:-8%; bottom:-12%; width:78%; filter: blur(.35px) contrast(1.06); opacity:0; }
+    /* 僅保留白色，並以較緊的色階製造略硬邊緣 */
+    .rarity-t2 .heaven-clouds::before{ left:-18%; background:
+        radial-gradient(70% 50% at 28% 30%, rgba(255,255,255,1) 0%, rgba(255,255,255,.96) 56%, rgba(255,255,255,0) 64%),
+        radial-gradient(62% 48% at 60% 65%, rgba(255,255,255,.92) 0%, rgba(255,255,255,0) 70%),
+        radial-gradient(90% 70% at 35% 80%, rgba(255,255,255,.88) 0%, rgba(255,255,255,0) 72%);
+        animation: cloudSweepL var(--cloudDurL, 10s) ease-in-out infinite; }
+    .rarity-t2 .heaven-clouds::after{ right:-18%; background:
+        radial-gradient(70% 50% at 72% 30%, rgba(255,255,255,1) 0%, rgba(255,255,255,.96) 56%, rgba(255,255,255,0) 64%),
+        radial-gradient(62% 48% at 40% 65%, rgba(255,255,255,.92) 0%, rgba(255,255,255,0) 70%),
+        radial-gradient(90% 70% at 65% 80%, rgba(255,255,255,.88) 0%, rgba(255,255,255,0) 72%);
+        animation: cloudSweepR var(--cloudDurR, 11s) ease-in-out infinite; }
+    /* 雲帶：均分整張卡片的橫向雲海層（白色系，略硬邊緣，淡入→淡出；無閃爍） */
+    .rarity-t2 .heaven-clouds .cloud-band{ position:absolute; left:-15%; width:130%; height:28%; pointer-events:none; opacity:0; filter: blur(.35px) contrast(1.08); mix-blend-mode:screen;
+        background:
+            radial-gradient(24% 60% at 10% 50%, rgba(255,255,255,1) 0%, rgba(255,255,255,.96) 58%, rgba(255,255,255,0) 64%),
+            radial-gradient(26% 70% at 35% 40%, rgba(255,255,255,.96) 0%, rgba(255,255,255,0) 66%),
+            radial-gradient(30% 70% at 60% 60%, rgba(255,255,255,.94) 0%, rgba(255,255,255,0) 68%),
+            radial-gradient(24% 60% at 85% 50%, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 64%);
+        -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+                mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+        animation: cloudBandDrift var(--cbDur, 12s) ease-in-out var(--cbDelay, 0s) infinite,
+                   cloudBandFade  var(--cbDur, 12s) ease-in-out var(--cbDelay, 0s) infinite;
+    }
+    .rarity-t2 .heaven-clouds .cloud-band.cb1{ --cbAlpha:.62; }
+    .rarity-t2 .heaven-clouds .cloud-band.cb2{ --cbAlpha:.70; }
+    .rarity-t2 .heaven-clouds .cloud-band.cb3{ --cbAlpha:.58; }
+    @keyframes cloudBandDrift{ 0%{ transform:translateX(-8%); } 50%{ transform:translateX(4%);} 100%{ transform:translateX(10%);} }
+    @keyframes cloudBandFade{ 0%{ opacity:0; } 20%{ opacity:var(--cbAlpha, .65);} 80%{ opacity:var(--cbAlpha, .65);} 100%{ opacity:0; } }
+    @keyframes cloudSweepL{ 0%{ transform:translateX(-16%) scale(1); opacity:0; } 20%{ opacity:.98; } 80%{ opacity:.94; } 100%{ transform:translateX(24%) scale(1.02); opacity:0; } }
+    @keyframes cloudSweepR{ 0%{ transform:translateX(16%) scale(1); opacity:0; } 20%{ opacity:.98; } 80%{ opacity:.94; } 100%{ transform:translateX(-24%) scale(1.02); opacity:0; } }
+    /* 垂直金色光束容器，內含多條 .ray 隨機淡入淡出 */
+    .rarity-t2 .god-rays{ position:absolute; inset:-10% -10% -6% -10%; border-radius:inherit; pointer-events:none; z-index:0; transform: rotate(var(--rayTilt, 12deg)); transform-origin: 20% -10%; }
+    .rarity-t2 .god-rays .ray{ position:absolute; top:-10%; bottom:-6%; width:7%; background:
+        /* 強化對比：中段更亮、兩側更暗，與淡黃底形成明顯聚光 */
+        linear-gradient(180deg, rgba(255,255,220,0) 0%, rgba(255,255,220,.92) 42%, rgba(255,255,220,.46) 68%, rgba(255,255,220,0) 100%),
+        radial-gradient(100% 20% at 50% 40%, rgba(255,255,255,.55), rgba(255,255,255,0) 70%);
+        clip-path: polygon(48% 0%, 52% 0%, 100% 100%, 0% 100%);
+        filter: drop-shadow(0 0 10px rgba(255,255,200,.15)) blur(.4px);
+        mix-blend-mode:screen; opacity:0; animation: rayPulse var(--rDur, 6s) ease-in-out infinite; animation-delay: var(--rDelay, 0s); }
+    @keyframes rayPulse{ 0%,20%{ opacity:0; } 35%{ opacity:.9; } 60%{ opacity:.28; } 80%,100%{ opacity:0; } }
+    @media (prefers-reduced-motion: reduce){ .rarity-t2 .heaven-clouds, .rarity-t2 .god-rays .ray, .rarity-t2 .heaven-clouds .cloud-band{ animation:none !important; opacity:.5; } }
+    @keyframes raysSweep{ 0%{ transform:rotate(0deg);} 100%{ transform:rotate(360deg);} }
     /* T3 科幻太空紫（調淡：偏淺紫底，保留科幻感） */
     .rarity-t3{ --rim:#c4b5fd; --rim-weak:rgba(196,181,253,.24); border-color:var(--t3-border); color:#0f172a; box-shadow:0 8px 18px var(--t3-glow), inset 0 0 0 1px rgba(255,255,255,.25); background:
         radial-gradient(80% 60% at 75% 15%, rgba(216,180,254,.18), rgba(216,180,254,0) 60%),
@@ -4982,13 +5194,13 @@
 
         /* New rarity FX layers */
         /* T1 Flame: large orange-red irregular gradient rising upward */
-        .rarity-t1 .flame-layer{ position:absolute; inset:-18% -12% -28% -12%; border-radius:inherit; pointer-events:none; mix-blend-mode:screen; opacity:.92; background:
+        .rarity-t1 .flame-layer{ position:absolute; inset:-18% -12% -28% -12%; border-radius:inherit; pointer-events:none; mix-blend-mode:screen; opacity:.75; background:
             radial-gradient(40% 30% at 50% 90%, rgba(255,115,0,.55), rgba(255,115,0,0) 65%),
-            radial-gradient(35% 25% at 45% 85%, rgba(255,170,0,.45), rgba(255,170,0,0) 60%),
-            radial-gradient(60% 45% at 50% 110%, rgba(255,60,0,.35), rgba(255,60,0,0) 65%),
-            radial-gradient(25% 20% at 55% 75%, rgba(255,200,0,.35), rgba(255,200,0,0) 55%),
+            radial-gradient(35% 25% at 45% 85%, rgba(255,170,0,.38), rgba(255,170,0,0) 60%),
+            radial-gradient(60% 45% at 50% 110%, rgba(255,60,0,.28), rgba(255,60,0,0) 65%),
+            radial-gradient(25% 20% at 55% 75%, rgba(255,200,0,.28), rgba(255,200,0,0) 55%),
             conic-gradient(from 180deg at 50% 100%, rgba(255,140,0,.25), rgba(255,0,0,0) 40%);
-            filter: saturate(1.3) brightness(1.05) blur(0.25px);
+            filter: saturate(1.08) brightness(1.02) blur(0.25px);
             animation: flameRise 2.0s ease-in-out infinite, flameWaver 1.6s ease-in-out infinite alternate; }
         .rarity-t1 .flame-layer .flame-blob{ position:absolute; transform-origin:50% 100%; border-radius:60% 60% 50% 50%/70% 70% 50% 50%; background:
             radial-gradient(closest-side, rgba(255,180,0,.9), rgba(255,140,0,.0) 70%),
@@ -5005,6 +5217,7 @@
             linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.42) 50%, rgba(255,255,255,0) 100%);
             mix-blend-mode:screen; pointer-events:none; opacity:.78; filter: blur(.15px) drop-shadow(0 0 8px rgba(251,191,36,.22)); animation:edgeSweep 4.8s linear infinite; }
         @keyframes edgeSweep{ 0%{ transform:translateX(-100%);} 100%{ transform:translateX(100%);} }
+        @media (prefers-reduced-motion: reduce){ .rarity-t2 .edge-sweep{ animation:none !important; opacity:.5; } }
         /* edge-sweep now owned by T2 (see .rarity-t2 .edge-sweep) */
         /* T3 Star twinkle: white-purple stars randomly blinking */
         .rarity-t3 .starfield{ position:absolute; inset:0; border-radius:inherit; pointer-events:none; mix-blend-mode:screen; }
@@ -5018,16 +5231,52 @@
         @keyframes starBlink{ 0%,8%{ opacity:.25; } 12%{ opacity:1; } 20%{ opacity:.4; } 38%{ opacity:1; } 44%{ opacity:.35; } 60%{ opacity:1; } 100%{ opacity:.45; } }
         @media (prefers-reduced-motion: reduce){ .rarity-t3 .starfield .s{ animation:none; opacity:.35; } }
 
-        /* T4 wave sweep: slow white-blue gradient moving left to right */
-        .rarity-t4 .wave-sweep{ position:absolute; inset:-5% -10%; border-radius:inherit; pointer-events:none; mix-blend-mode:screen; opacity:.55; background:
-            linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.4) 40%, rgba(255,255,255,0) 60%) no-repeat,
-            radial-gradient(80% 120% at -10% 50%, rgba(96,165,250,.25), rgba(96,165,250,0) 70%) no-repeat,
-            radial-gradient(80% 120% at 110% 50%, rgba(191,219,254,.25), rgba(191,219,254,0) 70%) no-repeat;
-            background-size: 40% 120%, 100% 100%, 100% 100%;
-            background-position: -50% 0%, 0% 0%, 0% 0%;
-            animation: waveSweep 7.6s linear infinite; }
-        @keyframes waveSweep{ 0%{ background-position:-50% 0%, 0% 0%, 0% 0%; } 100%{ background-position:150% 0%, 0% 0%, 0% 0%; } }
-        @media (prefers-reduced-motion: reduce){ .rarity-t4 .wave-sweep{ animation:none; opacity:.35; } }
+        /* T3 nebula layer and rare meteor */
+        .rarity-t3 .nebula{ position:absolute; inset:-10% -10%; border-radius:inherit; pointer-events:none; mix-blend-mode:screen; opacity:.5; background:
+            radial-gradient(60% 40% at 20% 30%, rgba(168,85,247,.25), rgba(168,85,247,0) 70%),
+            radial-gradient(50% 35% at 70% 60%, rgba(99,102,241,.20), rgba(99,102,241,0) 70%),
+            radial-gradient(70% 50% at 40% 80%, rgba(236,72,153,.18), rgba(236,72,153,0) 75%);
+            animation: nebulaDrift 26s ease-in-out infinite alternate; filter: blur(0.6px) saturate(1.05); }
+        @keyframes nebulaDrift{ 0%{ transform:translate(0,0) scale(1);} 100%{ transform:translate(-8px, 10px) scale(1.03);} }
+        .rarity-t3 .meteor{ position:absolute; top:-10%; left:-10%; width:2px; height:2px; border-radius:999px; background:#fff; box-shadow:0 0 10px rgba(255,255,255,.9), 0 0 14px rgba(196,181,253,.9); opacity:0; transform:rotate(35deg);
+            animation: meteorFly var(--mDur, 1.8s) linear var(--mDelay, 4s) infinite; }
+        @keyframes meteorFly{ 0%{ opacity:0; transform:translate(-10%, -10%) rotate(35deg) scale(1);} 8%{ opacity:1; } 60%{ opacity:.8; } 100%{ opacity:0; transform:translate(120%, 120%) rotate(35deg) scale(1.1);} }
+        @media (prefers-reduced-motion: reduce){ .rarity-t3 .nebula, .rarity-t3 .meteor{ animation:none; opacity:.35; } }
+
+        /* T3 meteor shower: rotate wrapper then sweep horizontally，確保方向一致 */
+        .rarity-t3 .meteor-tilt{ position:absolute; inset:-12% -12% -12% -12%; border-radius:inherit; pointer-events:none; mix-blend-mode:screen; z-index:0; transform: rotate(-35deg); transform-origin:center; }
+        .rarity-t3 .meteor-tilt .meteor-shower{ position:absolute; inset:-10% -10% -10% -10%; }
+        .rarity-t3 .meteor-tilt .meteor-line{ position:absolute; width:160px; height:2px; background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.95) 45%, rgba(196,181,253,.75) 70%, rgba(255,255,255,0));
+            box-shadow:0 0 10px rgba(255,255,255,.85), 0 0 16px rgba(196,181,253,.55); opacity:0; will-change: transform, opacity;
+            animation: meteorSweep var(--msDur, 2.4s) ease-in-out var(--msDelay, 3.2s) infinite; }
+        @keyframes meteorSweep{ 0%{ opacity:0; transform:translateX(40%);} 10%{ opacity:1; } 85%{ opacity:.9; } 100%{ opacity:0; transform:translateX(-120%);} }
+        @media (prefers-reduced-motion: reduce){ .rarity-t3 .meteor-tilt .meteor-line{ animation:none; opacity:.35; } }
+
+    /* T4 side waves: multi-layer SVG wave crests sliding right（擴大底部，避免斷層；置於底層） */
+    .rarity-t4 .wave-field{ position:absolute; inset:-10% -12% -18% -12%; border-radius:inherit; pointer-events:none; overflow:hidden; z-index:0;
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+            mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+    }
+        .rarity-t4 .wave-layer{ position:absolute; left:-120%; width:240%; height:55%; mix-blend-mode:screen; opacity:.52; background-repeat:repeat-x; background-size:auto 100%; animation: waveSlide var(--wDur, 9s) linear infinite; filter: blur(.3px); }
+        .rarity-t4 .wave-layer.w1{ bottom:0%; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 200'%3E%3Cpath fill='%23ffffff' fill-opacity='0.45' d='M0,120 C150,160 350,60 600,110 C850,160 1050,90 1200,130 L1200,200 L0,200Z'/%3E%3C/svg%3E"); }
+        .rarity-t4 .wave-layer.w2{ bottom:10%; opacity:.40; animation-duration: 11s; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 200'%3E%3Cpath fill='%23e0f2fe' fill-opacity='0.60' d='M0,130 C180,150 360,80 600,120 C820,160 1020,70 1200,120 L1200,200 L0,200Z'/%3E%3C/svg%3E"); }
+        .rarity-t4 .wave-layer.w3{ bottom:18%; opacity:.32; animation-duration: 13s; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 200'%3E%3Cpath fill='%23bfdbfe' fill-opacity='0.55' d='M0,140 C140,140 380,100 600,135 C860,170 1040,80 1200,110 L1200,200 L0,200Z'/%3E%3C/svg%3E"); }
+        @keyframes waveSlide{ 0%{ transform:translateX(0);} 100%{ transform:translateX(50%);} }
+        @media (prefers-reduced-motion: reduce){ .rarity-t4 .wave-layer{ animation:none; opacity:.35; } }
+
+        /* T5 falling leaves（加速 + 上下淡入淡出，避免憑空消失） */
+        .rarity-t5 .leaf-field{ position:absolute; inset:-10% -5% -10% -5%; border-radius:inherit; pointer-events:none; overflow:hidden; z-index:0; }
+        .rarity-t5 .leaf{ position:absolute; top:-12%; width:10px; height:14px; border-radius:3px 10px 3px 10px; background:linear-gradient(180deg, #fef9c3, #86efac); box-shadow: 0 0 6px rgba(134,239,172,.35); opacity:0; transform:rotate(0deg); will-change: top, opacity, margin-left;
+            animation: leafFallPos var(--lDur, 3.8s) cubic-bezier(.2,.8,.3,1) var(--lDelay, 0s) infinite, leafSway 2.1s ease-in-out infinite alternate; }
+    @keyframes leafFallPos{ 0%{ top:-12%; opacity:0; } 12%{ opacity:.96; } 90%{ opacity:.96; } 98%{ opacity:.6; } 100%{ top:116%; opacity:0; } }
+        @keyframes leafSway{ 0%{ margin-left:-6px;} 100%{ margin-left:6px;} }
+        @media (prefers-reduced-motion: reduce){ .rarity-t5 .leaf{ animation:none; opacity:.45; } }
+
+        /* Achv mode badge: unify to top-right on all cards */
+        .achv-card{ position:relative; }
+        .achv-card .achv-mode{ position:absolute; top:.5rem; right:.5rem; z-index:2; }
+        /* Ensure content text above effects in all tiers */
+        .achv-card .achv-icon, .achv-card .achv-title, .achv-card .achv-desc{ position:relative; z-index:1; }
         /* Toast 色系對齊（不改結構，僅以 .rarity-t* 著色）*/
     .achievement-toast{ position:relative; border-radius:.75rem; }
     .achievement-toast{ display:flex; align-items:center; gap:.5rem; }
@@ -11512,6 +11761,10 @@
             gameState.comboProgress = 0;
             gameState.comboTotalBonus = 0;
             try { if (gameState.comboDecayTimer) { clearTimeout(gameState.comboDecayTimer); gameState.comboDecayTimer = null; } } catch(_) {}
+            // 重置最近答題速度視窗，避免罕見度跨局殘留
+            try { gameState.recentAnswerTimes = []; } catch(_) { gameState.recentAnswerTimes = []; }
+            // 標記觀察期：前兩關僅蒐集速度，不調整罕見度（以 currentLevel 判定，無須額外計數）
+            try { gameState._observationUntilLevel = 2; } catch(_) {}
             // 設定初始內部難度（自適應起點：easy）
             // 生存模式一律重置為 easy，避免承襲前一局的動態難度；闖關模式則保留選擇/預設。
             try {
@@ -11563,6 +11816,8 @@
             } catch(_) {}
             // 隱藏主選單品牌角標
             try { const m = document.getElementById('menuBrandCorner'); if (m) m.style.display = 'none'; } catch(_) {}
+            // 先同步一次資訊卡（顯示觀察中與預設難度配色），避免舊狀態殘留
+            try { updateAdaptiveStatus(); } catch(_) {}
             // 初始化本局成就統計（闖關/生存）；練習/裝備不納入
             try {
                 const mode = (gameState.playMode === 'survival' && !gameState.range) ? 'survival' : 'classic';
@@ -11682,6 +11937,9 @@
             const MED_THRESHOLD  = 6;   // 秒（原 8）
             function getSpeedTier(){
                 try {
+                    // 觀察期：前兩關固定 tier 0（僅蒐集速度，不調整罕見度）
+                    const lvl = Number(gameState.currentLevel||1);
+                    if (lvl <= (Number(gameState._observationUntilLevel||2))) return 0;
                     const arr = Array.isArray(gameState.recentAnswerTimes) ? gameState.recentAnswerTimes : [];
                     // 觀察期：前 3 題固定 tier 0
                     if (arr.length < 3) return 0;
@@ -12871,13 +13129,15 @@
             }
             
             if (isCorrect) {
-                // 計算本題耗時（若有起始時間）並儲存於最近答題時間陣列
+                // 新規：僅在「成功答題」時計入採樣秒數；若曾失誤則持續累計直到成功（不在失誤當下截斷）。
                 try {
                     const now = Date.now();
                     const start = gameState.currentQuestionStartTime || gameState.levelStartTime || now;
-                    const delta = (now - start) / 1000; // 秒
+                    let delta = (now - start) / 1000; // 秒
+                    // 罕見度採樣上限：每題最多計 15 秒（失誤不截斷，直至成功）
+                    if (delta > 15) delta = 15;
                     if (!Array.isArray(gameState.recentAnswerTimes)) gameState.recentAnswerTimes = [];
-                    // 只記錄合理範圍 (0.3s ~ 120s)，過小/過大視為異常忽略
+                    // 僅記錄合理範圍 (0.3s ~ 120s)
                     if (delta >= 0.3 && delta <= 120) {
                         gameState.recentAnswerTimes.push(delta);
                         const MAX_KEEP = 8; // 最近 N 題窗口
@@ -13084,7 +13344,7 @@
                 gameState.levelPerfect = false;
                 gameState.consecutiveMistakes++;
                 gameState.totalMistakes++; // 增加失誤計數
-                // Metrics: 記錄錯誤答題
+                // 新規：錯誤不納入罕見度採樣；僅記錄成就用 metrics，不更動 recentAnswerTimes。
                 try { recordAnswer(false, Date.now() - (gameState.currentQuestionStartTime || gameState.levelStartTime || Date.now())); } catch(_) {}
                 
                 // 淡出遊戲提示
@@ -13142,8 +13402,8 @@
                         // 移除震動效果
                         setTimeout(() => { vInner.classList.remove('shake-error'); }, 600);
                     }
-                    // 最終答錯：已於本次失誤時扣除 Combo，這裡僅重置倒數旗標
-                    try { gameState.levelStartTime = Date.now(); gameState.__comboDroppedForTimeout = false; } catch(_) {}
+                    // 最終答錯：已於本次失誤時扣除 Combo，這裡重置倒數旗標並重置下一題計時起點
+                    try { gameState.levelStartTime = Date.now(); gameState.__comboDroppedForTimeout = false; gameState.currentQuestionStartTime = Date.now(); } catch(_) {}
                     
                     // 找到正確答案並標記為紅色（只標記正確答案，不標記選錯的章節）
                     let correctChapter = null;
@@ -13285,6 +13545,7 @@
                     scrollToFrontPanel();
                 } else {
                     // 還有機會，更新經文卡片顏色並保持選中狀態
+                    // 不重置 currentQuestionStartTime，讓本題持續計時直至成功或最終錯誤
                     updateVerseCardColor(gameState.selectedVerseIndex);
                 }
             }
@@ -16992,12 +17253,16 @@
                 const tier = (typeof getPatternTimeTier === 'function') ? getPatternTimeTier() : 0;
                 patternStageLabel = tier === 0 ? '初始' : tier === 1 ? '加深' : '高混合';
             } catch(_) { patternStageLabel = '初始'; }
-            // 罕見度速度：最近 8 題平均秒數
+            // 罕見度速度：最近 8 題平均秒數（觀察期優先）
             let raritySpeedLabel = '';
             let avgSecDisplay = '--';
             try {
+                const lvl = Number(gameState.currentLevel||1);
+                const withinObservation = lvl <= (Number(gameState._observationUntilLevel||2));
                 const arr = Array.isArray(gameState.recentAnswerTimes) ? gameState.recentAnswerTimes : [];
-                if (arr.length === 0) {
+                if (withinObservation) {
+                    raritySpeedLabel = '觀察中';
+                } else if (arr.length === 0) {
                     raritySpeedLabel = '常見偏多';
                 } else {
                     const avg = arr.reduce((a,b)=>a+b,0)/arr.length;

@@ -1,7 +1,7 @@
 // Service Worker (Wave1 refactor): split caches + version broadcast
 // Cache layers
 // Increment VERSION when any SW strategy or core asset list changes
-const VERSION = 'wave2-v1';
+const VERSION = 'wave2-v3';
 const CACHE_CORE  = `bc-core-${VERSION}`;      // app shell & html
 const CACHE_DATA  = `bc-data-${VERSION}`;      // json verse/equip data
 const CACHE_MEDIA = `bc-media-${VERSION}`;     // images / logos
@@ -9,6 +9,7 @@ const CORE_ASSETS = [
   './',
   './index.html',
   './bible-challenge.html',
+  './leaderboard-config.js',
   './manifest.webmanifest',
   './logo/logo1-light.png',
   './logo/logo2-light.png',
@@ -22,6 +23,7 @@ const CORE_ASSETS = [
   './logo/logo0-dark.png'
 ];
 
+// Adding leaderboard-config.js for offline readiness
 let bc; // BroadcastChannel for version signaling
 try { bc = new BroadcastChannel('bc-sw-version'); } catch(_) { bc = null; }
 
@@ -81,13 +83,14 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return; // GET-only guard (S5)
   const url = new URL(req.url);
-  // Allowlist selected cross-origin assets for caching (Google Fonts, jsDelivr Supabase UMD)
+  // Allowlist selected cross-origin assets for caching (Google Fonts, jsDelivr Supabase UMD, Tailwind CDN)
   const isGoogleFonts = url.origin.includes('fonts.googleapis.com') || url.origin.includes('fonts.gstatic.com');
   const isJsDelivrSupabase = /cdn\.jsdelivr\.net$/.test(url.hostname) && /@supabase\/supabase-js/.test(url.pathname);
+  const isTailwindCdn = url.hostname === 'cdn.tailwindcss.com';
   // If cross-origin and not allowlisted, ignore
-  if (url.origin !== self.location.origin && !(isGoogleFonts || isJsDelivrSupabase)) return;
+  if (url.origin !== self.location.origin && !(isGoogleFonts || isJsDelivrSupabase || isTailwindCdn)) return;
 
-  if (isGoogleFonts || isJsDelivrSupabase) {
+  if (isGoogleFonts || isJsDelivrSupabase || isTailwindCdn) {
     event.respondWith((async () => {
       // Strategy: cache-first for font files and UMD; SWR for stylesheets
       const cacheName = isGoogleFonts ? CACHE_MEDIA : CACHE_CORE;

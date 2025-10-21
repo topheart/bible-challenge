@@ -10597,8 +10597,72 @@
                 });
                 // Custom area/equip are also exclusive
                 if (customAreaCard) {
-                    customAreaCard.addEventListener('click', () => { selectHomeMode('custom'); try { const m=MODE_HINTS.custom; showCuteHint(m.lines, m.theme, undefined, m.icon); } catch(_) {} });
-                    customAreaCard.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); selectHomeMode('custom'); try { const m=MODE_HINTS.custom; showCuteHint(m.lines, m.theme, undefined, m.icon); } catch(_) {} } });
+                    // Helper: 判斷是否點擊在卡片內部的互動元素上（避免冒泡誤觸卡片切換）
+                    const isInteractiveInsideCustom = (t) => {
+                        if (!t) return false;
+                        // 快速選擇分類、展開卡片內的全選/清空、搜尋框、以及書卷按鈕
+                        return !!(
+                            t.closest('#qsOld, #qsNew, #qsLaw, #qsHistory, #qsPoetry, #qsProphets, #qsGospels, #qsPaul, #qsGeneral') ||
+                            t.closest('#selectAllBooksExpand') ||
+                            t.closest('#clearAllBooksExpand') ||
+                            t.closest('#bookSearchExpand') ||
+                            t.closest('#customBooksExpandCard #customBooksExpand button')
+                        );
+                    };
+
+                    // Click：點擊卡片可在「選取自訂」與「取消自訂（回到無模式）」間切換
+                    customAreaCard.addEventListener('click', (ev) => {
+                        const t = ev.target;
+                        if (isInteractiveInsideCustom(t)) {
+                            // 交由內部元件自己處理（例如 quick-select），卡片不介入
+                            return;
+                        }
+                        if (gameState.range === 'custom') {
+                            // 取消自訂模式：恢復到「未選模式」的狀態
+                            try { document.getElementById('customBooksExpandCard')?.classList.add('hidden'); } catch(_) {}
+                            // 清空自訂書卷並刷新展開卡/快速分類視覺
+                            try { gameState.customBooks = []; initializeCustomBooksInExpandCard(); refreshQuickSelectCategoryStates(); } catch(_) {}
+                            gameState.range = null;
+                            // 一併清除核心模式，回到「未選模式」
+                            try { gameState.playMode = null; highlightSelectedModeCard(null); } catch(_) {}
+                            // 視覺與 ARIA 回復
+                            try { customAreaCard.setAttribute('aria-pressed','false'); } catch(_) {}
+                            try { resetCard(customAreaCard); } catch(_) {}
+                            // 更新整體 UI 與提示
+                            try { applyModeUI(); } catch(_) {}
+                            updateStartButtonState();
+                            try { const m=MODE_HINTS.deselect; showCuteHint(m.lines, m.theme, undefined, m.icon); } catch(_) {}
+                            return;
+                        }
+                        // 尚未選取 → 切換到自訂模式
+                        selectHomeMode('custom');
+                        try { const m=MODE_HINTS.custom; showCuteHint(m.lines, m.theme, undefined, m.icon); } catch(_) {}
+                    });
+
+                    // Keyboard：Enter/Space 在卡片自身聚焦時亦支援切換
+                    customAreaCard.addEventListener('keydown', (ev) => {
+                        if (ev.key === 'Enter' || ev.key === ' ') {
+                            ev.preventDefault();
+                            // 若鍵盤事件來源是卡片內互動元件（例如搜尋輸入框、快捷按鈕），則忽略
+                            if (isInteractiveInsideCustom(ev.target)) return;
+                            if (gameState.range === 'custom') {
+                                try { document.getElementById('customBooksExpandCard')?.classList.add('hidden'); } catch(_) {}
+                                // 清空自訂書卷並刷新展開卡/快速分類視覺
+                                try { gameState.customBooks = []; initializeCustomBooksInExpandCard(); refreshQuickSelectCategoryStates(); } catch(_) {}
+                                gameState.range = null;
+                                // 同步清除核心模式選擇
+                                try { gameState.playMode = null; highlightSelectedModeCard(null); } catch(_) {}
+                                try { customAreaCard.setAttribute('aria-pressed','false'); } catch(_) {}
+                                try { resetCard(customAreaCard); } catch(_) {}
+                                try { applyModeUI(); } catch(_) {}
+                                updateStartButtonState();
+                                try { const m=MODE_HINTS.deselect; showCuteHint(m.lines, m.theme, undefined, m.icon); } catch(_) {}
+                            } else {
+                                selectHomeMode('custom');
+                                try { const m=MODE_HINTS.custom; showCuteHint(m.lines, m.theme, undefined, m.icon); } catch(_) {}
+                            }
+                        }
+                    });
                 }
                 if (equipCourseCard) {
                     // 裝備課程卡片本身不觸發模式切換，改由班級按鈕生效
@@ -12822,11 +12886,11 @@
             initializeCustomBooksInExpandCard();
             updateSettingsDisplay();
             updateStartButtonState();
-
-            // 清空後改為未選擇練習範圍（避免阻擋開始或鎖住生存模式）
-            gameState.range = null;
-            updateSettingsDisplay();
-            updateStartButtonState();
+        // 保持於自訂模式，讓提示顯示「自訂範圍至少選 1 本書卷」且停用開始
+        // 若先前不在自訂，顯式切至自訂（正常情況下此函式只會在自訂展開面板中使用）
+        gameState.range = 'custom';
+        updateSettingsDisplay();
+        updateStartButtonState();
             // 也清除快速選擇分類按鈕的高亮效果（ring 等）
             try { refreshQuickSelectCategoryStates(); } catch(_) {}
         }

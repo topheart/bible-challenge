@@ -3945,6 +3945,30 @@
                 }
             } catch(_) {}
         })();
+        (function gateConsoleNoise(){
+            try {
+                const debugEnabled = !!(window.__BC_DEBUG_LOGS || (location && location.hash && location.hash.includes('debug')));
+                window.__BC_DEBUG_ENABLED = debugEnabled;
+                if (debugEnabled) return;
+                const noisyPrefixes = [
+                    '[ACHV', '[EQUIP', '[GAME', '[REPLAY', '[LEADERBOARD', '[SelfTest', '[StressTest', '[DevDiagnostics',
+                    '[ThirdBatchAudits', '[ExtendedDiagnostics', '[lazy', '[icons', '[rebalance', '[DEBUG'
+                ];
+                const matchPrefix = (args) => {
+                    if (!args || !args.length) return false;
+                    const first = args[0];
+                    return typeof first === 'string' && noisyPrefixes.some(prefix => first.startsWith(prefix));
+                };
+                const originalLog = console.log ? console.log.bind(console) : null;
+                if (originalLog) {
+                    console.log = function(...args){ if (matchPrefix(args)) return; originalLog(...args); };
+                }
+                const originalWarn = console.warn ? console.warn.bind(console) : null;
+                if (originalWarn) {
+                    console.warn = function(...args){ if (matchPrefix(args)) return; originalWarn(...args); };
+                }
+            } catch(_) { /* ignore gating failures */ }
+        })();
         // Lightweight local leaderboard adapter (independent of online adapter)
         window.LeaderboardLocal = {
             load(){
@@ -7238,7 +7262,7 @@
                             <div class="flex items-start justify-between">
                                 <div>
                                     <div class="text-xl font-extrabold text-rose-700 tracking-wide">闖關挑戰</div>
-                                    <div class="mt-1 text-sm text-rose-700/80">10 關 × 每關 5 題，穩定節奏一路闖關</div>
+                                    <div class="mt-1 text-sm text-rose-700/80">10 關 × 每關 5 題，節奏漸進、扎實累積熟練度</div>
                                 </div>
                                 <div class="ml-3 shrink-0"><span class="inline-block text-xs font-bold text-rose-700 bg-rose-100 border border-rose-300 rounded-full px-2 py-1">回合制</span></div>
                             </div>
@@ -7247,10 +7271,10 @@
                             <div class="flex items-start justify-between">
                                 <div>
                                     <div class="text-xl font-extrabold text-emerald-700 tracking-wide">生存計時</div>
-                                    <div class="mt-1 text-sm text-emerald-700/80">倒數滴答，越答越帶勁！拚反應、衝專注、留住每一秒！</div>
+                                    <div class="mt-1 text-sm text-emerald-700/80">90 秒倒數，答對補秒、失誤扣秒，衝刺極限反應！</div>
                                     <div class="mt-2 flex flex-wrap gap-2">
-                                        <span class="text-[11px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 rounded-full px-2 py-0.5">答對加秒</span>
-                                        <span class="text-[11px] font-bold text-rose-700 bg-rose-100 border border-rose-300 rounded-full px-2 py-0.5">錯誤扣秒</span>
+                                        <span class="text-[11px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 rounded-full px-2 py-0.5">答對補秒</span>
+                                        <span class="text-[11px] font-bold text-rose-700 bg-rose-100 border border-rose-300 rounded-full px-2 py-0.5">失誤扣秒</span>
                                     </div>
                                 </div>
                                 <div class="ml-3 shrink-0"><span class="inline-block text-xs font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 rounded-full px-2 py-1">計時制</span></div>
@@ -8005,7 +8029,8 @@
             maxCombo: 25,          // cap (25 觸發 MAX 顯示，視覺仍維持第三條滿格)
             comboProgress: 0,      // 0..1 progress toward next combo
             comboDecayTimer: null,  // timeout-based decay controller (optional future)
-            comboTotalBonus: 0     // accumulated extra points from combo multiplier (for breakdown)
+            comboTotalBonus: 0,    // accumulated extra points from combo multiplier (for breakdown)
+            comboPeak: 0           // 本局最高連擊（供離線模式與裝備課程紀錄）
             ,
             // 裝備課程狀態
             equipRunning: false,           // 是否正在進行裝備課程
@@ -8368,7 +8393,7 @@
             gameState.totalMistakes = 0;
             gameState.levelResults = {};
             gameState.levelEndHandled = false;
-            gameState.combo = 0; gameState.comboProgress = 0; gameState.comboTotalBonus = 0;
+            gameState.combo = 0; gameState.comboProgress = 0; gameState.comboTotalBonus = 0; gameState.comboPeak = 0;
             try { if (gameState.comboDecayTimer) { clearTimeout(gameState.comboDecayTimer); gameState.comboDecayTimer = null; } } catch(_) {}
             if (!gameState.difficulty) gameState.difficulty = 'easy';
             // Time reward visible as usual
@@ -9177,6 +9202,9 @@
             try { spawnScoreParticles(gameState.score ? Math.min(300, gameState.score) : 100); } catch(_) {}
 
             // Build record for viewing only; skip leaderboard saving entirely
+            gameState.finalMetrics = null;
+            gameState.unlockedAchievements = [];
+            gameState.suppressSettlementAchievements = true;
             const record = saveScore(gameState.score);
             try { record.playMode = 'equip'; } catch(_) {}
             // Mark as non-ranking and show modal without name input
@@ -10539,9 +10567,9 @@
 
                     // 若有裝備課程班級待選（將進入裝備模式），將闖關/生存外觀重置為未選以避免色框殘留
                     if (hasEquipPending) {
-                        modeClassicBtn.className = 'cute-button w-full text-left p-5 rounded-2xl border-2 border-rose-200 bg-white';
+                        modeClassicBtn.className = 'cute-button w-full text-left p-5 rounded-2xl border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-pink-50';
                         modeClassicBtn.setAttribute('aria-pressed', 'false');
-                        modeSurvivalBtn.className = 'cute-button w-full text-left p-5 rounded-2xl border-2 border-emerald-200 bg-white';
+                        modeSurvivalBtn.className = 'cute-button w-full text-left p-5 rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50';
                         modeSurvivalBtn.setAttribute('aria-pressed', 'false');
                     }
                 };
@@ -12544,7 +12572,10 @@
                 btn.title = book;
                 btn.textContent = abbreviation;
                 btn.setAttribute('data-book', book);
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function(ev) {
+                    // avoid bubbling to the card toggle handler which collapses the panel
+                    if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+                    if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
                     // toggle selection state
                     if (gameState.customBooks.includes(book)) {
                         gameState.customBooks = gameState.customBooks.filter(b => b !== book);
@@ -12971,6 +13002,7 @@
                 if (!isCoreMode && !gameState.rarity && !gameState.range && !gameState.__pendingEquipTier) {
                     return;
                 }
+            try { hideCuteHint(); } catch(_) {}
             // 新一局開始時先重置上一關統計（避免殘留結算 meta）
             try { resetLastLevelMeta(); } catch(_) {}
                 try { performance.mark('bc-game-start'); } catch(_) {}
@@ -13268,6 +13300,7 @@
             gameState.combo = 0;
             gameState.comboProgress = 0;
             gameState.comboTotalBonus = 0;
+            gameState.comboPeak = 0;
             try { if (gameState.comboDecayTimer) { clearTimeout(gameState.comboDecayTimer); gameState.comboDecayTimer = null; } } catch(_) {}
             // 移除舊的基於最近答題速度與觀察期的罕見度調整機制；改採逐關時間自適應 (adaptiveVerseRarity)
             try { delete gameState.recentAnswerTimes; } catch(_) { gameState.recentAnswerTimes = undefined; }
@@ -14530,6 +14563,9 @@
                 if (gameMetrics) {
                     const cur = Math.max(0, Math.min((gameState.maxCombo||25), (gameState.combo||0)));
                     if ((gameMetrics.maxComboReached||0) < cur) gameMetrics.maxComboReached = cur;
+                    if (typeof gameState === 'object' && (typeof gameState.comboPeak !== 'number' || gameState.comboPeak < cur)) {
+                        gameState.comboPeak = cur;
+                    }
                 }
             } catch(_) {}
             // SFX: play a celebratory tone when combo ranks up
@@ -16398,9 +16434,18 @@
             function renderAchievementsIntoModal(){
                 try {
                     const box = document.getElementById('achievementBox'); if(!box) return;
-                    const list = gameState.unlockedAchievements || [];
                     const grid = document.getElementById('achievementGrid');
                     const empty = document.getElementById('achievementHintEmpty');
+                    const modal = document.getElementById('playerNameModal');
+                    const modalActive = modal && !modal.classList.contains('hidden');
+                    const suppress = !!(typeof gameState === 'object' && gameState && gameState.suppressSettlementAchievements);
+                    if (suppress && modalActive) {
+                        if (grid) grid.innerHTML='';
+                        if (empty) empty.classList.add('hidden');
+                        box.classList.add('hidden');
+                        return;
+                    }
+                    const list = (gameState && Array.isArray(gameState.unlockedAchievements)) ? gameState.unlockedAchievements : [];
                     grid.innerHTML='';
                     if(!list.length){ box.classList.remove('hidden'); empty.classList.remove('hidden'); return; }
                     empty.classList.add('hidden'); box.classList.remove('hidden');
@@ -16744,9 +16789,14 @@
                 } catch(e) { initialRank = 0; }
             }
 
+            const isEquipMode = !!((gameRecord && gameRecord.playMode === 'equip') || (typeof gameState === 'object' && gameState && (gameState.playMode === 'equip' || gameState.equipTier)));
+            if (typeof gameState === 'object' && gameState) {
+                gameState.suppressSettlementAchievements = isEquipMode;
+            }
+
             // === 成就評估（Replay 模式排除）===
             try {
-                if (!gameState._replaySequence) {
+                if (!gameState._replaySequence && !isEquipMode) {
                     const m = finalizeMetrics();
                     // 補充 SFX 觸發標記
                     if (m) m.__sfxFlags = gameState.__sfxFlags;
@@ -16811,9 +16861,23 @@
                         else window.__pendingAchvTelemetry = { metrics: m, unlocked, mode };
                     } catch(_){ }
                 } else {
-                    gameState.unlockedAchievements = [];
+                    if (typeof gameState === 'object' && gameState) {
+                        gameState.unlockedAchievements = [];
+                        if (isEquipMode) {
+                            gameState.finalMetrics = null;
+                        }
+                    }
+                    if (isEquipMode && gameRecord && typeof gameRecord === 'object') {
+                        gameRecord.achievements = [];
+                    }
                 }
-            } catch(e){ console.warn('成就評估失敗', e); gameState.unlockedAchievements = []; }
+            } catch(e){
+                console.warn('成就評估失敗', e);
+                if (typeof gameState === 'object' && gameState) {
+                    gameState.unlockedAchievements = [];
+                    if (isEquipMode) gameState.finalMetrics = null;
+                }
+            }
 
             if (gameState.skipLeaderboardOnComplete) {
                 const source = gameState.replaySourceRecord || (gameRecord || {});
@@ -16859,7 +16923,17 @@
             if (!modal) return;
         // Protect end modal from accidental close (ESC/backdrop/X)
         try { modal.dataset.protected = '1'; } catch(_) {}
-        try { const x = modal.querySelector('[data-close-modal="playerNameModal"]'); if (x) x.classList.add('hidden'); } catch(_) {}
+        try {
+            const closers = modal.querySelectorAll('[data-close-modal="playerNameModal"]:not([data-allow-close])');
+            closers.forEach(btn => btn.classList.add('hidden'));
+        } catch(_) {}
+        try {
+            const confirmBtn = document.getElementById('confirmNameBtn');
+            if (confirmBtn) {
+                confirmBtn.classList.remove('hidden');
+                confirmBtn.style.display = 'inline-flex';
+            }
+        } catch(_) {}
 
             // Ensure modal is in 'viewing' mode so name input is hidden and close behaves like record view
             modal.dataset.viewingRecord = 'true';
@@ -16987,7 +17061,19 @@
         // Protect end modal from accidental close (ESC/backdrop/X)
     // Always protect the settlement modal when invoked from game-end flows
     try { if (modal) { modal.dataset.protected = '1'; } } catch(_) {}
-        try { const x = modal && modal.querySelector('[data-close-modal="playerNameModal"]'); if (x) x.classList.add('hidden'); } catch(_) {}
+    try {
+        if (modal) {
+            const closers = modal.querySelectorAll('[data-close-modal="playerNameModal"]:not([data-allow-close])');
+            closers.forEach(btn => btn.classList.add('hidden'));
+        }
+    } catch(_) {}
+    try {
+        const confirmBtn = document.getElementById('confirmNameBtn');
+        if (confirmBtn) {
+            confirmBtn.classList.remove('hidden');
+            confirmBtn.style.display = 'inline-flex';
+        }
+    } catch(_) {}
             // Hide cute hint to avoid overlapping with modal
             try { hideCuteHint(); } catch (e) {}
             // Defensive: if duplicate closing verse elements were ever inserted, dedupe now
@@ -19575,6 +19661,14 @@
             const minutes = Math.floor(gameTime / 60);
             const seconds = gameTime % 60;
             const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            const isEquipRun = !!(gameState && (gameState.equipTier || gameState.equipRunning || gameState.playMode === 'equip'));
+            const comboPeak = (function(){
+                if (gameState && typeof gameState.comboPeak === 'number') return gameState.comboPeak;
+                if (gameState && gameState.finalMetrics && typeof gameState.finalMetrics.maxComboReached === 'number') return gameState.finalMetrics.maxComboReached;
+                if (gameMetrics && typeof gameMetrics.maxComboReached === 'number') return gameMetrics.maxComboReached;
+                if (gameState && typeof gameState.combo === 'number') return Math.max(0, Math.min(gameState.maxCombo||25, gameState.combo));
+                return 0;
+            })();
             
             // 創建遊戲記錄
             const gameRecord = {
@@ -19588,10 +19682,10 @@
                 totalQuestions: gameState.totalQuestions,
                 totalMistakes: gameState.totalMistakes,
                 levelResults: { ...gameState.levelResults },
-                range: gameState.range,
-                testament: gameState.testament,
-                customBooks: [...gameState.customBooks],
-                playMode: gameState.playMode,
+                range: isEquipRun ? null : gameState.range,
+                testament: isEquipRun ? null : gameState.testament,
+                customBooks: isEquipRun ? [] : (Array.isArray(gameState.customBooks) ? [...gameState.customBooks] : []),
+                playMode: isEquipRun ? 'equip' : gameState.playMode,
                 // include closing verse chosen at game end so record view shows identical verse
                 closingVerse: gameState.closingVerse || null,
                 closingVerseRef: gameState.closingVerseRef || null,
@@ -19603,7 +19697,7 @@
                 usedHintsCount: (gameState.usedHints ? gameState.usedHints.size : 0),
                 // persist combo summary for record view (peak + accumulated bonus)
                 comboTotalBonus: (typeof gameState.comboTotalBonus === 'number') ? gameState.comboTotalBonus : 0,
-                maxComboReached: (gameState.finalMetrics && typeof gameState.finalMetrics.maxComboReached==='number') ? gameState.finalMetrics.maxComboReached : (typeof gameState.maxCombo==='number' ? gameState.maxCombo : 0)
+                maxComboReached: comboPeak
             };
             // 預留平均用時與成就欄位（稍後 finalizeMetrics 評估後回填）
             try {

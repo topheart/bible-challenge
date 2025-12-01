@@ -1,7 +1,7 @@
 // Service Worker (Wave1 refactor): split caches + version broadcast
 // Cache layers
 // Increment VERSION when any SW strategy or core asset list changes
-const VERSION = 'wave2-v5';
+const VERSION = 'wave2-v6';
 const CACHE_CORE  = `bc-core-${VERSION}`;      // app shell & html
 const CACHE_DATA  = `bc-data-${VERSION}`;      // json verse/equip data
 const CACHE_MEDIA = `bc-media-${VERSION}`;     // images / logos
@@ -9,6 +9,8 @@ const CORE_ASSETS = [
   './',
   './index.html',
   './bible-challenge.html',
+  './style.css',
+  './scripts/idb-helper.js',
   './leaderboard-config.js',
   './manifest.webmanifest',
   './logo/logo1-light.png',

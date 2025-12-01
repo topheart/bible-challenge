@@ -67,6 +67,19 @@
     // 使用 replace 避免多一層歷史記錄；若瀏覽器限制或其他因素阻擋，使用者仍可點按鈕。
     (function(){
       try {
+        // Loop protection: if we are already on bible-challenge.html (via SW fallback), do NOT redirect.
+        if (window.location.href.indexOf('bible-challenge.html') !== -1) {
+          console.warn('Loop detected: index.html served for bible-challenge.html');
+          if ('serviceWorker' in navigator) {
+             navigator.serviceWorker.getRegistrations().then(function(regs) {
+               for(var i=0; i<regs.length; i++) regs[i].unregister();
+               // Force reload to bypass SW
+               window.location.reload();
+             });
+          }
+          return;
+        }
+
         // 在頁面可視且已完成初始渲染後導向，避免某些瀏覽器/擴充造成 race condition。
         var go = function(){
           try { window.location.replace('./bible-challenge.html'); } catch (_) {}

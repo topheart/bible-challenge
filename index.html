@@ -54,67 +54,69 @@
   <div class="wrap">
     <div class="card">
       <h1 style="margin:0 0 8px; font-size: 24px;">經夠盃挑戰</h1>
-      <p class="muted">聖經經文快問快答：選擇難度與題庫範圍，挑戰高分、爭取排行榜名次。若未自動載入，請點擊下方按鈕開始。</p>
-      <a class="btn" href="./bible-challenge.html">開啟經文挑戰</a>
+      <p class="muted">聖經經文快問快答：選擇難度與題庫範圍，挑戰高分、爭取排行榜名次。</p>
+      
+      <div id="status-area" style="margin: 15px 0; padding: 10px; background: #f3f4f6; border-radius: 8px; font-size: 14px; display: none;">
+        正在檢查系統狀態...
+      </div>
+
+      <a class="btn" href="./bible-challenge.html" id="start-btn">進入遊戲</a>
+      
+      <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+        <p class="muted" style="font-size: 12px;">若遇到無法載入或排版問題，請點擊下方修復按鈕：</p>
+        <button onclick="fixApp()" style="background: #9ca3af; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">修復快取問題</button>
+      </div>
+
       <noscript>
-        <p class="muted" style="margin-top:10px;">您的瀏覽器停用 JavaScript，請手動點擊上方「開啟經文挑戰」進入遊戲。</p>
+        <p class="muted" style="margin-top:10px;">您的瀏覽器停用 JavaScript，請手動點擊上方「進入遊戲」。</p>
       </noscript>
     </div>
   </div>
-  <!-- 移除自動以 document.write 取代整頁的行為，避免延遲首屏與干擾 SW/快取；保留按鈕導向即可。 -->
+  
   <script>
-    // 自動導向至遊戲頁（保留按鈕作為備援）。
-    // 使用 replace 避免多一層歷史記錄；若瀏覽器限制或其他因素阻擋，使用者仍可點按鈕。
-    (function(){
-      try {
-        // Loop protection: if we are already on bible-challenge.html (via SW fallback), do NOT redirect.
-        if (window.location.href.indexOf('bible-challenge.html') !== -1) {
-          console.warn('Loop detected: index.html served for bible-challenge.html');
-          document.body.innerHTML = '<div style="padding:20px;text-align:center;"><h1>系統更新中...</h1><p>正在清除舊版快取，請稍候。</p></div>';
-          
-          var nukeAndReload = function() {
-            if ('serviceWorker' in navigator) {
-               navigator.serviceWorker.getRegistrations().then(function(regs) {
-                 for(var i=0; i<regs.length; i++) regs[i].unregister();
-               });
-            }
-            if ('caches' in window) {
-              caches.keys().then(function(names) {
-                Promise.all(names.map(function(name) { return caches.delete(name); }))
-                .then(function() {
-                   // Force reload with timestamp to bypass browser cache
-                   window.location.replace('./bible-challenge.html?t=' + Date.now());
-                });
-              });
-            } else {
-               window.location.replace('./bible-challenge.html?t=' + Date.now());
-            }
-          };
-          
-          // Give a small delay for UI to render
-          setTimeout(nukeAndReload, 500);
-          return;
-        }
+    // 手動修復功能
+    function fixApp() {
+      var status = document.getElementById('status-area');
+      status.style.display = 'block';
+      status.innerHTML = '正在清除舊版快取...';
+      
+      var p1 = Promise.resolve();
+      if ('serviceWorker' in navigator) {
+        p1 = navigator.serviceWorker.getRegistrations().then(function(regs) {
+          var promises = [];
+          for(var i=0; i<regs.length; i++) promises.push(regs[i].unregister());
+          return Promise.all(promises);
+        });
+      }
+      
+      var p2 = Promise.resolve();
+      if ('caches' in window) {
+        p2 = caches.keys().then(function(names) {
+          return Promise.all(names.map(function(name) { return caches.delete(name); }));
+        });
+      }
 
-        // 在頁面可視且已完成初始渲染後導向，避免某些瀏覽器/擴充造成 race condition。
-        var go = function(){
-          try { window.location.replace('./bible-challenge.html'); } catch (_) {}
-        };
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-          setTimeout(go, 120);
-        } else {
-          document.addEventListener('DOMContentLoaded', function(){ setTimeout(go, 120); });
-        }
-      } catch (_) {}
-    })();
-  </script>
-  <script>
-    // 在首頁也註冊 SW，確保快取預先建立（含啟動畫面資產），提升首次/回訪速度。
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function(){
-        try { navigator.serviceWorker.register('sw.js', { scope: './' }); } catch(_) {}
+      Promise.all([p1, p2]).then(function() {
+        status.innerHTML = '<span style="color:green">✓ 系統已重置</span><br>請點擊上方「進入遊戲」按鈕。';
+        // Append timestamp to link to force fresh load
+        var btn = document.getElementById('start-btn');
+        if(btn) btn.href = './bible-challenge.html?t=' + Date.now();
       });
     }
+
+    // 自動執行：進入首頁時，嘗試清除可能導致迴圈的 Service Worker
+    // 這是為了解決「手機版無限重新整理」的問題。
+    // 首頁不應該有 SW 控制，讓遊戲頁自己去註冊。
+    (function(){
+       if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs) {
+             if (regs.length > 0) {
+               console.log('Landing page: unregistering SWs to prevent loops.');
+               for(var i=0; i<regs.length; i++) regs[i].unregister();
+             }
+          });
+       }
+    })();
   </script>
 </body>
 </html>

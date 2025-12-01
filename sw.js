@@ -1,7 +1,7 @@
 // Service Worker (Wave1 refactor): split caches + version broadcast
 // Cache layers
 // Increment VERSION when any SW strategy or core asset list changes
-const VERSION = 'wave2-v4';
+const VERSION = 'wave2-v5';
 const CACHE_CORE  = `bc-core-${VERSION}`;      // app shell & html
 const CACHE_DATA  = `bc-data-${VERSION}`;      // json verse/equip data
 const CACHE_MEDIA = `bc-media-${VERSION}`;     // images / logos
@@ -123,7 +123,7 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_CORE).then((c)=> c.put(req, netRes.clone()));
         return netRes;
       } catch(e){
-        const cached = await caches.match(req) || await caches.match('./bible-challenge.html') || await caches.match('./index.html');
+        const cached = await caches.match(req) || await caches.match('./bible-challenge.html');
         if (cached) return cached;
         bc && bc.postMessage && bc.postMessage({ type:'offline', at: Date.now() });
         return new Response('<!doctype html><title>Offline</title><meta charset="utf-8"><style>body{font-family:system-ui;display:flex;min-height:100vh;align-items:center;justify-content:center;background:#0f172a;color:#f1f5f9;margin:0;padding:2rem;text-align:center}h1{font-size:1.3rem;margin-bottom:.75rem}</style><h1>離線模式</h1><p>目前無法連線。已快取的核心仍可使用，稍後會自動重試。</p>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } });

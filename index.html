@@ -70,13 +70,29 @@
         // Loop protection: if we are already on bible-challenge.html (via SW fallback), do NOT redirect.
         if (window.location.href.indexOf('bible-challenge.html') !== -1) {
           console.warn('Loop detected: index.html served for bible-challenge.html');
-          if ('serviceWorker' in navigator) {
-             navigator.serviceWorker.getRegistrations().then(function(regs) {
-               for(var i=0; i<regs.length; i++) regs[i].unregister();
-               // Force reload to bypass SW
-               window.location.reload();
-             });
-          }
+          document.body.innerHTML = '<div style="padding:20px;text-align:center;"><h1>系統更新中...</h1><p>正在清除舊版快取，請稍候。</p></div>';
+          
+          var nukeAndReload = function() {
+            if ('serviceWorker' in navigator) {
+               navigator.serviceWorker.getRegistrations().then(function(regs) {
+                 for(var i=0; i<regs.length; i++) regs[i].unregister();
+               });
+            }
+            if ('caches' in window) {
+              caches.keys().then(function(names) {
+                Promise.all(names.map(function(name) { return caches.delete(name); }))
+                .then(function() {
+                   // Force reload with timestamp to bypass browser cache
+                   window.location.replace('./bible-challenge.html?t=' + Date.now());
+                });
+              });
+            } else {
+               window.location.replace('./bible-challenge.html?t=' + Date.now());
+            }
+          };
+          
+          // Give a small delay for UI to render
+          setTimeout(nukeAndReload, 500);
           return;
         }
 

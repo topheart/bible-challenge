@@ -56,15 +56,15 @@
       <h1 style="margin:0 0 8px; font-size: 24px;">經夠盃挑戰</h1>
       <p class="muted">聖經經文快問快答：選擇難度與題庫範圍，挑戰高分、爭取排行榜名次。</p>
       
-      <div id="status-area" style="margin: 15px 0; padding: 10px; background: #f3f4f6; border-radius: 8px; font-size: 14px; display: none;">
-        正在檢查系統狀態...
+      <div id="status-area" style="margin: 15px 0; padding: 10px; background: #f3f4f6; border-radius: 8px; font-size: 14px;">
+        正在準備遊戲環境...
       </div>
 
-      <a class="btn" href="./bible-challenge.html" id="start-btn">進入遊戲</a>
+      <a class="btn" href="#" id="start-btn" style="opacity: 0.5; pointer-events: none;">進入遊戲</a>
       
       <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
         <p class="muted" style="font-size: 12px;">若遇到無法載入或排版問題，請點擊下方修復按鈕：</p>
-        <button onclick="fixApp()" style="background: #9ca3af; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">修復快取問題</button>
+        <button onclick="fixApp()" style="background: #9ca3af; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">強制修復</button>
       </div>
 
       <noscript>
@@ -80,6 +80,13 @@
       status.style.display = 'block';
       status.innerHTML = '正在清除舊版快取...';
       
+      nuke().then(function(){
+        status.innerHTML = '<span style="color:green">✓ 系統已重置</span><br>請點擊上方「進入遊戲」按鈕。';
+        enableBtn();
+      });
+    }
+
+    function nuke() {
       var p1 = Promise.resolve();
       if ('serviceWorker' in navigator) {
         p1 = navigator.serviceWorker.getRegistrations().then(function(regs) {
@@ -95,27 +102,27 @@
           return Promise.all(names.map(function(name) { return caches.delete(name); }));
         });
       }
-
-      Promise.all([p1, p2]).then(function() {
-        status.innerHTML = '<span style="color:green">✓ 系統已重置</span><br>請點擊上方「進入遊戲」按鈕。';
-        // Append timestamp to link to force fresh load
-        var btn = document.getElementById('start-btn');
-        if(btn) btn.href = './bible-challenge.html?t=' + Date.now();
-      });
+      return Promise.all([p1, p2]);
     }
 
-    // 自動執行：進入首頁時，嘗試清除可能導致迴圈的 Service Worker
-    // 這是為了解決「手機版無限重新整理」的問題。
-    // 首頁不應該有 SW 控制，讓遊戲頁自己去註冊。
+    function enableBtn() {
+      var btn = document.getElementById('start-btn');
+      if(btn) {
+        btn.href = './bible-challenge.html?t=' + Date.now() + '&r=' + Math.random();
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+        var status = document.getElementById('status-area');
+        if(status) status.innerHTML = '準備就緒！請點擊按鈕進入。';
+      }
+    }
+
+    // 自動執行：進入首頁時，自動清除 SW 與快取，確保環境乾淨
     (function(){
-       if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then(function(regs) {
-             if (regs.length > 0) {
-               console.log('Landing page: unregistering SWs to prevent loops.');
-               for(var i=0; i<regs.length; i++) regs[i].unregister();
-             }
-          });
-       }
+       nuke().then(function(){
+         console.log('Environment cleaned.');
+         // Delay slightly to ensure browser registers the unregister
+         setTimeout(enableBtn, 500);
+       });
     })();
   </script>
 </body>

@@ -1,7 +1,7 @@
 // Service Worker (Wave1 refactor): split caches + version broadcast
 // Cache layers
 // Increment VERSION when any SW strategy or core asset list changes
-const VERSION = 'wave2-v3';
+const VERSION = 'wave2-v4';
 const CACHE_CORE  = `bc-core-${VERSION}`;      // app shell & html
 const CACHE_DATA  = `bc-data-${VERSION}`;      // json verse/equip data
 const CACHE_MEDIA = `bc-media-${VERSION}`;     // images / logos
@@ -36,7 +36,7 @@ self.addEventListener('install', (event) => {
       try {
         const dataCache = await caches.open(CACHE_DATA);
         await Promise.all([
-          dataCache.add('./external-verses.json'),
+          // external-verses.json is now handled by IndexedDB to save storage/memory
           dataCache.add('./equip-course-growth.json')
         ]);
       } catch (_) {}
@@ -147,7 +147,8 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Verse data JSON: stale-while-revalidate in DATA cache + soft offline fallback (empty array)
-  if (url.pathname.endsWith('external-verses.json') || url.pathname.endsWith('equip-course-growth.json')) {
+  // Note: external-verses.json is handled by IDBHelper (IndexedDB), so we skip it here.
+  if (url.pathname.endsWith('equip-course-growth.json')) {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_DATA);
       const cached = await cache.match(req);

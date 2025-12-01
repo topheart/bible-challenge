@@ -139,3 +139,58 @@ E. 驗證
 - 以瀏覽器檢視：Toast 彈出、結算面、勳章卡片與詳情頁面之圖示大小一致；
 - 使用 prefers-reduced-motion 模式仍可正常顯示（無大型動畫）；
 - DevTools Elements 中檢查 .achv-icon-svg.t{dt} 是否隨不同成就帶入 1..5。 
+
+七、手機端效能優化（2025-12-01）
+
+A. 問題
+- 手機端進入網頁時，因記憶體不足或主執行緒阻塞導致瀏覽器崩潰並自動重新整理（Crash Loop）。
+- 主因為 `external-verses.json`（>20MB）載入後，嘗試進行 `JSON.stringify` 並寫入 `sessionStorage`，導致瞬間記憶體峰值過高與 Quota Exceeded 錯誤。
+
+B. 修正
+- 移除 `attemptLoadExternalVerses` 中的 `sessionStorage` 快取機制（讀取與寫入皆移除）。
+- 移除 `fetch` 的 `cache: 'no-store'` 選項，允許瀏覽器與 Service Worker 進行快取，減少網路流量。
+- 依賴 Service Worker 的 Cache Storage API 處理大檔快取，避免在主執行緒進行大型字串序列化。
+
+C. 效益
+- 顯著降低頁面載入時的記憶體峰值。
+- 解決低階裝置上的崩潰重整問題。
+- 提升首次與回訪載入速度（透過 SW 快取）。
+
+八、導入 IndexedDB 儲存題庫（2025-12-01）
+
+A. 目標
+- 進一步優化手機端記憶體使用，避免每次重新整理都需重新解析大型 JSON。
+- 使用 IndexedDB 儲存已解析的 JavaScript 物件，而非字串，徹底解決 `JSON.stringify` 帶來的記憶體壓力。
+- 提供比 Service Worker 更底層且穩定的離線資料存取方案。
+
+B. 實作
+- 新增 `IDBHelper` 工具物件，封裝 IndexedDB 的 `open`, `get`, `set` 操作。
+- 修改 `attemptLoadExternalVerses` 流程：
+    1. 優先嘗試從 IndexedDB 讀取 `externalVerses`。
+    2. 若無資料，則從網路 fetch `external-verses.json`。
+    3. Fetch 成功後，將資料寫入 IndexedDB 供下次使用。
+- 保持原有的資料正規化（normalization）與索引建立邏輯。
+
+C. 效益
+- **零記憶體崩潰風險**：不再需要將 20MB+ 的資料轉為字串，直接存取物件。
+- **極速載入**：IndexedDB 讀取速度通常優於從 Cache Storage 讀取並解析 JSON。
+- **離線增強**：即使 Service Worker 失效或被清除，IndexedDB 仍能提供資料。
+
+九、進一步效能優化與儲存空間釋放（2025-12-01）
+
+A. 目標
+- 解決因雙重快取（Service Worker Cache + IndexedDB）導致的儲存空間浪費。
+- 優化主執行緒效能，減少連續答題時的 UI 卡頓。
+
+B. 實作
+- **Service Worker 瘦身**：
+    - 修改 `sw.js`，移除 `external-verses.json` 的預先快取與攔截邏輯。
+    - 讓 `external-verses.json` 完全交由 `IDBHelper` 管理，避免在 Cache Storage 與 IndexedDB 中各存一份（節省約 20MB+ 空間）。
+    - 更新 SW 版本號以清除舊快取。
+- **主執行緒優化**：
+    - 將 `recordAnswer` 中的成就計算 (`evaluateRealtimeAchievements`) 包裹於 `setTimeout(..., 0)`。
+    - 確保 UI 渲染（如按鈕回饋、動畫）優先於繁重的成就計算邏輯執行。
+
+C. 效益
+- **釋放空間**：使用者裝置不再儲存兩份相同的巨大題庫。
+- **操作流暢**：在低階裝置上連續快速答題時，介面反應更靈敏。

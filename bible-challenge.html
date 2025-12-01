@@ -48,6 +48,7 @@
     </script>
     <meta name="twitter:image" content="https://topheart.github.io/bible-challenge/logo/logo0-light.png">
     <script>
+        // #region 成就系統
         /**********************
          * 成就系統 (單局制)
          * 說明：
@@ -374,7 +375,8 @@
             }
             // 重置本題提示旗標，避免外溢到下一題
             m.__curQUsedHint = false;
-            try { evaluateRealtimeAchievements(); } catch(_) {}
+            // Defer achievement evaluation to avoid blocking UI thread during rapid answering
+            setTimeout(() => { try { evaluateRealtimeAchievements(); } catch(_) {} }, 0);
         }
         function recordHint(){
             if(!gameMetrics) return;
@@ -1545,112 +1547,13 @@
                 }catch(e){ console.warn('rebalanceTiersFromSupabase failed', e); return null; }
             }
         })();
+        // #endregion
 
         // 之後：在遊戲各處呼叫 recordAnswer / recordHint / recordSurvivalTick / recordRescue / recordLevelResult
         // 結束時計算： finalizeMetrics() + AchievementManager.evaluateAll
         // 勳章渲染稍後插入。
     </script>
-    <style>
-    /* Reduced-motion degrade for shimmer / flash (flash uses JS early exit, here ensure shimmer off) */
-    @media (prefers-reduced-motion: reduce) {
-        .tier5.shimmer, .shimmer { animation: none !important; }
-    }
-    </style>
-    <style id="settlementCompactTweaks">
-        /* 壓縮結算分數資訊區塊（行動裝置優先） */
-        @media (max-width: 640px){
-            #finalScorePanel{padding:0.9rem 0.9rem 0.75rem 0.9rem;margin-bottom:0.9rem;}
-            #finalScorePanel .final-score-xl{font-size:2.25rem;line-height:1.05;}
-            #finalScorePanel #finalAccuracy{font-size:1.25rem;}
-            #finalScorePanel #finalAccuracyRatio{font-size:0.65rem;}
-            #finalScorePanel .on-dark-subtle{font-size:0.55rem;letter-spacing:0.5px;}
-            #finalScorePanel .platinum-card{padding:0.6rem 0.55rem 0.55rem 0.55rem;margin-bottom:0.4rem;}
-            #scoreBreakdown{padding:0.5rem 0.5rem 0.4rem 0.5rem;margin-bottom:0.8rem;}
-            #scoreBreakdown h4{margin-bottom:0.25rem;font-size:0.65rem;}
-            #scoreBreakdownContent{gap:4px;}
-            #scoreBreakdownContent div{line-height:1.05;}
-            #closingVerse{padding:0.55rem 0.55rem 0.5rem 0.55rem;margin-bottom:0.8rem;}
-            #closingVerseText{font-size:0.95rem;line-height:1.15;margin-bottom:0.25rem;}
-            #closingVerseRef{font-size:0.62rem;}
-            #leaderboardHeaderLine h3{font-size:0.95rem;}
-            #leaderboardPlayerName{font-size:0.85rem;}
-            #rankMessage{font-size:0.65rem;margin-top:0.25rem;}
-            /* Rank themed settlement enhancements */
-            @keyframes rankInnerGlow { 0%,100%{ box-shadow:0 0 0 0 rgba(255,255,255,0.0), inset 0 0 0 1px rgba(255,255,255,0.25);} 50%{ box-shadow:0 0 12px 2px var(--rg-color,rgba(255,255,255,0.35)), inset 0 0 0 1px rgba(255,255,255,0.55);} }
-            #playerNameModal.rank-theme-applied .glow-frame { position:relative; border-radius:1.35rem; }
-            #playerNameModal.rank-theme-applied .glow-frame::after { content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; box-shadow:0 0 0 1px rgba(255,255,255,0.35),0 0 22px -4px var(--rg-color,rgba(255,255,255,0.25)); animation:rankInnerGlow 3.6s ease-in-out infinite; }
-            /* CSS 變數主題元素（減少 inline style 重繪成本） */
-            #playerNameModal.rank-theme-applied .cute-card { background: var(--rt-soft); border:1px solid var(--rt-border); }
-            #playerNameModal.rank-theme-applied #finalScorePanel { background: var(--rt-panel-bg); border:1px solid var(--rt-border); }
-            #playerNameModal.rank-theme-applied #closingVerse { background: var(--rt-verse-bg); border:1px solid var(--rt-border); }
-            #playerNameModal.rank-theme-applied #replaySameQuestionsBtn { background: var(--rt-replay-from); background-image: linear-gradient(90deg,var(--rt-replay-from),var(--rt-replay-to)); border:none; }
-            #playerNameModal.rank-theme-applied #confirmNameBtn { background-image:linear-gradient(90deg,var(--rt-confirm-from),var(--rt-confirm-to)); box-shadow:0 4px 18px -4px rgba(0,0,0,0.35); }
-            #playerNameModal.rank-theme-applied .rank-heading-text { font-weight:800; font-size:1.15rem; background:var(--rt-heading); -webkit-background-clip:text; background-clip:text; color:transparent; display:inline-block; }
-            /* Corner light accents (subtle) */
-            #playerNameModal .corner-auras { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
-            #playerNameModal .corner-auras span { position:absolute; width:160px; height:160px; filter:blur(56px) saturate(140%); opacity:0.30; mix-blend-mode:plus-lighter; }
-            #playerNameModal .corner-auras .ca-tl{ top:-40px; left:-40px; background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.9),rgba(255,255,255,0) 70%);} 
-            #playerNameModal .corner-auras .ca-br{ bottom:-50px; right:-50px; background:radial-gradient(circle at 70% 70%,rgba(255,255,255,0.85),rgba(255,255,255,0) 75%);} 
-            /* Rank color variables for inner glow (1~5) */
-            .rt-challenger { --rg-color:#1fb7ff; }
-            .rt-grandmaster { --rg-color:#ff5a24; }
-            .rt-master { --rg-color:#b657f6; }
-            .rt-diamond { --rg-color:#3e9dff; }
-            .rt-emerald { --rg-color:#14b863; }
-            /* Player name larger & weight */
-            #leaderboardPlayerName{ font-size:1.15rem !important; font-weight:800 !important; letter-spacing:.5px; }
-            /* Remove mobile footer white gradient override when requested */
-            @media (max-width:640px){ #playerNameModal .modal-footer { background:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; } }
-            #achievementBox h3{margin-bottom:0.35rem;font-size:0.85rem;}
-            #achievementGrid{gap:4px;}
-            #achievementGrid .achv-card{padding:4px 2px;}
-            #achievementGrid .achv-title{font-size:10px;}
-            #playerNameModal .modal-body{padding-right:2px;}
-            #playerNameModal .modal-footer{padding-top:4px;padding-bottom:4px;}
-            #replaySameQuestionsBtn span.text-lg{font-size:1rem;}
-            /* 調整重玩副標字體（直接鎖定內部小字 span） */
-            #replaySameQuestionsBtn span span{font-size:9px;}
-            #confirmNameBtn{font-size:0.9rem;}
-        }
-    </style>
-    <!-- 全域 rank theme（原本僅行動版 media query, 導致桌面結算樣式遺失） -->
-    <style id="settlementRankThemeGlobal">
-        /* 基礎 rank theme：在 #playerNameModal 加上 rank-theme-applied 並設定 --rt-* 變數後套用 */
-        #playerNameModal.rank-theme-applied .cute-card { background: var(--rt-soft); border:1px solid var(--rt-border); }
-        #playerNameModal.rank-theme-applied #finalScorePanel { background: var(--rt-panel-bg); border:1px solid var(--rt-border); }
-        #playerNameModal.rank-theme-applied #closingVerse { background: var(--rt-verse-bg); border:1px solid var(--rt-border); }
-        #playerNameModal.rank-theme-applied #replaySameQuestionsBtn { background: var(--rt-replay-from); background-image: linear-gradient(90deg,var(--rt-replay-from),var(--rt-replay-to)); border:none; }
-        #playerNameModal.rank-theme-applied #confirmNameBtn { background-image:linear-gradient(90deg,var(--rt-confirm-from),var(--rt-confirm-to)); box-shadow:0 4px 18px -4px rgba(0,0,0,0.35); }
-        #playerNameModal.rank-theme-applied .rank-heading-text { font-weight:800; font-size:1.15rem; background:var(--rt-heading); -webkit-background-clip:text; background-clip:text; color:transparent; display:inline-block; }
-        #playerNameModal .corner-auras { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
-        #playerNameModal .corner-auras span { position:absolute; width:160px; height:160px; filter:blur(56px) saturate(140%); opacity:0.30; mix-blend-mode:plus-lighter; }
-        #playerNameModal .corner-auras .ca-tl{ top:-40px; left:-40px; background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.9),rgba(255,255,255,0) 70%);} 
-        #playerNameModal .corner-auras .ca-br{ bottom:-50px; right:-50px; background:radial-gradient(circle at 70% 70%,rgba(255,255,255,0.85),rgba(255,255,255,0) 75%);} 
-        .rt-challenger { --rg-color:#1fb7ff; }
-        .rt-grandmaster { --rg-color:#ff5a24; }
-        .rt-master { --rg-color:#b657f6; }
-        .rt-diamond { --rg-color:#3e9dff; }
-        .rt-emerald { --rg-color:#14b863; }
-        /* 未入榜（neutral） */
-        #playerNameModal.neutral-settlement #finalScorePanel{ background:linear-gradient(135deg,rgba(255,255,255,0.85),rgba(245,245,250,0.65)); border:1px solid rgba(180,180,200,0.55); }
-        #playerNameModal.neutral-settlement #closingVerse{ background:linear-gradient(135deg,rgba(255,255,255,0.9),rgba(240,240,245,0.7)); border:1px solid rgba(190,190,205,0.5); }
-        #playerNameModal.neutral-settlement #replaySameQuestionsBtn{ background:#fbbf24; }
-        #playerNameModal.neutral-settlement #confirmNameBtn{ background-image:linear-gradient(90deg,#6366f1,#8b5cf6); }
-        /* 動畫效果 */
-        @keyframes settlementPopIn { 0%{opacity:0;transform:scale(.94) translateY(6px);} 55%{opacity:1;transform:scale(1.018) translateY(0);} 100%{opacity:1;transform:scale(1);} }
-        .settlement-animate{ animation:settlementPopIn .56s cubic-bezier(.22,.9,.25,1) both; }
-        /* 桌面尺寸下稍微放大香名與分數的視覺層級 */
-        @media (min-width: 641px){
-            #playerNameModal.rank-theme-applied #finalScorePanel .final-score-xl{font-size:2.85rem;line-height:1.08;}
-            #playerNameModal.rank-theme-applied #leaderboardPlayerName{font-size:1.35rem !important;}
-        }
-        /* Dark theme readability & glow */
-        :root[data-theme='dark'] #playerNameModal.rank-theme-applied #finalScorePanel{ backdrop-filter:blur(6px); background:linear-gradient(135deg,rgba(30,33,42,0.82),rgba(52,56,66,0.55)); }
-        :root[data-theme='dark'] #playerNameModal.rank-theme-applied #closingVerse{ backdrop-filter:blur(4px); background:linear-gradient(135deg,rgba(40,42,50,0.85),rgba(70,72,82,0.55)); }
-        :root[data-theme='dark'] #playerNameModal.neutral-settlement #finalScorePanel{ background:linear-gradient(135deg,rgba(55,57,66,0.80),rgba(30,32,40,0.78)); }
-        :root[data-theme='dark'] #playerNameModal.neutral-settlement #closingVerse{ background:linear-gradient(135deg,rgba(60,62,70,0.82),rgba(38,40,48,0.80)); }
-        :root[data-theme='dark'] #playerNameModal.rank-theme-applied #leaderboardPlayerName{ text-shadow:0 0 4px rgba(0,0,0,.55), 0 0 2px rgba(0,0,0,.55); }
-    </style>
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Supabase client (UMD) deferred: 將於實際需要時 (首次打開排行榜 / 結算需要上傳) 才載入
         若要回退 eager，可解除下行註解並刪除 lazy loader 區塊。
@@ -1658,6 +1561,8 @@
     -->
     <!-- Leaderboard configuration (project URL/anonKey/table) -->
     <script src="leaderboard-config.js"></script>
+    <!-- IndexedDB Helper (Safe Extraction) -->
+    <script src="scripts/idb-helper.js"></script>
     <!-- Preconnects for faster third-party fetches -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://kkbwoahtwfdirqsgyqda.supabase.co" crossorigin>
@@ -7972,6 +7877,7 @@
     </div>
 
     <script>
+        // #region 遊戲狀態與變數
         // 遊戲狀態
         let gameState = {
             difficulty: null,
@@ -8047,6 +7953,7 @@
             equipLevelCount: 10,           // 本次裝備課程實際關卡數（最多 10，視可用書卷數而定）
             nonRankingRun: false           // 不列入排行（裝備課程/重播等）
         };
+        // #endregion
 
         // Helper: get total levels for current play mode
         function getLevelCount() {
@@ -8078,6 +7985,7 @@
             } catch (_) { /* non-fatal */ }
         }
 
+        // #region 裝備課程模組
         // ==== 裝備課程：資料載入與流程控制 ====
         async function loadEquipBank() {
             try {
@@ -9216,6 +9124,7 @@
             // 延遲一個 frame 確保 modal 繪製後解鎖主畫面按鈕狀態（不會立刻操作，但避免卡死）
             try { requestAnimationFrame(()=>{ lockMainScreenButtons(false); }); } catch(_) {}
         }
+        // #endregion
 
         // Helper: render mobile mini level progress placeholders according to level count
         function renderMiniLevelPlaceholders() {
@@ -9240,6 +9149,7 @@
             } catch (_) { /* ignore */ }
         }
 
+        // #region 生存模式模組
         // Survival mode controls
         function updateSurvivalTimerDisplay() {
             try {
@@ -9479,6 +9389,7 @@
                 }
             } catch(_) {}
         }
+        // #endregion
 
         // Mobile viewport stability helpers
         (function mobileViewportFix(){
@@ -9513,66 +9424,48 @@
     // Enable/disable external verses loading (skip fetching when disabled)
     const ENABLE_EXTERNAL_VERSES = true;
 
+    // IndexedDB Helper 已移至 scripts/idb-helper.js
+    // IDBHelper logic moved to external script
+
     // 嘗試載入外部經文資料（非同步、可快取），失敗則保留內建資料
-    // Load external verses asynchronously with sessionStorage cache; fallback gracefully on errors
+    // Load external verses asynchronously with IndexedDB cache; fallback gracefully on errors
     // 嘗試載入外部題庫 JSON，正規化後放入全域 verseDatabase
     // Attempt to load external verse JSON, normalize, and set window.verseDatabase
     async function attemptLoadExternalVerses() {
             // 若不啟用外部載入，直接返回
             if (!ENABLE_EXTERNAL_VERSES) return;
             try {
-                // 使用 sessionStorage 作為快取，避免重複讀取
-                // Use sessionStorage cache to avoid redundant fetches
-        const cacheKey = 'bibleChallenge.externalVerses.v2';
-        const normKey = 'bibleChallenge.externalVerses.norm.v1';
-                const cached = sessionStorage.getItem(cacheKey);
-                // 若有已正規化快取，優先使用以節省初始化時間
-                try {
-                    const norm = sessionStorage.getItem(normKey);
-                    if (norm) {
-                        const parsedNorm = JSON.parse(norm);
-                        if (Array.isArray(parsedNorm) && parsedNorm.length > 0) {
-                            window.__normalizedDB = parsedNorm;
-                            // 建立索引（若未建立）
-                            try { buildVerseIndex(parsedNorm); } catch(_) {}
-                        }
-                    }
-                } catch(_) {}
-                if (cached) {
-                    const parsed = JSON.parse(cached);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        window.verseDatabase = parsed;
-                        // 若尚無 __normalizedDB，立即正規化並建索引，並寫入 norm 快取
-                        if (!Array.isArray(window.__normalizedDB) || window.__normalizedDB.length === 0) {
-                            try {
-                                const norm = normalizeVerseDatabase(parsed);
-                                window.__normalizedDB = norm;
-                                buildVerseIndex(norm);
-                                try { sessionStorage.setItem(normKey, JSON.stringify(norm)); } catch(_) {}
-                            } catch(_) {}
-                        }
-                        try { updateStartButtonState(); } catch(e) {}
-                        try { refreshVerseMarqueeData(); } catch(e) {}
-                        try {
-                            const evt = new CustomEvent('externalVersesLoaded', { detail: { hasData: true, source: 'cache' } });
-                            window.dispatchEvent(evt);
-                        } catch(_) {}
-                        return;
-                    }
-                }
-                // 嘗試抓取同目錄的 external-verses.json（若不存在將拋錯）
-                // Try fetching external-verses.json alongside the app
-                const res = await fetch('external-verses.json', { cache: 'no-store' });
-                let ok = res.ok;
+                // 1. 嘗試從 IndexedDB 讀取
+                // 1. Try reading from IndexedDB
                 let data = [];
-                if (ok) {
-                    try { data = await res.json(); } catch(_) { data = []; }
+                try {
+                    const cached = await IDBHelper.get('externalVerses');
+                    if (Array.isArray(cached) && cached.length > 0) {
+                        data = cached;
+                    }
+                } catch (e) { console.warn('IDB read failed', e); }
+
+                // 2. 若 IDB 無資料，則從網路抓取
+                // 2. If IDB empty, fetch from network
+                if (data.length === 0) {
+                    const res = await fetch('external-verses.json');
+                    if (res.ok) {
+                        try { 
+                            data = await res.json(); 
+                            // 抓取成功後寫入 IDB
+                            if (Array.isArray(data) && data.length > 0) {
+                                IDBHelper.set('externalVerses', data).catch(e => console.warn('IDB write failed', e));
+                            }
+                        } catch(_) { data = []; }
+                    }
                 }
+
                 // 若主檔不存在或為空，直接改用內建資料（不再嘗試不存在的備份檔）
                 // If missing/empty, keep internal dataset (no further fallbacks)
-                if (!ok || !Array.isArray(data) || data.length === 0) {
+                if (!Array.isArray(data) || data.length === 0) {
                     data = [];
                 }
+
                 if (Array.isArray(data) && data.length > 0) {
                     // 先存原始資料，實際使用時會再經 normalize 與驗證
                     window.verseDatabase = data;
@@ -9581,13 +9474,12 @@
                         data.forEach(v => { if (v.book!=null && v.chapter!=null && v.verse!=null) idx[`${v.book}|${v.chapter}|${v.verse}`] = v; });
                         window.__versesIndex = idx;
                     } catch(_) {}
-                    try { sessionStorage.setItem(cacheKey, JSON.stringify(data)); } catch(e){}
-                    // 建立正規化資料與索引，並快取正規化結果以供下次載入
+                    
+                    // 建立正規化資料與索引
                     try {
                         const norm = normalizeVerseDatabase(data);
                         window.__normalizedDB = norm;
                         buildVerseIndex(norm);
-                        try { sessionStorage.setItem(normKey, JSON.stringify(norm)); } catch(_) {}
                     } catch(_) {}
                     try { updateStartButtonState(); } catch(e) {}
                     try { refreshVerseMarqueeData(); } catch(e) {}
@@ -12996,6 +12888,7 @@
             }
         }
 
+        // #region 核心遊戲流程
         function startGame() {
                 // 允許啟動途徑：排行（罕見度）、練習（範圍）、或核心模式（闖關/生存）
                 const isCoreMode = (gameState.playMode === 'classic' || gameState.playMode === 'survival');
@@ -16429,7 +16322,9 @@
             // 直接在遊戲畫面顯示結算視窗
             checkAndShowGameComplete(gameRecord);
         }
+        // #endregion
 
+            // #region 成就UI模組
             // ===== 成就渲染 =====
             function renderAchievementsIntoModal(){
                 try {
@@ -16735,7 +16630,9 @@
                 }
                 window.openAchievementDetail = function(id){ const def = getDefById(id); openDetail(def); };
             })();
+            // #endregion
         
+    // #region 排行榜與結算模組
     // 全域統一排名計算函式（其他流程也會呼叫）
     // 輸入：list = 可能尚未排序的紀錄陣列 (元素需含 score)，score = 當前分數，limit = 榜單名額上限
     // 回傳：0 = 未入榜；1 = 第一名；其餘 = 將插入的排名（1-based）
@@ -19618,6 +19515,7 @@
                 }
             } catch(_) { /* non-fatal */ }
         }
+        // #endregion
 
     // 刷新提示按鈕狀態與剩餘次數顏色
     // Refresh hint button and remaining count color
@@ -19652,6 +19550,7 @@
 
 
 
+    // #region 資料持久化與排行榜IO
     // 封裝並回傳本局遊戲紀錄（不直接寫入；由呼叫端決定後續流程）
     // Build and return a gameRecord snapshot for this run; caller persists/displays it.
     function saveScore(score) {
@@ -20295,6 +20194,7 @@
             // Fallback: in case transitionend doesn't fire (e.g., display change), force cleanup
             setTimeout(cleanup, 800);
         }
+        // #endregion
 
 
 
@@ -20305,6 +20205,7 @@
         // 單次初始化旗標，避免重建造成閃爍
         window.__marqueeInitialized = window.__marqueeInitialized || false;
 
+    // #region 初始化與跑馬燈
     // 初始化經文跑馬燈：桌面高密度、手機精簡；支援「偏好減少動態」改渲染成靜態行
     // Initialize verse marquee: dense on desktop, reduced on mobile; honor reduced motion with static lines
     // 初始化首頁跑馬燈（動態經文牆），考慮行動裝置與減少動態
@@ -20988,6 +20889,7 @@
                     }
                 } catch(e){}
             });
+            // #endregion
         </script>
         <script>
             // Register a simple service worker to cache startup images and core assets for faster repeat visits

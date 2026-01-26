@@ -1,14 +1,36 @@
 // Service Worker (Wave1 refactor): split caches + version broadcast
 // Cache layers
 // Increment VERSION when any SW strategy or core asset list changes
-const VERSION = 'wave2-v4';
+const VERSION = 'wave2-v11';
 const CACHE_CORE  = `bc-core-${VERSION}`;      // app shell & html
 const CACHE_DATA  = `bc-data-${VERSION}`;      // json verse/equip data
 const CACHE_MEDIA = `bc-media-${VERSION}`;     // images / logos
 const CORE_ASSETS = [
   './',
   './index.html',
-  './bible-challenge.html',
+  './css/main.css',
+  './js/core/utils.js',
+  './js/core/error-logger.js',
+  './js/core/data-loader.js',
+  './js/core/startup.js',
+  './js/core/audio.js',
+  './js/core/security.js',
+  './js/modules/achievements.js',
+  './js/modules/leaderboard.js',
+  './js/modules/diagnostics.js',
+  './js/game/state.js',
+  './js/game/engine.js',
+  './js/game/modes/equip.js',
+  './js/game/modes/survival.js',
+  './js/ui/modal-manager.js',
+  './js/ui/achievement-ui.js',
+  './js/ui/settings-ui.js',
+  './js/ui/start-screen.js',
+  './js/ui/cute-hints.js',
+  './js/ui/book-selection.js',
+  './js/ui/settlement-ui.js',
+  './js/ui/leaderboard-ui.js',
+  './js/ui/intro-animation.js',
   './leaderboard-config.js',
   './manifest.webmanifest',
   './logo/logo1-light.png',

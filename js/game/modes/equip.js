@@ -140,8 +140,11 @@
                             header.classList.add('equip-header-equal');
                             [levelWrap, scoreWrap].forEach(w => { w.classList.add('equip-equal-card'); w.style.width='100%'; w.style.maxWidth='none'; });
                             qpWrap.classList.add('equip-equal-card');
-                            qpWrap.classList.remove('hidden');
-                            qpWrap.style.width='360px';
+                            qpWrap.classList.remove('hidden'); // Force show in equip mode (overriding md:flex requirement if on narrow screens)
+                            // Remove md:flex md:justify-end logic temporarily for equal columns
+                            qpWrap.classList.remove('md:flex','md:justify-end');
+
+                            qpWrap.style.width='360px'; // Set fixed width but allow resizing by grid
                             qpWrap.style.maxWidth='360px';
                             qpCard.classList.add('equip-mode-wrap');
                             qpCard.style.width='100%';
@@ -153,6 +156,10 @@
                             header.classList.add('flex','items-start','justify-between','gap-6');
                             header.classList.remove('equip-header-equal');
                             [levelWrap, scoreWrap, qpWrap].forEach(w => { w.classList.remove('equip-equal-card'); w.style.width=''; w.style.maxWidth=''; });
+                            
+                            // Restore visibility classes for standard mode
+                            qpWrap.classList.add('hidden','md:flex','md:justify-end'); 
+                            
                             qpCard.classList.remove('equip-mode-wrap');
                             qpCard.style.width=''; qpCard.style.maxWidth='';
                         }
@@ -196,10 +203,18 @@
                     header.classList.remove('flex','items-start','justify-between','gap-6');
                     [levelWrap, scoreWrap, qpWrap].forEach(w=>{ if (!w) return; w.classList.add('equip-equal-card'); w.style.width='100%'; w.style.maxWidth='none'; });
                     const c = document.getElementById('centerScore'); if (c) c.classList.add('text-center');
+                    // Explicitly unhide qpWrap for equip mode unified layout
+                    if (qpWrap) {
+                        qpWrap.classList.remove('hidden','md:flex','md:justify-end'); 
+                    }
                 } else {
                     header.classList.remove('equip-header-equal');
                     header.classList.add('flex','items-start','justify-between','gap-6');
                     [levelWrap, scoreWrap, qpWrap].forEach(w=>{ if (!w) return; w.classList.remove('equip-equal-card'); w.style.width=''; w.style.maxWidth=''; });
+                    // Restore qpWrap standard visibility
+                    if (qpWrap) {
+                        qpWrap.classList.add('hidden','md:flex','md:justify-end');
+                    }
                 }
             } catch(_) {}
         }

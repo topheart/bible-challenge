@@ -27,23 +27,24 @@
 ---
 
 ## 2. 當前架構 (Current Structure)
-*最後更新: 2026/01/26*
+*最後更新: 2026/02/04*
 
 ```text
 / (Root)
-├── index.html              # 遊戲主頁 (Entry Point, Module Imports)
+├── index.html              # 遊戲主頁 (Entry Point, Module Imports with Defer)
 ├── manifest.webmanifest    # PWA config
-├── sw.js                   # Service Worker v13 (Updated)
+├── sw.js                   # Service Worker v21 (Offline-Capable)
 ├── css/                    # 樣式表
-│   ├── main.css            # 通用樣式 (Tailwind + Custom)
+│   ├── main.css            # 通用樣式 (Tailwind + Mobile Optimizations)
 │   └── themes.css          # 排行榜/結算主題樣式
 ├── js/                     # 程式邏輯 (Modules)
 │   ├── core/               # 核心 (utils, startup, audio, data-loader)
-│   ├── game/               # 遊戲引擎 (engine, state, config)
+│   ├── game/               # 遊戲引擎 (engine, metrics, score, timer)
+│   ├── game/modes/         # 遊戲模式 (equip, survival)
 │   ├── modules/            # 獨立模組 (achievements, leaderboard)
 │   ├── ui/                 # UI 元件 (hints, modals, screens)
 │   └── utils/              # 工具 (idb-helper)
-└── logo/                   # 圖示資源
+└── logo/                   # 圖示資源 (WebP + PNG fallback)
 ```
 
 ---
@@ -57,37 +58,31 @@
 - [x] 連結更新：`index.html` 與 `sw.js` 路徑修正。
 - [x] 工具歸位：`scripts/idb-helper.js` -> `js/utils/idb-helper.js`。
 
-### 🔄 Phase 2: 程式碼品質與重構 (Current Focus)
-**目標**：真正的實體檔案拆分 (Physical Decoupling)，解決 `engine.js` 過大問題。
+### ✅ Phase 2: 程式碼品質與重構 (Completed)
+**目標**：真正的實體檔案拆分 (Physical Decoupling)。
 
-- [x] **重構 `js/ui/cute-hints.js`**
-  - 已將遊戲狀態邏輯移至 `js/game/config.js`。
-  - 已將設定選單邏輯移至 `js/ui/game-setup.js`。
-- [ ] **重構 `js/game/engine.js`** (⚠️ Critical)
-  - **現狀**：單一檔案依然過大 (~4800+行)，雖然部分邏輯已模組化，但物理上仍未拆分。
-  - **待辦事項**：
-    - [ ] 建立 `js/game/timer.js` (抽離計時器邏輯)。
-    - [ ] 建立 `js/game/score.js` (抽離分數與 Combo 邏輯)。
-    - [ ] 建立 `js/game/metrics.js` (抽離遙測與統計邏輯)。
-  - **已完成**：
-    - [x] 抽離裝備課程邏輯 (已移至 `js/game/modes/equip.js`)。
-    - [x] 抽離生存模式邏輯 (已移至 `js/game/modes/survival.js`)。
+- [x] **重構 `js/ui/cute-hints.js`**。
+- [x] **重構 `js/game/engine.js`**
+  - [x] 建立 `js/game/timer.js`, `start/score.js`, `metrics.js`。
+  - [x] 抽離 `js/game/modes/equip.js` 與 `js/game/modes/survival.js`。
+- [x] **Critical Bug Fixes**
+  - [x] 解決 "Naked UI" 問題 (Safe Mode SW + Network-Only for CDNs)。
+  - [x] 解決 "Refresh Loop" 問題 (Startup logic update)。
 
-### ✨ Phase 2.5: 介面修復與 SEO 優化 (Completed)
-- [x] **主選單互動修復**：修正「經典/生存/裝備/自訂」四種模式的按鈕互斥邏輯與視覺變暗效果 (`mode-selection-active`)。
-- [x] **社群分享優化**：
-  - 更新 OG Image 為深色版本 (`logo1-dark.png`)。
-  - 改寫首頁 Meta Title 與 Description，提升分享吸引力。
+### ✅ Phase 3: 效能與 PWA 強化 (Completed)
+**目標**：提升載入速度與離線可靠性。
 
-### 🚀 Phase 3: 效能與 PWA 強化 (Planned)
-- [ ] **載入效能優化**
-  - [ ] 腳本非同步載入 (`defer` for game logic)。
-  - [ ]圖片資源現代化 (PNG -> WebP)。
-- [ ] **Service Worker 健檢**
-  - **Critical**: 當 Phase 2 拆分檔案後，必須同步更新 `sw.js` 的 `CORE_ASSETS` 清單。
-  - 驗證 `external-verses.json` 離線讀取機制。
+- [x] **載入效能優化**
+  - [x] 腳本非同步載入 (`defer` for game logic)。
+  - [x] 圖片資源現代化 (PNG -> WebP)。
+  - [x] **手機版降溫優化 (Mobile Thermal Throttling)**:
+    - 移除背景持續動畫 (Pulse/Bounce)。
+    - 禁用高耗能濾鏡 (Backdrop Blur, Text Glow)。
+- [x] **Service Worker 健檢**
+  - [x] 升級至 v21 (Offline Data Support)。
+  - [x] 核心題庫 (`external-verses.json`) 加入預先快取。
 
-### 🛡️ Phase 4: 穩定性與 UX 增強 (Future)
+### 🛡️ Phase 4: 穩定性與 UX 增強 (Proposed Future)
 - [ ] **離線體驗**：新增常駐型連線狀態燈號 (比起一次性 Toast 更清楚)。
 - [ ] **錯誤邊界**：在 `index.html` 加入全域 Error Boundary，防止白畫面。
 - [ ] **Accessibility**：Lighthouse 分數優化 (對比度、點擊區域)。

@@ -1,27 +1,46 @@
-// Service Worker (Wave1 refactor): split caches + version broadcast
-// Cache layers
-// Increment VERSION when any SW strategy or core asset list changes
-const VERSION = 'wave2-v11';
-const CACHE_CORE  = `bc-core-${VERSION}`;      // app shell & html
-const CACHE_DATA  = `bc-data-${VERSION}`;      // json verse/equip data
-const CACHE_MEDIA = `bc-media-${VERSION}`;     // images / logos
-const CORE_ASSETS = [
+// Service Worker: Safe Mode (v19)
+// 核心策略：
+// 1. 只快取我們明確列出的本地檔案 (Local Assets)。
+// 2. 對於任何外部 CDN (Tailwind, Fonts, Supabase)，一律採取 "Network Only" (直接連網)，絕不攔截或快取。
+//    這能徹底解決 Tailwind CDN 被錯誤快取導致介面崩壞 (Naked UI) 的問題。
+
+const VERSION = 'wave2-v21-offline-data';
+const CACHE_NAME = `bc-safe-${VERSION}`;
+
+// 僅列出絕對必要的本地檔案
+const LOCAL_ASSETS = [
   './',
   './index.html',
+  './manifest.webmanifest',
   './css/main.css',
+  './css/themes.css',
+  './leaderboard-config.js',
+  './external-verses.json',      // 核心題庫 (Critical for Offline)
+  './equip-course-growth.json',  // 裝備模式設定 (Critical for Offline)
+  
+  // JS Core
   './js/core/utils.js',
   './js/core/error-logger.js',
   './js/core/data-loader.js',
   './js/core/startup.js',
   './js/core/audio.js',
   './js/core/security.js',
+  
+  // JS Modules
   './js/modules/achievements.js',
   './js/modules/leaderboard.js',
   './js/modules/diagnostics.js',
+  
+  // JS Game
   './js/game/state.js',
+  './js/game/metrics.js',
+  './js/game/timer.js',
+  './js/game/score.js',
   './js/game/engine.js',
   './js/game/modes/equip.js',
   './js/game/modes/survival.js',
+  
+  // JS UI
   './js/ui/modal-manager.js',
   './js/ui/achievement-ui.js',
   './js/ui/settings-ui.js',
@@ -31,162 +50,102 @@ const CORE_ASSETS = [
   './js/ui/settlement-ui.js',
   './js/ui/leaderboard-ui.js',
   './js/ui/intro-animation.js',
-  './leaderboard-config.js',
-  './manifest.webmanifest',
-  './logo/logo1-light.png',
-  './logo/logo2-light.png',
-  './logo/logo1-dark.png',
-  './logo/logo2-dark.png',
-  './logo/word1-light.png',
-  './logo/word2-light.png',
-  './logo/word1-dark.png',
-  './logo/word2-dark.png',
-  './logo/logo0-light.png',
-  './logo/logo0-dark.png'
+  './js/utils/idb-helper.js',
+
+  // Images (Logos) - WebP Modernization
+  './logo/logo1-light.png', // Manifest/HTML
+  './logo/logo2-light.png', // Manifest
+  './logo/logo1-dark.png',  // OG Image
+  
+  // WebP versions for App UI
+  './logo/logo1-light.webp',
+  './logo/logo2-light.webp',
+  './logo/logo1-dark.webp',
+  './logo/logo2-dark.webp',
+  './logo/word1-light.webp',
+  './logo/word2-light.webp',
+  './logo/word1-dark.webp',
+  './logo/word2-dark.webp',
+  './logo/logo0-light.webp',
+  './logo/logo0-dark.webp'
 ];
 
-// Adding leaderboard-config.js for offline readiness
-let bc; // BroadcastChannel for version signaling
-try { bc = new BroadcastChannel('bc-sw-version'); } catch(_) { bc = null; }
-
+// Install: 預先載入本地檔案
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    (async () => {
-      // Core shell
-      await caches.open(CACHE_CORE).then((cache) => cache.addAll(CORE_ASSETS));
-      // Data prefetch (best-effort)
-      try {
-        const dataCache = await caches.open(CACHE_DATA);
-        await Promise.all([
-          // external-verses.json is now handled by IndexedDB to save storage/memory
-          dataCache.add('./equip-course-growth.json')
-        ]);
-      } catch (_) {}
-      await self.skipWaiting();
-    })()
+    caches.open(CACHE_NAME).then((cache) => {
+      // 嘗試載入所有檔案，若單一檔案失敗不應導致整體安裝失敗 (使用 map + catch)
+      return Promise.all(LOCAL_ASSETS.map(url => {
+        return cache.add(url).catch(err => {
+          console.warn('[SW] Failed to cache local asset:', url, err);
+        });
+      }));
+    }).then(() => self.skipWaiting())
   );
 });
 
+// Activate: 清除舊版所有快取 (暴力清除，確保乾淨)
 self.addEventListener('activate', (event) => {
-  event.waitUntil((async () => {
-    const valid = new Set([CACHE_CORE, CACHE_DATA, CACHE_MEDIA]);
-    const keys = await caches.keys();
-    await Promise.all(keys.map((k) => (!valid.has(k) ? caches.delete(k) : null)));
-    if ('navigationPreload' in self.registration) {
-      try { await self.registration.navigationPreload.enable(); } catch(_) {}
-    }
-    await self.clients.claim();
-    if (bc) bc.postMessage({ type:'sw-version', version: VERSION, time: Date.now() });
-    // Optional: try storage cleanup if Quota API available
-    try {
-      if (navigator.storage && navigator.storage.estimate) {
-        const est = await navigator.storage.estimate();
-        if (est.usage && est.quota && est.usage/est.quota > 0.85) {
-          // If >85% usage, purge MEDIA cache (rebuildable) oldest entries heuristic: delete entire MEDIA cache for simplicity
-          await caches.delete(CACHE_MEDIA);
-          await caches.open(CACHE_MEDIA); // recreate empty
-        }
-      }
-    } catch(_) {}
-  })());
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            console.log('[SW] Clearing old cache:', key);
+            return caches.delete(key);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
 });
 
-// Version ping responder (for pages wanting to confirm SW freshness without waiting events)
-self.addEventListener('message', (ev)=>{
-  if (!ev.data) return;
-  if (ev.data.type === 'ping-version') {
-    ev.source && ev.source.postMessage && ev.source.postMessage({ type:'pong-version', version: VERSION });
-  } else if (ev.data.type === 'clear-data-cache') {
-    caches.delete(CACHE_DATA).then(()=> caches.open(CACHE_DATA));
-  }
-});
-
+// Fetch: 極簡攔截策略
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  if (req.method !== 'GET') return; // GET-only guard (S5)
   const url = new URL(req.url);
-  // Allowlist selected cross-origin assets for caching (Google Fonts, jsDelivr Supabase UMD, Tailwind CDN)
-  const isGoogleFonts = url.origin.includes('fonts.googleapis.com') || url.origin.includes('fonts.gstatic.com');
-  const isJsDelivrSupabase = /cdn\.jsdelivr\.net$/.test(url.hostname) && /@supabase\/supabase-js/.test(url.pathname);
-  const isTailwindCdn = url.hostname === 'cdn.tailwindcss.com';
-  // If cross-origin and not allowlisted, ignore
-  if (url.origin !== self.location.origin && !(isGoogleFonts || isJsDelivrSupabase || isTailwindCdn)) return;
 
-  if (isGoogleFonts || isJsDelivrSupabase || isTailwindCdn) {
-    event.respondWith((async () => {
-      // Strategy: cache-first for font files and UMD; SWR for stylesheets
-      const cacheName = isGoogleFonts ? CACHE_MEDIA : CACHE_CORE;
-      const cache = await caches.open(cacheName);
-      const cached = await cache.match(req);
-      if (cached) {
-        // Revalidate in background for stylesheets (fonts.googleapis.com)
-        if (isGoogleFonts && url.hostname === 'fonts.googleapis.com') {
-          fetch(req).then(res => cache.put(req, res.clone())).catch(()=>{});
-        }
-        return cached;
-      }
-      try {
-        const res = await fetch(req, { mode: 'cors' });
-        cache.put(req, res.clone()).catch(()=>{});
-        return res;
-      } catch (_) {
-        return cached || Response.error();
-      }
-    })());
-    return;
+  // 1. 如果是外部網域 (cdn.tailwindcss.com, fonts, supabase...) -> 直接放行，不快取
+  if (url.origin !== self.location.origin) {
+    return; // 瀏覽器會直接走網路，不經過 SW 邏輯
   }
 
-  // HTML navigations: network-first w/ fallback; also mark offline status via BroadcastChannel
-  if (req.mode === 'navigate' || url.pathname.endsWith('.html')) {
-    event.respondWith((async () => {
-      try {
-        const preloaded = 'preloadResponse' in event ? await event.preloadResponse : null;
-        const netRes = preloaded || await fetch(req);
-        caches.open(CACHE_CORE).then((c)=> c.put(req, netRes.clone()));
-        return netRes;
-      } catch(e){
-        const cached = await caches.match(req) || await caches.match('./bible-challenge.html') || await caches.match('./index.html');
-        if (cached) return cached;
-        bc && bc.postMessage && bc.postMessage({ type:'offline', at: Date.now() });
-        return new Response('<!doctype html><title>Offline</title><meta charset="utf-8"><style>body{font-family:system-ui;display:flex;min-height:100vh;align-items:center;justify-content:center;background:#0f172a;color:#f1f5f9;margin:0;padding:2rem;text-align:center}h1{font-size:1.3rem;margin-bottom:.75rem}</style><h1>離線模式</h1><p>目前無法連線。已快取的核心仍可使用，稍後會自動重試。</p>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
-      }
-    })());
-    return;
-  }
+  // 2. 如果是 API 請求或非 GET -> 直接放行
+  if (req.method !== 'GET') return;
 
-  // Images: cache-first in MEDIA cache
-  if (req.destination === 'image') {
-    event.respondWith((async () => {
-      const cached = await caches.match(req);
+  // 3. 本地檔案策略：先找快取，找不到再聯網 (Cache First, falling back to Network)
+  event.respondWith(
+    caches.match(req).then((cached) => {
       if (cached) return cached;
-      try {
-        const res = await fetch(req);
-        caches.open(CACHE_MEDIA).then((c)=> c.put(req, res.clone()));
-        return res;
-      } catch(e){ return cached || Response.error(); }
-    })());
-    return;
-  }
 
-  // Verse data JSON: stale-while-revalidate in DATA cache + soft offline fallback (empty array)
-  // Note: external-verses.json is handled by IDBHelper (IndexedDB), so we skip it here.
-  if (url.pathname.endsWith('equip-course-growth.json')) {
-    event.respondWith((async () => {
-      const cache = await caches.open(CACHE_DATA);
-      const cached = await cache.match(req);
-      const netPromise = fetch(req).then(res => { cache.put(req, res.clone()).catch(()=>{}); return res; }).catch(()=>null);
-      if (cached) { netPromise.catch(()=>{}); return cached; }
-      const netRes = await netPromise;
-      if (netRes) return netRes;
-      return new Response('[]', { headers: { 'Content-Type': 'application/json' } });
-    })());
-    return;
-  }
+      return fetch(req).then((netRes) => {
+        // 只有在成功取得回應且是有效回應時才快取
+        if (!netRes || netRes.status !== 200 || netRes.type !== 'basic') {
+          return netRes;
+        }
+        // 動態將漏網之魚加入快取 (僅限本地檔案)
+        const resClone = netRes.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+        return netRes;
+      }).catch(() => {
+        // 離線且無快取時的處理 (可選：回傳一個簡易離線頁面，目前先略過保持簡單)
+        // 針對 JSON 請求回傳空陣列避免報錯
+        if (url.pathname.endsWith('.json')) {
+            return new Response('[]', { headers: { 'Content-Type': 'application/json' } });
+        }
+        // 針對 HTML 請求回傳簡易離線訊息
+        if (req.mode === 'navigate') {
+            return new Response('<!doctype html><html><body style="background:#0f172a;color:white;display:flex;justify-content:center;align-items:center;height:100vh;"><h1>離線模式</h1><p>請檢查網路連線</p></body></html>', { headers: { 'Content-Type': 'text/html;charset=utf-8' } });
+        }
+      });
+    })
+  );
 });
 
-// (Optional helper) Expose a self-destruct for future migrations (not invoked by default)
-async function __purgeAllCaches(){
-  const ks = await caches.keys();
-  await Promise.all(ks.map(k=>caches.delete(k)));
-}
+// 監聽版本查詢 (用於前端確認)
+self.addEventListener('message', (ev) => {
+  if (ev.data && ev.data.type === 'ping-version') {
+    ev.source && ev.source.postMessage && ev.source.postMessage({ type: 'pong-version', version: VERSION });
+  }
+});
 

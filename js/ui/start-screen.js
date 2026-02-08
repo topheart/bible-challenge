@@ -65,7 +65,7 @@ function setupMobileScoreBadges() {
             try {
                 const m = document.getElementById('menuBrandCorner');
                 const isDark = !!window.__startupIsDark;
-                if (m) m.src = isDark ? 'logo/logo0-light.png' : 'logo/logo0-dark.png';
+                if (m) m.src = isDark ? 'logo/logo0-light.webp' : 'logo/logo0-dark.webp';
             } catch(_) {}
             // Ensure body scroll is restored when showing the start screen
             try { unlockBodyScroll(); } catch (e) {}

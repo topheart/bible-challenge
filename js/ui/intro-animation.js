@@ -24,7 +24,7 @@
                 // Prevent double play unless forced
                 if (start.__introPlayed && !force) return;
                 start.__introPlayed = true;
-                const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                const reduced = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || (window.innerWidth < 640);
                 const cards = [
                     document.getElementById('titleCard'),
                     document.getElementById('modeCard'),

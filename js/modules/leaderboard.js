@@ -732,9 +732,14 @@ function initializeVerseMarquee() {
             verseElement.style.color = `rgba(${colorEntry.c}, ${finalAlpha})`;
 
             // text-shadow 作為 glow，近處給較強光暈，遠處較弱；慢速群組更強
-            const glowBase = 12 + Math.round((10 + speedIndex * 8) * (0.6 + depthNormalized * 1.2));
-            const glowAlpha = Math.min(0.45, 0.10 + speedIndex * 0.06 + depthNormalized * 0.12 + (i % 5) * 0.01);
-            verseElement.style.textShadow = `0 0 ${glowBase}px rgba(${colorEntry.c}, ${glowAlpha}), 0 2px ${Math.round(glowBase/3)}px rgba(0,0,0,0.06)`;
+            if (mobileLite) {
+                // 手機版：移除光暈 (Glow) 以降低 GPU 負載 (效能優化)
+                verseElement.style.textShadow = 'none';
+            } else {
+                const glowBase = 12 + Math.round((10 + speedIndex * 8) * (0.6 + depthNormalized * 1.2));
+                const glowAlpha = Math.min(0.45, 0.10 + speedIndex * 0.06 + depthNormalized * 0.12 + (i % 5) * 0.01);
+                verseElement.style.textShadow = `0 0 ${glowBase}px rgba(${colorEntry.c}, ${glowAlpha}), 0 2px ${Math.round(glowBase/3)}px rgba(0,0,0,0.06)`;
+            }
 
             // 透明度整體表現結合深度與速度（近處與慢速看起來更清晰）
             const baseOpacity = (mobileLite ? 0.35 : 0.55) + depthNormalized * (mobileLite ? 0.35 : 0.45);

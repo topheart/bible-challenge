@@ -1,6 +1,16 @@
 
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
+            // Force SW update check only once per session to avoid refresh loops on strict environments
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(r => {
+                    // Always try to update on page load to catch hotfixes quickly.
+                    // The infinite loop usually happens if 'controllerchange' causes reload without checks.
+                    // We remove sessionStorage check here to ensure we always get latest if available.
+                    r.update().catch(()=>{});
+                });
+            }
+
             try { applyReducedMotionSetting(); } catch(_) {}
             initializeGame();
             // Trigger a non-blocking load of leaderboard (online adapter may resolve later)

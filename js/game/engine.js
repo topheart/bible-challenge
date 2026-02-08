@@ -538,8 +538,7 @@ function initializeGame() {
                         equipCard.setAttribute('aria-pressed','false');
                     }
                 } catch(_) {}
-                if (gameState.timerInterval) { try { clearInterval(gameState.timerInterval); } catch(_) {} gameState.timerInterval = null; }
-                if (gameState.survivalTimerInterval) { try { clearInterval(gameState.survivalTimerInterval); } catch(_) {} gameState.survivalTimerInterval = null; }
+                GameTimer.stopAll();
                 try { const card = document.getElementById('survivalTimerCard'); if (card) card.classList.add('hidden'); } catch(_) {}
                 showStartScreen();
                 // 確保裝備 UI 隱藏、配對 UI 顯示
@@ -1255,6 +1254,18 @@ function initializeGame() {
             updateSettingsDisplay();
             updateStartButtonState();
             updateScoreRulesDisplay();
+
+            // Ensure FX styles are loaded
+            try { ensureLevelFxStyles(); } catch(_) {}
+            
+            // Global click/touch ripple
+            document.addEventListener('pointerdown', (e) => {
+               try {
+                 if (typeof window.createTouchRipple === 'function') {
+                    window.createTouchRipple(e.pageX, e.pageY);
+                 }
+               } catch(_) {}
+            }, { passive: true });
             // mobile score badge setup: clones encouragement text into front/back titles on narrow viewports
             try { setupMobileScoreBadges(); } catch (e) { console.warn('setupMobileScoreBadges failed', e); }
         }
@@ -1277,6 +1288,9 @@ function initializeGame() {
 
         <!-- Extracted: book-selection.js -->
 function startGame() {
+                // Initialize Metrics for the new run
+                if (window.resetGameMetrics) window.resetGameMetrics(gameState.playMode);
+
                 // 允許啟動途徑：排行（罕見度）、練習（範圍）、或核心模式（闖關/生存）
                 const isCoreMode = (gameState.playMode === 'classic' || gameState.playMode === 'survival');
                 if (!isCoreMode && !gameState.rarity && !gameState.range && !gameState.__pendingEquipTier) {
@@ -2722,210 +2736,22 @@ function startGame() {
     // 啟動關卡計時器（供時間獎勵與顯示）
     // Start per-level timer for time reward and display
     function startLevelTimer() {
-            if (gameState.timerInterval) {
-                clearInterval(gameState.timerInterval);
-            }
-            
-            gameState.timerInterval = setInterval(() => {
-                updateCurrentScore();
-            }, 100); // 每100ms更新一次
-        }
-
-    // 記錄一筆「無效」的答題速度段（例如：最後一題被自動判錯）
-    function recordInvalidSpeedSegment(){
-            if(!gameMetrics) return;
-            const m = gameMetrics;
-            try {
-                const startTs = m.speedEventStartTs || (gameState && (gameState.currentQuestionStartTime||gameState.levelStartTime)) || m.startTime || Date.now();
-                const ms = Math.max(1, Date.now() - startTs);
-                if (Array.isArray(m.perQuestionTimesAll)) m.perQuestionTimesAll.push(ms);
-                if (Array.isArray(m.perQuestionValidFlags)) m.perQuestionValidFlags.push(false);
-            } catch(_) {}
-            // 下一段自現在起算
-            try { m.speedEventStartTs = Date.now(); } catch(_) {}
+        GameTimer.startLevel(updateCurrentScore, 100);
     }
+
+    // recordInvalidSpeedSegment has been moved to metrics.js
+
 
     // 更新頂部分數顯示（含動畫）
     // Update the center score display with counting animation
-    function updateCurrentScore() {
-            const elapsed = (Date.now() - gameState.levelStartTime) / 1000; // 秒
-            let timeRewardScore = 0;
-            const TIME_SCALE = 10; // scale time reward by 10x (original ±5 -> now ±50)
-            
-            if (gameState.showTimeReward) {
-                // New piecewise rule (display range: +50 ... 0)
-                //  - elapsed <= 3s => +50
-                //  - 3s < elapsed <= 15s => linear from +50 down to 0
-                //  - elapsed > 15s => 0
-                const POS_MAX = 50;
-                const NEG_MIN = 0;
+    // updateCurrentScore 已移至 score.js, 使用 window.updateCurrentScore
 
-                if (elapsed <= 3) {
-                    timeRewardScore = POS_MAX;
-                } else if (elapsed <= 15) {
-                    // map [3,15] -> [50,0]
-                    const t = (elapsed - 3) / (15 - 3);
-                    timeRewardScore = POS_MAX * (1 - t);
-                } else {
-                    timeRewardScore = 0;
-                    // 時間獎勵秒數到底：Combo 掉 3 級（每題僅觸發一次）
-                    try {
-                        if (!gameState.__comboDroppedForTimeout) {
-                            gameState.__comboDroppedForTimeout = true;
-                            dropCombo(3);
-                        }
-                    } catch(_) {}
-                }
 
-                // ensure numeric and clamp
-                timeRewardScore = Math.max(NEG_MIN, Math.min(POS_MAX, timeRewardScore));
-                const displayScore = Math.round(timeRewardScore);
+        // getComboMultiplier 已移至 score.js, 使用 window.getComboMultiplier
 
-                // 更新分數顯示（整數）
-                const scoreElement = document.getElementById('currentQuestionScore');
-                if (scoreElement) {
-                    scoreElement.textContent = displayScore;
-                    // color: positive -> green->yellow, zero -> orange
-                    if (displayScore > 0) {
-                        const ratio = displayScore / POS_MAX; // 0..1
-                        const red = Math.floor(255 * (1 - ratio * 0.8));
-                        const green = 255;
-                        const blue = 0;
-                        scoreElement.style.color = `rgb(${red}, ${green}, ${blue})`;
-                    } else if (displayScore === 0) {
-                        scoreElement.style.color = 'rgb(255,165,0)';
-                    }
-                }
 
-                // 更新進度條（範圍 0..+50 對應 0..100）；不再顯示下方刻度或說明
-                const scoreProgressFill = document.getElementById('scoreProgressFill');
-                if (scoreProgressFill) {
-                    const totalProgress = Math.max(0, Math.min(100, (((POS_MAX) - timeRewardScore) / (POS_MAX - NEG_MIN)) * 100));
+        // addComboOnCorrect, dropCombo, updateComboUI 已移至 score.js
 
-                    // choose color by thresholds (preserve existing visual cues roughly)
-                    let barColor = 'bg-green-500';
-                    if (timeRewardScore >= 30) {
-                        barColor = 'bg-green-500';
-                    } else if (timeRewardScore >= 10) {
-                        barColor = 'bg-lime-500';
-                    } else if (timeRewardScore >= 0) {
-                        barColor = 'bg-yellow-500';
-                    }
-
-                    scoreProgressFill.className = scoreProgressFill.className.replace(/bg-\w+-\d+/g, '');
-                    scoreProgressFill.classList.add(barColor, 'h-full', 'rounded-full', 'transition-all', 'duration-100', 'shadow-sm');
-                    scoreProgressFill.style.width = `${100 - totalProgress}%`;
-                }
-
-                return displayScore;
-            }
-
-            return 0;
-        }
-
-        // ==== Combo helpers ====
-        // Map combo level to multiplier: x0 -> 1.0, x1 -> 1.25, ... up to x24 -> 7.0
-        function getComboMultiplier(level) {
-            // Multiplier 仍以 0..24 範圍計算；25 (MAX) 與 24 同倍率
-            const lv = Math.max(0, Math.min(24, level|0));
-            return Math.min(7.0, 1.0 + lv * 0.25);
-        }
-
-        function addComboOnCorrect() {
-            // Increase combo by 1 (cap) and pop UI; always add some fill
-            const prev = gameState.combo;
-            gameState.combo = Math.min(gameState.maxCombo, gameState.combo + 1);
-            gameState.comboProgress = 0; // reset progress on rank up
-            const leveledUp = gameState.combo !== prev;
-            updateComboUI(leveledUp);
-            // Update metrics.maxComboReached based on on-screen combo label (immediate unlock for streak achievements)
-            try {
-                if (gameMetrics) {
-                    const cur = Math.max(0, Math.min((gameState.maxCombo||25), (gameState.combo||0)));
-                    if ((gameMetrics.maxComboReached||0) < cur) gameMetrics.maxComboReached = cur;
-                    if (typeof gameState === 'object' && (typeof gameState.comboPeak !== 'number' || gameState.comboPeak < cur)) {
-                        gameState.comboPeak = cur;
-                    }
-                }
-            } catch(_) {}
-            // SFX: play a celebratory tone when combo ranks up
-            try { if (leveledUp) SFX.play('comboUp'); } catch(_) {}
-            // celebratory sparks more intense as combo grows
-            try {
-                const mult = getComboMultiplier(gameState.combo);
-                const rect = document.getElementById('comboBar')?.getBoundingClientRect();
-                const colors = ['#FFF7ED','#FFEDD5','#FDE68A','#FCD34D','#F59E0B','#F97316'];
-                spawnScoreParticles(Math.round(mult*20), rect, { colors, glyph: '✹', count: Math.min(24, 6 + Math.floor(gameState.combo/2)), distanceMin: 40, distanceMax: 160, durationMs: 1400 });
-            } catch(_) {}
-            // 連擊跨門檻時立即評估成就（葡萄枝子即時解鎖）
-            try { evaluateRealtimeAchievements(); } catch(_) {}
-        }
-
-        function dropCombo(levels = 3) {
-            const before = gameState.combo;
-            gameState.combo = Math.max(0, gameState.combo - Math.max(1, levels|0));
-            gameState.comboProgress = 0;
-            updateComboUI(false, true);
-            // dropping combo 不需要更新峰值
-            try { if (before > 0 && gameState.combo < before) SFX.play('streakBreak'); } catch(_) {}
-            // small shake feedback on drop
-            try {
-                const bar = document.getElementById('comboBar');
-                if (bar) { bar.classList.remove('combo-shake'); void bar.offsetWidth; bar.classList.add('combo-shake'); setTimeout(()=>bar.classList.remove('combo-shake'), 480); }
-            } catch(_) {}
-        }
-
-        function updateComboUI(levelUp = false, isDrop = false) {
-            try {
-                const label = document.getElementById('comboLabel');
-                const segWrap = document.getElementById('comboSegments');
-                const flash = document.querySelector('#comboBar .combo-flash');
-                const bar = document.getElementById('comboBar');
-                const combo = gameState.combo|0;
-                const mult = getComboMultiplier(Math.min(combo, 24)); // multiplier 按原上限 24 計算
-                const isMax = combo >= 25;
-                if (label) {
-                    const comboDisplay = isMax ? 'MAX' : combo;
-                    label.textContent = `Combo x ${comboDisplay} · ${mult.toFixed(2)}×`;
-                    label.style.color = combo >= 17 ? '#fde68a' : combo >= 9 ? '#fcd34d' : '#fde68a';
-                    label.classList.remove('combo-pop');
-                    if (levelUp) { void label.offsetWidth; label.classList.add('combo-pop'); }
-                }
-                if (segWrap) {
-                    const segs = Array.from(segWrap.children);
-                    // 週期：8 格循環；0..7 第一條，8..15 第二條，16..23 第三條；24 (或更高) 保持第三條全滿；25 以上 MAX 狀態全滿加光
-                    let cycleFilled;
-                    if (combo <= 0) cycleFilled = 0; else if (combo >= 24) cycleFilled = 8; else cycleFilled = ((combo - 1) % 8) + 1; // combo=8 =>8, combo=9 =>1
-                    segs.forEach((s, i) => {
-                        s.className = 'combo-seg';
-                        if (i < cycleFilled) {
-                            s.classList.add('filled');
-                            // tiers based on which cycle (0,1,2)
-                            const cycleIndex = Math.min(2, Math.floor((Math.max(1, combo) - 1) / 8));
-                            const tier = 1 + cycleIndex; // cycle 0 -> tier1, 1 -> tier2, 2 -> tier3 (cap)
-                            if (tier >= 1) s.classList.add(`tier-${Math.min(5, tier+1)}`); // reuse existing tier styles (offset for stronger look)
-                        }
-                    });
-                }
-                if (bar) {
-                    bar.classList.toggle('max-glow', isMax);
-                }
-                // flash on level up
-                if (flash && levelUp) {
-                    flash.classList.remove('play');
-                    void flash.offsetWidth;
-                    flash.classList.add('play');
-                }
-                // extra flourish at high combos / MAX
-                if (levelUp && (combo >= 12 || isMax)) {
-                    try {
-                        // 裝備模式使用螢幕中央，其他維持以 comboBar 位置為中心
-                        const rect = (gameState.equipRunning || gameState.equipTier) ? null : document.getElementById('comboBar')?.getBoundingClientRect();
-                        spawnConfettiRain(Math.round(mult*30), rect);
-                    } catch(_) {}
-                }
-            } catch(_) {}
-        }
 
         // 共用：清除元素上可能阻礙「答對變綠」的錯誤/動畫/紅色類別
     // 清除卡片錯誤樣式
@@ -3492,10 +3318,7 @@ function startGame() {
                 // Mark: handled to avoid duplicate transitions/scoring
                 gameState.levelEndHandled = true;
                 // 停止計時器
-                if (gameState.timerInterval) {
-                    clearInterval(gameState.timerInterval);
-                    gameState.timerInterval = null;
-                }
+                GameTimer.stopLevel();
                 
                 // 檢查獎勵
                 const correctQuestions = gameState.questionData.filter((_, index) => {
@@ -3765,6 +3588,23 @@ function startGame() {
                 90% { transform: translate(-4px, 6px) }
                 100% { transform: translate(0, 0) }
             }
+            /* Global Touch Ripple */
+            .touch-ripple {
+                position: absolute;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.5);
+                transform: translate(-50%, -50%) scale(0);
+                animation: ripplePop 0.5s ease-out forwards;
+                pointer-events: none;
+                z-index: 99999;
+                width: 4px;
+                height: 4px;
+                box-shadow: 0 0 10px rgba(255,255,255,0.4);
+            }
+            @keyframes ripplePop {
+                0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; width: 4px; height: 4px; }
+                100% { transform: translate(-50%, -50%) scale(25); opacity: 0; width: 4px; height: 4px; }
+            }
             `;
             document.head.appendChild(style);
         }
@@ -3942,474 +3782,15 @@ function startGame() {
         
 
 
-        // Parse numeric delta from a display text like "+20", "全對+100", "完美+300", or "-10".
-    // 從文字（如 +20 / 全對+100 / -10）中解析數值變化量
-    // Parse numeric delta from a display string
-    function parseDeltaFromDisplayText(displayText) {
-            try {
-                if (typeof displayText !== 'string') return 0;
-                const m = displayText.match(/([+\-]?\d+)/);
-                if (!m) return 0;
-                return parseInt(m[1], 10) || 0;
-            } catch (_) { return 0; }
-        }
+    // parseDeltaFromDisplayText, processCenterQueue, enqueueCenterScoreDelta moved to score.js
 
-        // Queue-based center score updater: waits for floating inline count to finish, then animates gold number.
-        const __centerQueue = (window.__centerQueue = window.__centerQueue || []);
-        let __centerBusy = (window.__centerBusy = window.__centerBusy || false);
-    // 處理中心分數的排程佇列，避免動畫重疊
-    // Process queued center-score updates (serialize animations)
-    function processCenterQueue() {
-            if (__centerBusy) return;
-            const item = __centerQueue.shift();
-            if (!item) return;
-            __centerBusy = true;
-            const scoreElement = document.getElementById('centerScore');
-            const from = parseInt(scoreElement.textContent, 10) || 0;
-            const to = from + item.delta;
-            try {
-                // Optional pulse/particles aligned with center counting start
-                if (item.pulse) {
-                    try { pulseCenterScore(item.delta); } catch(e) {}
-                    try { spawnScoreParticles(item.delta); } catch(e) {}
-                }
-            } catch (_) {}
-            // Run the counting animation; it internally cancels previous intervals if any
-            animateScoreWithCounting(from, to);
-            const doneMs = (typeof getReducedMotion === 'function' && getReducedMotion()) ? 60 : 900;
-            setTimeout(() => {
-                __centerBusy = false;
-                processCenterQueue();
-            }, doneMs + 40);
-        }
-    // 排入中心分數變更（可延遲、可帶脈衝特效）
-    // Enqueue a center score update with optional delay/pulse
-    function enqueueCenterScoreDelta(delta, delayMs = 720, options = { pulse: true }) {
-            const d = Math.trunc(delta || 0);
-            const delay = Math.max(0, delayMs|0);
-            setTimeout(() => {
-                __centerQueue.push({ delta: d, pulse: !!options.pulse });
-                processCenterQueue();
-            }, delay);
-        }
-
-    // 顯示得分/扣分動畫（行動版貼近中心分數，桌面版含完美/全對特效）
-    // Show floating score animations; mobile favors center overlay
-    function showScoreAnimation(text, isSpecial, targetElement = null) {
-            const scoreElement = document.getElementById('centerScore');
-            
-            // 改為：等待浮動加分數字跳轉動畫完成（~720ms）後，再讓金色分數開始各別的數字跳轉動畫
-            // 解析當次加分/扣分的增量，將其排入中心分數佇列，逐一處理，彼此獨立不需等全部完成。
-            const displayText = text.replace('分', '');
-            // New: detect non-score meta texts like "Combo x N"; they shouldn't affect the center gold score
-            const isComboAnnouncement = /^\s*combo\s*/i.test(displayText);
-            const deltaForCenter = isComboAnnouncement ? 0 : parseDeltaFromDisplayText(displayText);
-            const inlineDur = (typeof getReducedMotion === 'function' && getReducedMotion()) ? 40 : 720;
-            // 對於特殊獎勵，我們仍排入佇列，但不重複觸發 pulse（特殊效果分支已各自處理脈衝/特效）
-            const shouldPulse = !(text.includes('完美+300') || text.includes('全對+100'));
-            // 不要計算紅色扣分（負值）到中心金色分數，避免重複扣分
-            if (!isComboAnnouncement && deltaForCenter > 0) {
-                enqueueCenterScoreDelta(deltaForCenter, inlineDur, { pulse: shouldPulse });
-            }
-            
-            // 移除「分」字
-            // const displayText = text.replace('分', '');
-            
-            // 允許同時存在多個普通得分動畫（不再移除既有的 .score-popup）
-            
-            // 創建浮動分數動畫
-            const floatingScore = document.createElement('div');
-            floatingScore.textContent = displayText;
-            // Force inline counting on mobile for special rewards even if reduced-motion is set
-            try {
-                const isMobile = (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) || window.innerWidth <= 640;
-                const isSpecialText = text.includes('完美+300') || text.includes('全對+100');
-                if (isMobile && isSpecialText) floatingScore.dataset.forceInlineCount = 'true';
-            } catch(_) {}
-            // Avoid inline numerical counting for combo announcements (static text is preferred)
-            if (!isComboAnnouncement) {
-                try { applyInlineCountToFloating(floatingScore, displayText); } catch (e) {}
-            }
-            floatingScore.style.pointerEvents = 'none';
-            floatingScore.style.zIndex = '9999';
-            floatingScore.style.position = 'absolute';
-            
-            // 根據分數類型設置不同效果和位置
-            if (text.includes('完美+300')) {
-                // 完美獎勵: on mobile animate to centerBadge and overlay like ordinary +score;
-                // on desktop keep the full-screen central perfect popup
-                const isMobile = (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) || window.innerWidth <= 640;
-                if (isMobile) {
-                    // Mobile: Always show dead-center of the viewport
-                    floatingScore.className = 'text-5xl font-extrabold text-yellow-400 score-popup';
-                    floatingScore.style.textShadow = '0 2px 8px rgba(0,0,0,0.45)';
-                    floatingScore.style.position = 'fixed';
-                    floatingScore.style.left = '50%';
-                    floatingScore.style.top = '50%';
-                    floatingScore.style.transform = 'translate(-50%, -50%) scale(0.95)';
-                    floatingScore.style.whiteSpace = 'nowrap';
-                    floatingScore.style.opacity = '0';
-                    floatingScore.style.zIndex = '10002';
-                    // Disable CSS keyframe animation to avoid conflicts
-                    try { floatingScore.style.animation = 'none'; floatingScore.style.webkitAnimation = 'none'; } catch(_) {}
-                    try { floatingScore.classList.remove('perfect-popup','celebration-popup'); } catch(_) {}
-                    document.body.appendChild(floatingScore);
-                    try { pulseCenterScore(300); } catch(e) {}
-                    try { spawnGoldGlitter(300); } catch(e) {}
-                    requestAnimationFrame(() => {
-                        floatingScore.style.transition = 'opacity 360ms ease, transform 520ms cubic-bezier(.2,.9,.2,1)';
-                        floatingScore.style.opacity = '1';
-                        floatingScore.style.transform = 'translate(-50%, -50%) scale(1)';
-                    });
-                } else {
-                    // Desktop: original full-screen perfect popup
-                    floatingScore.className = 'text-7xl font-black text-yellow-500 perfect-popup';
-                    floatingScore.style.textShadow = '0 0 50px rgba(255, 215, 0, 1)';
-                    floatingScore.style.position = 'fixed';
-                    floatingScore.style.left = '50%';
-                    floatingScore.style.top = '50%';
-                    floatingScore.style.transform = 'translate(-50%, -50%)';
-                    floatingScore.style.zIndex = '10000';
-                    document.body.appendChild(floatingScore);
-                    scoreElement.classList.add('score-flash');
-                        createPerfectEffects(document.body);
-                        try { pulseCenterScore(300); } catch(e) {}
-                        try { spawnScoreParticles(300); } catch(e) {}
-                }
-            } else if (text.includes('全對+100')) {
-                // 全對獎勵: same mobile overlay behavior as ordinary +score; desktop keeps large celebration
-                const isMobile = (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) || window.innerWidth <= 640;
-                if (isMobile) {
-                    // Mobile: Always show dead-center of the viewport
-                    floatingScore.className = 'text-4xl font-extrabold text-green-400 score-popup';
-                    floatingScore.style.textShadow = '0 2px 8px rgba(0,0,0,0.35)';
-                    floatingScore.style.position = 'fixed';
-                    floatingScore.style.left = '50%';
-                    floatingScore.style.top = '50%';
-                    floatingScore.style.transform = 'translate(-50%, -50%) scale(0.95)';
-                    floatingScore.style.whiteSpace = 'nowrap';
-                    floatingScore.style.opacity = '0';
-                    floatingScore.style.zIndex = '10002';
-                    try { floatingScore.style.animation = 'none'; floatingScore.style.webkitAnimation = 'none'; } catch(_) {}
-                    document.body.appendChild(floatingScore);
-                    try { pulseCenterScore(100); } catch(e) {}
-                    // reduce mobile confetti rain intensity
-                    try { spawnConfettiRain(40, null); } catch(e) {}
-                    requestAnimationFrame(() => {
-                        floatingScore.style.transition = 'opacity 360ms ease, transform 520ms cubic-bezier(.2,.9,.2,1)';
-                        floatingScore.style.opacity = '1';
-                        floatingScore.style.transform = 'translate(-50%, -50%) scale(1)';
-                    });
-                } else {
-                    // Softer desktop celebration popup
-                    floatingScore.className = 'text-5xl font-extrabold text-green-500 celebration-popup';
-                    floatingScore.style.textShadow = '0 0 8px rgba(34, 197, 94, 0.35), 0 2px 3px rgba(0, 0, 0, 0.25)';
-                    floatingScore.style.position = 'fixed';
-                    floatingScore.style.left = '50%';
-                    floatingScore.style.top = '50%';
-                    floatingScore.style.transform = 'translate(-50%, -50%)';
-                    floatingScore.style.zIndex = '10000';
-                    // Shorter float duration for a less intense feel
-                    try { floatingScore.style.animationDuration = '2.2s'; } catch(_) {}
-                    document.body.appendChild(floatingScore);
-                        createCelebrationEffects(document.body);
-                        try { pulseCenterScore(100); } catch(e) {}
-                        // reduce desktop confetti rain intensity
-                        try { spawnConfettiRain(40); } catch(e) {}
-                }
-            } else {
-                // 普通得分/扣分動畫 - 顯示在對應的經文卡片上方
-                const isNegative = text.includes('-');
-                // negative uses downward sink animation
-                const baseClass = 'text-4xl font-black score-popup';
-                if (isNegative) {
-                    floatingScore.className = `text-red-500 ${baseClass} score-down`;
-                } else if (isComboAnnouncement) {
-                    floatingScore.className = `text-green-500 ${baseClass} combo-down`;
-                } else {
-                    floatingScore.className = `text-green-500 ${baseClass}`;
-                }
-                floatingScore.style.textShadow = isNegative ? 
-                    '0 0 20px rgba(239, 68, 68, 0.6)' : 
-                    '0 0 20px rgba(34, 197, 94, 0.6)';
-                
-                // On mobile prefer showing next to the center score (gold number) so the popup isn't clipped
-                // inside the verse card (which causes it to be invisible on small screens).
-                const isMobile = (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) || window.innerWidth <= 640;
-                const centerBadge = document.querySelector('.mobile-center-badge');
-                if (isMobile) {
-                    // Animate the floating score from the verse card (if provided) to the center score/gold number
-                    try {
-                        const pad = 8; // px padding from viewport edge
-
-                        // Prefer the actual center score element if available (do not create badges or touch encouragementText)
-                        let destRect = null;
-                        let centerRect = null;
-                        const centerEl = document.getElementById('centerScore');
-                        if (centerEl) {
-                            try { centerRect = centerEl.getBoundingClientRect(); } catch(e) { centerRect = null; }
-                            if (centerRect && centerRect.width > 4) destRect = centerRect;
-                        }
-                        // fallback to mobile-center-badge if centerScore not measurable
-                        if (!destRect && centerBadge) {
-                            try { destRect = centerBadge.getBoundingClientRect(); } catch(e) { destRect = null; }
-                        }
-                        // final fallback to viewport center
-                        if (!destRect) {
-                            destRect = { left: Math.round(window.innerWidth / 2), top: Math.round(window.innerHeight / 2), width: 0, height: 0 };
-                        }
-
-                        let destLeft = Math.round(destRect.left + destRect.width / 2);
-                        let destTop = Math.round(destRect.top + destRect.height / 2);
-
-                        floatingScore.style.position = 'fixed';
-                        floatingScore.style.left = destLeft + 'px';
-                        floatingScore.style.top = destTop + 'px';
-                        // apply temporary transform so we can measure size
-                        floatingScore.style.transform = 'translate(-50%, -50%) scale(0.95)';
-                        floatingScore.style.zIndex = '10001';
-                        // ensure mobile-friendly size and prevent wrapping/truncation
-                        floatingScore.style.whiteSpace = 'nowrap';
-                        floatingScore.style.fontSize = '1.2rem';
-                        floatingScore.style.padding = '2px 6px';
-                        floatingScore.style.borderRadius = '6px';
-                        floatingScore.style.background = 'rgba(255,255,255,0.06)';
-                        floatingScore.style.backdropFilter = 'saturate(120%) blur(4px)';
-                        floatingScore.style.opacity = '0';
-                        document.body.appendChild(floatingScore);
-
-                        // Measure and clamp using the popup's size so it won't be clipped at edges.
-                        const popupRect = floatingScore.getBoundingClientRect();
-                        const popupW = popupRect.width;
-                        const popupH = popupRect.height;
-
-                        // Determine whether we should overlay directly on the gold center score
-                        const useCenterOverlay = !!centerRect;
-
-                        // compute top-left coords so the popup is fully visible
-                        let destLeftPx = destLeft - Math.round(popupW / 2);
-                        let destTopPx = destTop - Math.round(popupH / 2);
-                        destLeftPx = Math.max(pad, Math.min(window.innerWidth - pad - popupW, destLeftPx));
-                        destTopPx = Math.max(pad, Math.min(window.innerHeight - pad - popupH, destTopPx));
-                        // update to clamped top-left
-                        floatingScore.style.left = destLeftPx + 'px';
-                        floatingScore.style.top = destTopPx + 'px';
-                        floatingScore.style.transform = 'scale(0.95)';
-
-                        // If overlaying on the center score, remove translucent background so it covers the gold number
-                        if (useCenterOverlay) {
-                            floatingScore.style.background = 'none';
-                            floatingScore.style.backdropFilter = '';
-                            floatingScore.style.padding = '0';
-                            floatingScore.style.borderRadius = '0';
-                            floatingScore.style.color = ''; // keep CSS class color
-                            floatingScore.style.zIndex = '10002';
-                            // add stronger text shadow so numeric text reads over the gold background
-                            floatingScore.style.textShadow = '0 2px 8px rgba(0,0,0,0.45)';
-                            // slightly increase font-size to be visually prominent
-                            floatingScore.style.fontSize = '1.15rem';
-                        }
-
-                        // If we have a source element, start at its center and animate to the center score
-                        if (targetElement) {
-                            try {
-                                const startRect = targetElement.getBoundingClientRect();
-                                const startCenterX = Math.round(startRect.left + startRect.width / 2);
-                                const startCenterY = Math.round(startRect.top + startRect.height / 2);
-                                // compute start top-left for popup
-                                let startLeftPx = startCenterX - Math.round(popupW / 2);
-                                let startTopPx = startCenterY - Math.round(popupH / 2);
-                                startLeftPx = Math.max(pad, Math.min(window.innerWidth - pad - popupW, startLeftPx));
-                                startTopPx = Math.max(pad, Math.min(window.innerHeight - pad - popupH, startTopPx));
-                                floatingScore.style.left = startLeftPx + 'px';
-                                floatingScore.style.top = startTopPx + 'px';
-                                floatingScore.style.transform = 'scale(1.15)';
-
-                                // prepare transition (animate left/top and scale/opacity)
-                                floatingScore.style.transition = 'left 520ms cubic-bezier(.2,.9,.2,1), top 520ms cubic-bezier(.2,.9,.2,1), opacity 520ms ease, transform 520ms cubic-bezier(.2,.9,.2,1)';
-                                // force layout then animate to destination (top-left coords)
-                                floatingScore.getBoundingClientRect();
-                                requestAnimationFrame(() => {
-                                    floatingScore.style.left = destLeftPx + 'px';
-                                    floatingScore.style.top = destTopPx + 'px';
-                                    floatingScore.style.opacity = '1';
-                                    floatingScore.style.transform = 'scale(1)';
-                                });
-                            } catch (innerErr) {
-                                // if measuring the source fails, fallback to showing at destination
-                                floatingScore.style.opacity = '1';
-                                floatingScore.style.transform = 'scale(1)';
-                            }
-                        } else {
-                            // no source: simple pop-in at destination (already set to top-left)
-                            floatingScore.style.transition = 'opacity 240ms ease, transform 320ms cubic-bezier(.2,.9,.2,1)';
-                            requestAnimationFrame(() => {
-                                floatingScore.style.opacity = '1';
-                                floatingScore.style.transform = 'scale(1)';
-                            });
-                        }
-                    } catch (e) {
-                        // If centering failed entirely, try overlaying on the verse/chapter title (front/back)
-                        const alt = document.getElementById('verseTitle') || document.getElementById('chapterTitle');
-                        if (alt) {
-                            // overlay directly over the title text (covering it)
-                            floatingScore.style.position = 'absolute';
-                            floatingScore.style.left = '50%';
-                            floatingScore.style.top = '50%';
-                            floatingScore.style.transform = 'translate(-50%, -50%)';
-                            floatingScore.style.opacity = '1';
-                            floatingScore.style.zIndex = '9999';
-                            floatingScore.style.background = 'linear-gradient(90deg,#16a34a,#4ade80)';
-                            floatingScore.style.color = '#fff';
-                            floatingScore.style.padding = '4px 8px';
-                            floatingScore.style.borderRadius = '6px';
-                            alt.style.position = 'relative';
-                            alt.appendChild(floatingScore);
-                        } else {
-                            // final fallback: attach to score container like before
-                            if (targetElement) {
-                                floatingScore.style.left = '50%';
-                                floatingScore.style.top = '-10px';
-                                floatingScore.style.transform = 'translate(-50%, -100%)';
-                                targetElement.style.position = 'relative';
-                                targetElement.appendChild(floatingScore);
-                            } else {
-                                floatingScore.style.right = '-20px';
-                                floatingScore.style.top = '50%';
-                                floatingScore.style.transform = 'translateY(-50%)';
-                                scoreElement.parentElement.style.position = 'relative';
-                                scoreElement.parentElement.appendChild(floatingScore);
-                            }
-                        }
-                    }
-                } else if (targetElement) {
-                    // 在經文卡片上方顯示
-                    floatingScore.style.left = '50%';
-                    floatingScore.style.top = '-10px';
-                    floatingScore.style.transform = 'translate(-50%, -100%)';
-                    
-                    targetElement.style.position = 'relative';
-                    targetElement.appendChild(floatingScore);
-                } else {
-                    // 備用位置：分數區域右側
-                    floatingScore.style.right = '-20px';
-                    floatingScore.style.top = '50%';
-                    floatingScore.style.transform = 'translateY(-50%)';
-                    
-                    scoreElement.parentElement.style.position = 'relative';
-                    scoreElement.parentElement.appendChild(floatingScore);
-                }
-            }
-            
-            // 移除動畫元素
-            // 使用統一的計時器清理，避免 transitionend 與 CSS 動畫競態導致中途被移除
-            // 針對桌面版特效使用實際關鍵影格長度，其餘維持較短顯示時間
-            let duration;
-            if (floatingScore.classList && floatingScore.classList.contains('perfect-popup')) {
-                duration = 4000; // perfectFloat 4s
-            } else if (floatingScore.classList && floatingScore.classList.contains('celebration-popup')) {
-                duration = 3000; // celebrationFloat 3s
-            } else {
-                duration = text.includes('完美+300') ? 2600 : text.includes('全對+100') ? 2000 : 1600;
-            }
-            let removed = false;
-            function cleanup() {
-                if (removed) return;
-                removed = true;
-                try { if (typeof floatingScore.__cancelInline === 'function') floatingScore.__cancelInline(); } catch(_) {}
-                try { if (floatingScore.parentElement) floatingScore.parentElement.removeChild(floatingScore); } catch(e) {}
-                try { scoreElement.classList.remove('score-flash'); } catch(e) {}
-            }
-            setTimeout(cleanup, duration + 80);
-
-            // 控制併發量：避免過多同時存在造成重疊和卡頓
-            try {
-                // 僅限制普通得分氣泡；特殊（完美/全對）與大面板效果不納入
-                if (!isSpecial) {
-                    const maxPopups = 6; // 軟上限：同時最多 6 個
-                    const list = Array.from(document.querySelectorAll('.score-popup'));
-                    if (list.length > maxPopups) {
-                        // 超出上限時，移除最早插入的（在 DOM 順序靠前）
-                        const excess = list.length - maxPopups;
-                        for (let i = 0; i < excess; i++) {
-                            const n = list[i];
-                            try { if (n && n !== floatingScore && n.parentElement) n.parentElement.removeChild(n); } catch(_) {}
-                        }
-                    }
-                }
-            } catch (_) { /* ignore */ }
-        }
+    // showScoreAnimation moved to score.js
         
-    // 完美關卡特效：金色星芒（避免被容器裁切，採用 fixed）
-    // Perfect-level effects: golden sparkles using fixed positioning
-    function createPerfectEffects(container) {
-            // debug: report that perfect effects are triggered and the provided container
-            try { console.log('[DEBUG] createPerfectEffects called, container:', container && (container.id || container.tagName || String(container))); } catch(e) {}
-            // Create dispersed star sparkle effects. Use the high-z .gold-glitter style
-            // (which uses position: fixed and a high z-index) so the stars are not
-            // clipped by lower stacking contexts on desktop. We still drive the
-            // sparkle animation using the existing keyframes for a consistent look.
-            for (let i = 0; i < 12; i++) {
-                const sparkle = document.createElement('div');
-                sparkle.textContent = '✨';
-                // Use the gold-glitter class (position:fixed; high z-index)
-                sparkle.className = 'gold-glitter perfect-sparkle';
-                // allow per-instance sizing
-                sparkle.style.fontSize = '4rem';
+    // 完美關卡特效已移至 score.js
 
-                // evenly distributed angles with a little radius randomness
-                const angle = (i / 12) * 2 * Math.PI;
-                const radius = 150 + Math.random() * 100;
-                const centerX = Math.round(window.innerWidth / 2);
-                const centerY = Math.round(window.innerHeight / 2);
-
-                // Place using fixed coordinates so they appear across the whole viewport
-                sparkle.style.left = (centerX + Math.cos(angle) * radius) + 'px';
-                sparkle.style.top = (centerY + Math.sin(angle) * radius) + 'px';
-                sparkle.style.transform = 'translate(-50%, -50%)';
-                sparkle.style.pointerEvents = 'none';
-                // Override class animation to use sparkleEffect timing so existing keyframes are reused
-                sparkle.style.animation = `sparkleEffect 1.2s ease-out ${i * 0.08}s forwards`;
-
-                document.body.appendChild(sparkle);
-
-                setTimeout(() => {
-                    if (sparkle.parentElement) sparkle.parentElement.removeChild(sparkle);
-                }, 1400 + Math.round(i * 80));
-            }
-        }
         
-    // 全對特效：彩帶表情落下（fixed，較高 z-index）
-    // Celebration effects for all-correct rounds
-    function createCelebrationEffects(container) {
-            // debug: report that celebration effects are triggered and the provided container
-            try { console.log('[DEBUG] createCelebrationEffects called, container:', container && (container.id || container.tagName || String(container))); } catch(e) {}
-            // Create celebration confetti pieces. Use fixed positioning and a
-            // higher z-index so confetti is visible above typical page content
-            // on desktop (prevents clipping when container has transforms).
-            // fewer, gentler emoji confetti pieces
-            for (let i = 0; i < 5; i++) {
-                const confetti = document.createElement('div');
-                confetti.textContent = '🎉';
-                confetti.className = 'confetti-piece';
-                // confetti-piece already defines position: fixed and animation; but
-                // ensure visibility and sizing for this instance
-                confetti.style.position = 'fixed';
-                confetti.style.fontSize = '2.2rem';
-                confetti.style.left = (20 + i * 8) + '%';
-                confetti.style.top = '25%';
-                confetti.style.pointerEvents = 'none';
-                confetti.style.zIndex = '10005';
-                // shorter animation for softer impact
-                confetti.style.animation = `confettiEffect 0.8s ease-out ${i * 0.06}s forwards`;
+    // 全對特效已移至 score.js
 
-                document.body.appendChild(confetti);
-
-                setTimeout(() => {
-                    if (confetti.parentElement) confetti.parentElement.removeChild(confetti);
-                }, 900 + Math.round(i * 50));
-            }
-        }
 
         
 
@@ -4652,11 +4033,9 @@ function startGame() {
             // If equip is running, classic completeGame should not run (equip has finishEquipRun)
             if (gameState.equipRunning) { console.warn('[EQUIP] Ignoring classic completeGame during equip run'); try { setLevelInteractionLock(false); } catch(_) {} return; }
             // 停止計時器
-            if (gameState.timerInterval) {
-                clearInterval(gameState.timerInterval);
-            }
+            GameTimer.stopLevel();
             // 停止生存模式倒數並隱藏卡片
-            try { if (gameState.survivalTimerInterval) { clearInterval(gameState.survivalTimerInterval); gameState.survivalTimerInterval = null; } } catch(_) {}
+            try { GameTimer.stopSurvival(); } catch(_) {}
             try { const card = document.getElementById('survivalTimerCard'); if (card) card.classList.add('hidden'); } catch(_) {}
             try { const mini = document.getElementById('survivalTimerMini'); if (mini) mini.classList.remove('active'); } catch(_) {}
             // 解除互動鎖，避免結算視窗無法操作

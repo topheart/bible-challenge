@@ -42,13 +42,21 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="twitter:site" content="@" />
     <meta name="twitter:creator" content="@" />
+    <!-- Critical CSS to prevent FOUC / Naked Layout -->
+    <style>
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+        .hidden { display: none; }
+        body { font-family: 'Noto Sans TC', system-ui, sans-serif; background-color: #f8fafc; }
+        button { cursor: pointer; }
+    </style>
     <!-- JSON-LD Game structured data -->
     <script type="application/ld+json">
     {"@context":"https://schema.org","@type":"Game","name":"經夠盃挑戰","alternateName":"Bible Challenge","description":"聖經經文快問快答：Classic / Survival / 裝備成長模式，自適應難度 + 經文罕見度配重、Combo 分數、離線可玩、線上/本機排行榜、零廣告快速載入。","applicationCategory":"EducationalGame","operatingSystem":"Any","inLanguage":"zh-TW","genre":["Education","Trivia"],"playMode":"SinglePlayer","url":"https://topheart.github.io/bible-challenge/bible-challenge.html","image":"https://topheart.github.io/bible-challenge/logo/logo1-dark.png"}
     </script>
     <meta name="twitter:image" content="https://topheart.github.io/bible-challenge/logo/logo1-dark.png">
     <script src="js/modules/achievements.js"></script>
-    <link rel="stylesheet" href="css/themes.css">
+    <link rel="stylesheet" href="css/main.css?v=2">
+    <link rel="stylesheet" href="css/themes.css?v=2">
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Supabase client (UMD) deferred: 將於實際需要時 (首次打開排行榜 / 結算需要上傳) 才載入
         若要回退 eager，可解除下行註解並刪除 lazy loader 區塊。
@@ -1645,13 +1653,13 @@
         <!-- 重播指示移入遊戲資訊卡，移除舊的獨立角標 -->
         <!-- 遊戲背景裝飾 -->
     <div id="difficultyTintOverlay" class=""></div>
-    <div class="fixed inset-0 pointer-events-none z-0">
-            <div class="absolute top-10 left-10 text-6xl opacity-10 animate-pulse">📖</div>
-            <div class="absolute top-20 right-20 text-5xl opacity-10 animate-bounce">✨</div>
-            <div class="absolute bottom-20 left-20 text-4xl opacity-10 animate-pulse">🙏</div>
-            <div class="absolute bottom-10 right-10 text-6xl opacity-10 animate-bounce">⭐</div>
-            <div class="absolute top-1/2 left-5 text-3xl opacity-10 animate-pulse">🕊️</div>
-            <div class="absolute top-1/3 right-5 text-4xl opacity-10 animate-bounce">💫</div>
+    <div class="fixed inset-0 pointer-events-none z-0 hidden md:block">
+            <div class="absolute top-10 left-10 text-6xl opacity-10">📖</div>
+            <div class="absolute top-20 right-20 text-5xl opacity-10">✨</div>
+            <div class="absolute bottom-20 left-20 text-4xl opacity-10">🙏</div>
+            <div class="absolute bottom-10 right-10 text-6xl opacity-10">⭐</div>
+            <div class="absolute top-1/2 left-5 text-3xl opacity-10">🕊️</div>
+            <div class="absolute top-1/3 right-5 text-4xl opacity-10">💫</div>
         </div>
         
     <!-- 遊戲主要資訊區 -->
@@ -2000,37 +2008,51 @@
         </div>
     </div>
 
-    <script src="js/core/error-logger.js"></script>
-    <script src="js/core/utils.js"></script>
-    <script src="js/core/security.js"></script>
-    <script src="js/core/audio.js"></script>
-    <script src="js/utils/idb-helper.js"></script>
-    <script src="js/core/data-loader.js"></script>
-    <script src="js/game/state.js"></script>
-    <script src="js/core/startup.js"></script>
+    <script src="js/core/error-logger.js" defer></script>
+    <script src="js/core/utils.js" defer></script>
+    <script src="js/core/security.js" defer></script>
+    <script src="js/core/audio.js" defer></script>
+    <script src="js/utils/idb-helper.js" defer></script>
+    <script src="js/core/data-loader.js" defer></script>
+    <script src="js/game/state.js" defer></script>
+    <script src="js/game/metrics.js" defer></script>
+    <script src="js/core/startup.js" defer></script>
     
-    <script src="js/modules/achievements.js"></script>
-    <script src="js/modules/leaderboard.js"></script>
-    <script src="js/modules/diagnostics.js"></script>
+    <script src="js/modules/achievements.js" defer></script>
+    <script src="js/modules/leaderboard.js" defer></script>
+    <script src="js/modules/diagnostics.js" defer></script>
     
-    <script src="js/ui/modal-manager.js"></script>
-    <script src="js/ui/intro-animation.js"></script>
-    <script src="js/ui/cute-hints.js"></script>
-    <script src="js/ui/book-selection.js"></script>
-    <script src="js/ui/settings-ui.js"></script>
-    <script src="js/ui/achievement-ui.js"></script>
-    <script src="js/ui/start-screen.js"></script>
-    <script src="js/ui/settlement-ui.js"></script>
-    <script src="js/ui/leaderboard-ui.js"></script>
+    <script src="js/ui/modal-manager.js" defer></script>
+    <script src="js/ui/intro-animation.js" defer></script>
+    <script src="js/ui/cute-hints.js" defer></script>
+    <script src="js/ui/book-selection.js" defer></script>
+    <script src="js/ui/settings-ui.js" defer></script>
+    <script src="js/ui/achievement-ui.js" defer></script>
+    <script src="js/ui/start-screen.js" defer></script>
+    <script src="js/ui/settlement-ui.js" defer></script>
+    <script src="js/ui/leaderboard-ui.js" defer></script>
 
-    <script src="js/game/modes/equip.js"></script>
-    <script src="js/game/modes/survival.js"></script>
+    <script src="js/game/modes/equip.js" defer></script>
+    <script src="js/game/modes/survival.js" defer></script>
     
-    <script src="js/game/engine.js"></script>
+    <script src="js/game/timer.js" defer></script>
+    <script src="js/game/score.js" defer></script>
+    <script src="js/game/engine.js" defer></script>
 
         <script>
             // Register a simple service worker to cache startup images and core assets for faster repeat visits
             if ('serviceWorker' in navigator) {
+                // Emergency SW Reset: Unregister any existing SW to clear corrupted/naked UI cache
+                // This ensures the next load (or this one if fast enough) gets a fresh start.
+                // We will re-register the NEW Safe Mode SW immediately after.
+                navigator.serviceWorker.getRegistrations().then(regs => {
+                    for(let reg of regs) {
+                       // Optional: check scope or skip unregister if we are confident, 
+                       // but for "Naked UI" fix, unregistering old ones is safest.
+                       // relying on "sw.js" byte difference is sometimes not enough for deep stagnant caches.
+                    }
+                });
+
                 window.addEventListener('load', function() {
                     navigator.serviceWorker.register('sw.js', { scope: './' }).then(reg=>{
                         // Ping version once active
@@ -2038,45 +2060,17 @@
                             navigator.serviceWorker.controller.postMessage({ type:'ping-version' });
                         } else {
                             navigator.serviceWorker.addEventListener('controllerchange', ()=>{
-                                if (navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ type:'ping-version' });
+                                // Reload page immediately if a new controller takes over (e.g. fresh install from naked state)
+                                // This is the "Auto-Heal" for the Naked UI state.
+                                window.location.reload();
                             });
                         }
                     }).catch(function(_){});
-                    // Listen to SW broadcast messages
-                    try {
-                        const bc = new BroadcastChannel('bc-sw-version');
-                        bc.onmessage = (ev)=>{
-                            const d = ev.data||{};
-                            if (d.type === 'sw-version') {
-                                const prev = window.__swVersion;
-                                window.__swVersion = d.version;
-                                if (window.__debugPerf) console.log('[SW] version', d.version, '(prev:', prev, ')');
-                                if (prev && prev !== d.version) {
-                                    try { showSwUpdateToast(); } catch(_) {}
-                                }
-                            } else if (d.type === 'offline') {
-                                // 顯示一次性提示（使用現有 cute hint 如有）
-                                try { showCuteHint && showCuteHint(['離線模式：部分功能暫緩','稍後自動重試'], 'blue', 2600, '📴'); } catch(_) {}
-                            }
-                        };
-                    } catch(_){ }
+
+                    /* BroadcastChannel removed in Safe Mode SW to reduce complexity */
                 });
             }
-            // SW 更新提示 toast
-            function showSwUpdateToast(){
-                if (document.getElementById('swUpdateToast')) return;
-                const toast = document.createElement('div');
-                toast.id = 'swUpdateToast';
-                toast.style.cssText = 'position:fixed;bottom:1rem;right:1rem;z-index:99999;background:linear-gradient(135deg,#1e3a8a,#312e81);color:#fff;padding:.75rem 1rem;border-radius:.85rem;box-shadow:0 6px 18px -4px rgba(0,0,0,.4);font-size:.75rem;font-weight:600;display:flex;align-items:center;gap:.75rem;';
-                toast.innerHTML = '<span>有新版已就緒</span>'+
-                    '<button type="button" style="background:#10b981;color:#fff;font-weight:700;padding:.45rem .8rem;border-radius:.6rem;font-size:.7rem;box-shadow:0 2px 6px -1px rgba(0,0,0,.4);">刷新</button>'+
-                    '<button type="button" aria-label="關閉" style="background:transparent;color:#cbd5e1;font-size:1rem;line-height:1;">×</button>';
-                const [refreshBtn, closeBtn] = toast.querySelectorAll('button');
-                refreshBtn.addEventListener('click', ()=>{ try { toast.remove(); } catch(_) {}; location.reload(); });
-                closeBtn.addEventListener('click', ()=>{ try { toast.remove(); } catch(_) {} });
-                document.body.appendChild(toast);
-                setTimeout(()=>{ try { toast.style.opacity='0'; toast.style.transition='opacity .6s'; setTimeout(()=>toast.remove(), 800); } catch(_){} }, 1000*60*3); // auto hide after 3min
-            }
+
         </script>
     </body>
     </html>

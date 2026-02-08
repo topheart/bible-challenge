@@ -646,14 +646,14 @@
                 window.__startupIsDark = isDark;
                 // Map to available assets in /logo (avoid non-existent logo0-*.png)
                 var logo = isDark
-                    ? (pick === 1 ? 'logo/logo1-light.png' : 'logo/logo2-light.png')
-                    : (pick === 3 ? 'logo/logo1-dark.png'  : 'logo/logo2-dark.png');
+                    ? (pick === 1 ? 'logo/logo1-light.webp' : 'logo/logo2-light.webp')
+                    : (pick === 3 ? 'logo/logo1-dark.webp'  : 'logo/logo2-dark.webp');
                 var word = isDark
-                    ? (pick === 1 ? 'logo/word1-light.png' : 'logo/word2-light.png')
-                    : (pick === 3 ? 'logo/word1-dark.png'  : 'logo/word2-dark.png');
+                    ? (pick === 1 ? 'logo/word1-light.webp' : 'logo/word2-light.webp')
+                    : (pick === 3 ? 'logo/word1-dark.webp'  : 'logo/word2-dark.webp');
                 // Use single brand mark for both themes (existing file)
                 // Brand corner: use theme-inverted logo0 to ensure contrast
-                var brand = isDark ? 'logo/logo0-light.png' : 'logo/logo0-dark.png';
+                var brand = isDark ? 'logo/logo0-light.webp' : 'logo/logo0-dark.webp';
                 window.__startupLogoSrc = logo;
                 window.__startupWordSrc = word;
                 window.__startupBrandSrc = brand;

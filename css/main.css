@@ -1,3 +1,18 @@
+/* Mobile Performance optimizations */
+@media (max-width: 640px) {
+    *, *::before, *::after {
+        /* 禁止手機版背景模糊效果，改回彈性或無 */
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        /* 禁止不必要的陰影 */
+        box-shadow: none !important;
+    }
+    /* 但保留按鈕與卡片的基本輪廓陰影 (選用) 或僅移除 blur */
+    .cute-card, .cute-button, .difficulty-option, .range-option, #levelProgressCard, #survivalTimerCard, #scoreCardWrapper {
+        /* 恢復基本陰影 (原本 box-shadow: none !important 可能太激進) -> 改為僅移除昂貴濾鏡 */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important; 
+    }
+}
 /* Reduced motion overrides */
         .reduced-motion *, .reduced-motion *::before, .reduced-motion *::after {
             animation-duration: 0.01ms !important;
@@ -15,6 +30,39 @@
         html, body, #startScreen, #gameScreen, button, input, select, textarea {
             font-family: 'Noto Sans TC', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang TC', 'Microsoft JhengHei', 'Heiti TC', 'PMingLiU', sans-serif !important;
         }
+
+        /* Essential Utility Classes (Fallback for Tailwind delay/failure) */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+        .focus\:not-sr-only:focus {
+            position: static;
+            width: auto;
+            height: auto;
+            padding: 0;
+            margin: 0;
+            overflow: visible;
+            clip: auto;
+            white-space: normal;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .block {
+            display: block;
+        }
+        .flex {
+            display: flex;
+        }
+
         .cute-button {
             transition: all 0.3s ease;
             border-radius: 20px;

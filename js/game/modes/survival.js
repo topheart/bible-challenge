@@ -51,7 +51,7 @@
         }
 
         function stopSurvivalTimer() {
-            try { if (gameState.survivalTimerInterval) { clearInterval(gameState.survivalTimerInterval); gameState.survivalTimerInterval = null; } } catch (_) {}
+            try { GameTimer.stopSurvival(); } catch (_) {}
         }
 
     function startSurvivalTimer(initialSeconds = 90) {
@@ -79,7 +79,7 @@
                 stopSurvivalTimer();
                 const card = document.getElementById('survivalTimerCard');
                 if (card) card.classList.remove('hidden');
-                gameState.survivalTimerInterval = setInterval(() => {
+                GameTimer.startSurvival(() => {
                     try {
                         gameState.survivalTimeRemaining = Math.max(0, (gameState.survivalTimeRemaining|0) - 1);
                         // 同步虛擬時間遞減，並更新超過起始值的峰值

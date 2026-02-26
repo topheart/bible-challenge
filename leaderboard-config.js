@@ -16,6 +16,7 @@
 // range: text
 // rarity: text
 // mode: text
+// play_mode: text ('classic' | 'survival' | 'replay')
 // testament: text
 // custom_books: jsonb
 // hints_remaining: integer
@@ -25,6 +26,7 @@
 // used_hints_count: integer
 // closing_verse: text
 // closing_verse_ref: text
+// achievements: jsonb (array of unlocked achievements for this score)
 // question_snapshot: jsonb (optional; large)
 // project_tag: text (optional; if you want to segregate environments)
 // allowReplaySaves: boolean (optional; default false) — allow "same questions replay" runs to be saved

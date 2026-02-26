@@ -2,7 +2,7 @@
   "name": "經夠盃挑戰",
   "short_name": "經夠盃",
   "id": "/bible-challenge/",
-  "start_url": "./bible-challenge.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "display_override": ["standalone", "window-controls-overlay"],
@@ -17,7 +17,7 @@
     { "src": "./logo/logo2-light.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
   "shortcuts": [
-    { "name": "闖關模式", "url": "./bible-challenge.html#classic" },
-    { "name": "生存模式", "url": "./bible-challenge.html#survival" }
+    { "name": "闖關模式", "url": "./index.html#classic" },
+    { "name": "生存模式", "url": "./index.html#survival" }
   ]
 }

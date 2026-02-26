@@ -4,7 +4,7 @@
 // 2. 對於任何外部 CDN (Tailwind, Fonts, Supabase)，一律採取 "Network Only" (直接連網)，絕不攔截或快取。
 //    這能徹底解決 Tailwind CDN 被錯誤快取導致介面崩壞 (Naked UI) 的問題。
 
-const VERSION = 'wave2-v21-offline-data';
+const VERSION = 'wave2-v22-lean-precache';
 const CACHE_NAME = `bc-safe-${VERSION}`;
 
 // 僅列出絕對必要的本地檔案
@@ -15,11 +15,15 @@ const LOCAL_ASSETS = [
   './css/main.css',
   './css/themes.css',
   './leaderboard-config.js',
-  './external-verses.json',      // 核心題庫 (Critical for Offline)
+  './data/achievement-sprite.svg',
+  './data/external-verses-old.json',
+  './data/external-verses-new.json',
   './equip-course-growth.json',  // 裝備模式設定 (Critical for Offline)
   
   // JS Core
   './js/core/utils.js',
+  './js/core/bootstrap.js',
+  './js/core/sw-register.js',
   './js/core/error-logger.js',
   './js/core/data-loader.js',
   './js/core/startup.js',
@@ -29,7 +33,6 @@ const LOCAL_ASSETS = [
   // JS Modules
   './js/modules/achievements.js',
   './js/modules/leaderboard.js',
-  './js/modules/diagnostics.js',
   
   // JS Game
   './js/game/state.js',
@@ -113,6 +116,28 @@ self.addEventListener('fetch', (event) => {
   // 2. 如果是 API 請求或非 GET -> 直接放行
   if (req.method !== 'GET') return;
 
+  // 2.5 導航請求採用 Network First：優先拿最新 HTML，失敗才回退快取
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req).then((netRes) => {
+        try {
+          if (netRes && netRes.status === 200 && netRes.type === 'basic') {
+            const clone = netRes.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
+          }
+        } catch(_) {}
+        return netRes;
+      }).catch(async () => {
+        const cached = await caches.match(req);
+        if (cached) return cached;
+        const fallback = await caches.match('./index.html');
+        if (fallback) return fallback;
+        return new Response('<!doctype html><html><body style="background:#0f172a;color:white;display:flex;justify-content:center;align-items:center;height:100vh;"><div><h1>離線模式</h1><p>請檢查網路連線</p></div></body></html>', { headers: { 'Content-Type': 'text/html;charset=utf-8' } });
+      })
+    );
+    return;
+  }
+
   // 3. 本地檔案策略：先找快取，找不到再聯網 (Cache First, falling back to Network)
   event.respondWith(
     caches.match(req).then((cached) => {
@@ -144,6 +169,10 @@ self.addEventListener('fetch', (event) => {
 
 // 監聽版本查詢 (用於前端確認)
 self.addEventListener('message', (ev) => {
+  if (ev.data && ev.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+    return;
+  }
   if (ev.data && ev.data.type === 'ping-version') {
     ev.source && ev.source.postMessage && ev.source.postMessage({ type: 'pong-version', version: VERSION });
   }

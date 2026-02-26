@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
         <!-- =============================================================
@@ -51,21 +51,18 @@
     </style>
     <!-- JSON-LD Game structured data -->
     <script type="application/ld+json">
-    {"@context":"https://schema.org","@type":"Game","name":"經夠盃挑戰","alternateName":"Bible Challenge","description":"聖經經文快問快答：Classic / Survival / 裝備成長模式，自適應難度 + 經文罕見度配重、Combo 分數、離線可玩、線上/本機排行榜、零廣告快速載入。","applicationCategory":"EducationalGame","operatingSystem":"Any","inLanguage":"zh-TW","genre":["Education","Trivia"],"playMode":"SinglePlayer","url":"https://topheart.github.io/bible-challenge/bible-challenge.html","image":"https://topheart.github.io/bible-challenge/logo/logo1-dark.png"}
+    {"@context":"https://schema.org","@type":"Game","name":"經夠盃挑戰","alternateName":"Bible Challenge","description":"聖經經文快問快答：Classic / Survival / 裝備成長模式，自適應難度 + 經文罕見度配重、Combo 分數、離線可玩、線上/本機排行榜、零廣告快速載入。","applicationCategory":"EducationalGame","operatingSystem":"Any","inLanguage":"zh-TW","genre":["Education","Trivia"],"playMode":"SinglePlayer","url":"https://topheart.github.io/bible-challenge/index.html","image":"https://topheart.github.io/bible-challenge/logo/logo1-dark.png"}
     </script>
     <meta name="twitter:image" content="https://topheart.github.io/bible-challenge/logo/logo1-dark.png">
-    <script src="js/modules/achievements.js"></script>
     <link rel="stylesheet" href="css/main.css?v=2">
     <link rel="stylesheet" href="css/themes.css?v=2">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com" defer></script>
     <!-- Supabase client (UMD) deferred: 將於實際需要時 (首次打開排行榜 / 結算需要上傳) 才載入
         若要回退 eager，可解除下行註解並刪除 lazy loader 區塊。
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
     -->
     <!-- Leaderboard configuration (project URL/anonKey/table) -->
-    <script src="leaderboard-config.js"></script>
-    <!-- IndexedDB Helper (Safe Extraction) -->
-    <script src="scripts/idb-helper.js"></script>
+    <script src="leaderboard-config.js" defer></script>
     <!-- Preconnects for faster third-party fetches -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://kkbwoahtwfdirqsgyqda.supabase.co" crossorigin>
@@ -73,1163 +70,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-    <!-- Achievement SVG Sprite -->
-    <svg xmlns="http://www.w3.org/2000/svg" style="display:none" id="achievementSprite">
-        <symbol id="achv-fire" viewBox="0 0 24 24"><path fill="currentColor" d="M13.5 2.3c.4 1.9 0 3.3-.8 4.4c-.8 1-.6 2.2.3 3c.9.9 2.3 1 3.3.2c.2 2.2-.3 4-1.6 5.4c-.5-1.6-1.3-2.6-2.4-3.2c.2 1.9-.5 3.3-1.5 4.3c-.9.9-1.5 2-1.5 3.4c-2.6-1.5-4.3-4.2-4.3-7.4c0-4.9 3.8-9 8.5-10.1Z"/></symbol>
-        <symbol id="achv-shield" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2l8 4v6c0 5-3.3 9.4-8 10c-4.7-.6-8-5-8-10V6l8-4Z"/></symbol>
-        <symbol id="achv-streak" viewBox="0 0 24 24"><path fill="currentColor" d="M3 13h8L5 22l2-9H3l7-11h8l-6 9h6L9 24l2-11H3Z"/></symbol>
-        <symbol id="achv-speed" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3a9 9 0 1 1-6.36 2.64L12 12l6.36-6.36A8.96 8.96 0 0 1 12 3Z"/></symbol>
-        <symbol id="achv-accuracy" viewBox="0 0 24 24"><path fill="currentColor" d="M11 2h2v4h-2V2Zm9 9v2h-4v-2h4ZM4 11v2H2v-2h2Zm2.05-6.95L7.46 5.5A8 8 0 1 0 18.5 7.46l1.41-1.41A10 10 0 1 1 6.05 4.05ZM12 8a4 4 0 1 1 0 8a4 4 0 0 1 0-8Z"/></symbol>
-        <symbol id="achv-perfect" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2l2.39 6.91H22l-5.45 3.96L18.94 20L12 15.82L5.06 20l2.39-7.13L2 8.91h7.61L12 2Z"/></symbol>
-        <symbol id="achv-flash" viewBox="0 0 24 24"><path fill="currentColor" d="M7 2h10l-3.5 8H19L9 22l3.5-8H7V2Z"/></symbol>
-        <symbol id="achv-time" viewBox="0 0 24 24"><path fill="currentColor" d="M12 20a8 8 0 1 0 0-16a8 8 0 0 0 0 16Zm1-8V7h-2v7h5v-2h-3Z"/></symbol>
-        <symbol id="achv-recover" viewBox="0 0 24 24"><path fill="currentColor" d="M12 6v3l4-4l-4-4v3a9 9 0 0 0-9 9c0 1.64.44 3.17 1.21 4.49l1.47-1.47A6.96 6.96 0 0 1 5 13a7 7 0 0 1 7-7Zm7.79 2.51L18.32 10A6.96 6.96 0 0 1 19 13a7 7 0 0 1-7 7v-3l-4 4l4 4v-3a9 9 0 0 0 9-9c0-1.64-.44-3.17-1.21-4.49Z"/></symbol>
-        <symbol id="achv-fast" viewBox="0 0 24 24"><path fill="currentColor" d="M3 12a9 9 0 0 1 15.36-6.36L12 12l6.36 6.36A9 9 0 0 1 3 12Zm7 0l8.36-8.36A9 9 0 0 1 21 12a9 9 0 0 1-2.64 6.36L10 12Z"/></symbol>
-        <symbol id="achv-fun" viewBox="0 0 24 24"><path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.25l-7.19-.61L12 2L9.19 8.64L2 9.25l5.46 4.72L5.82 21L12 17.27Z"/></symbol>
-        <symbol id="achv-hint" viewBox="0 0 24 24"><path fill="currentColor" d="M7 2h10v2H7V2Zm2 18h6v2H9v-2Zm-2-2h10v2H7v-2Zm5-14a6 6 0 0 1 6 6c0 2.22-1.21 3.74-2.19 4.72c-.55.55-.81 1.3-.81 2.07V14h-2v2H9v-2H7v4h2.01c.05.72.32 1.44.9 2.02L12 22l2.09-2.09c.58-.58.85-1.3.9-2.02H17v-1.21c0-.77-.26-1.52-.81-2.07C17.79 13.74 19 12.22 19 10a6 6 0 0 0-6-6Z"/></symbol>
-        <symbol id="achv-rescue" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 1 10 10v5l-2 5h-2l-2-5v-5a4 4 0 1 0-8 0v5l-2 5H4l-2-5v-5A10 10 0 0 1 12 2Z"/></symbol>
-        
-        <!-- New: requested detailed symbols -->
-        <symbol id="achv-eagle" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-eagle-body" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#0f172a"/>
-                    <stop offset="1" stop-color="#6b7280"/>
-                </linearGradient>
-                <linearGradient id="g-eagle-wing" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0" stop-color="#1f2937"/>
-                    <stop offset="1" stop-color="#9ca3af"/>
-                </linearGradient>
-            </defs>
-            <!-- clearer head and beak -->
-            <path d="M6 8.6c2.6-2.2 5.4-3.4 8.6-3.2c1.7.1 2.9.7 3.8 1.5c.5.4.7 1 .2 1.5c-1.2 1.2-2.8 1.9-4.8 2.2c-1.6.2-3.2.2-4.6 0c-.3 0-.6.2-.7.5l-.6 1.7c-.1.4-.7.5-.9.2C5.2 11.5 5 10.1 6 8.6Z" fill="#f3f4f6" stroke="#0f172a" stroke-width="1"/>
-            <circle cx="15.6" cy="8.1" r=".6" fill="#0f172a"/>
-            <path d="M17 8c.9-.2 1.9-.1 2.8.4c.3.2.3.6 0 .8c-.6.3-1.3.6-2 .7" fill="#f59e0b" stroke="#92400e" stroke-width=".9"/>
-            <!-- bold body -->
-            <path d="M4.8 12.8c1 1.4 2.5 2.6 4.4 3.2c2.7.9 6.1.5 8.2-.9c.8-.6 1.4-1.2 1.7-1.8c.3-.5.1-1.1-.4-1.4c-.9-.5-2.1-.7-3.6-.6c-2.4.2-5.4.8-7.7 1c-1 0-2 0-2.6-.5Z" fill="url(#g-eagle-body)" stroke="#0f172a" stroke-width="1"/>
-            <!-- more contrast wing -->
-            <path d="M2.6 11c3.2-1.9 5.9-3 9.3-3.8c2.9-.7 5.9-.9 9.2-.6c.4 0 .7.4.5.8c-1.2 1.9-3 3-5.2 3.6c-3.5 1-7.6 1.1-11.3 1.2c-1 0-2-.5-2.5-1.2Z" fill="url(#g-eagle-wing)" stroke="#111827" stroke-width="1"/>
-        </symbol>
-
-        <symbol id="achv-leg" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-leg" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#fecaca"/>
-                    <stop offset="1" stop-color="#f59e0b"/>
-                </linearGradient>
-            </defs>
-            <!-- stylized single running leg with sneaker -->
-            <path d="M9 4c1.2 0 2 .8 2 2v4l3 4c.6.9.4 2.2-.5 2.8c-.9.6-2.1.4-2.7-.5L8 12.5V8c0-1.1.9-2 2-2Z" fill="url(#g-leg)" stroke="#7c2d12" stroke-width=".6"/>
-            <path d="M7.8 12.3l2.4 3.7c.2.3.1.7-.2.9l-2.6 1.7c-.7.5-1.7.3-2.2-.4c-.5-.7-.3-1.7.4-2.2l2-1.3c.4-.2.5-.7.2-1l-.4-.7" fill="#1f2937"/>
-            <path d="M3.5 19.2c2.4-.3 4.4-.2 6.4.4" stroke="#111827" stroke-width=".8" stroke-linecap="round"/>
-        </symbol>
-        <!-- New: footprints for average pace -->
-        <symbol id="achv-footprints" viewBox="0 0 24 24">
-            <path d="M8 6c1.8 0 3 1.2 3 2.8c0 1.4-1 2.6-2.6 3c-.9.2-1.7-.4-2-1.3C5.9 9 6.7 6 8 6Z" fill="#92400e" stroke="#111827" stroke-width=".9"/>
-            <circle cx="7.2" cy="13.2" r=".8" fill="#92400e" stroke="#111827" stroke-width=".8"/>
-            <path d="M15.5 10c1.8 0 3 1.2 3 2.8c0 1.4-1 2.6-2.6 3c-.9.2-1.7-.4-2-1.3c-.5-1.4.3-4.5 1.6-4.5Z" fill="#78350f" stroke="#0b0f19" stroke-width=".9"/>
-            <circle cx="14.8" cy="17.2" r=".8" fill="#78350f" stroke="#0b0f19" stroke-width=".8"/>
-        </symbol>
-
-        <symbol id="achv-basin" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-basin-1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#93c5fd"/>
-                    <stop offset="1" stop-color="#1d4ed8"/>
-                </linearGradient>
-            </defs>
-            <ellipse cx="12" cy="8" rx="7.5" ry="3.2" fill="#e5e7eb" stroke="#6b7280" stroke-width=".7"/>
-            <ellipse cx="12" cy="8.4" rx="6.2" ry="2.2" fill="url(#g-basin-1)"/>
-            <path d="M4.5 8.5v5.5c0 2.7 3.2 4.9 7.5 4.9s7.5-2.2 7.5-4.9V8.5" fill="#e5e7eb" stroke="#6b7280" stroke-width=".7"/>
-            <ellipse cx="12" cy="14" rx="7.2" ry="2.8" fill="#f3f4f6" stroke="#9ca3af" stroke-width=".6"/>
-        </symbol>
-
-        <symbol id="achv-apple" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-apple-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#ef4444"/>
-                    <stop offset="1" stop-color="#b91c1c"/>
-                </linearGradient>
-            </defs>
-            <path d="M12 6c1.1-1.3 2.3-2 3.6-2c.5 0 .9.1 1.3.3c-.3 1.2-1 2.1-2.1 2.7c-.8.4-1.7.6-2.8.6c-1.4 0-2.5-.3-3.4-.8c-.9-.5-1.6-1.3-2-2.3c.5-.3 1-.5 1.7-.5c1.5 0 2.5.7 3.7 2Z" fill="#65a30d"/>
-            <path d="M12 7.5c3.9 0 6.5 2.8 6.2 6.1c-.2 2.3-1.8 4.5-3.8 5.4c-1.1.5-2.4.4-3.6.4c-1.2 0-2.5.1-3.6-.4c-2-1-3.6-3.1-3.8-5.4c-.3-3.3 2.3-6.1 6.2-6.1c.8 0 1.6.1 2.4 0Z" fill="url(#g-apple-1)" stroke="#7f1d1d" stroke-width=".7"/>
-            <circle cx="14.2" cy="10.6" r=".9" fill="#fecaca" opacity=".6"/>
-        </symbol>
-
-        <symbol id="achv-wingroad" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-wingroad-w" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0" stop-color="#a78bfa"/>
-                    <stop offset="1" stop-color="#7c3aed"/>
-                </linearGradient>
-                <linearGradient id="g-wingroad-r" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#e5e7eb"/>
-                    <stop offset="1" stop-color="#9ca3af"/>
-                </linearGradient>
-            </defs>
-            <!-- wings -->
-            <path d="M4 12c2.2-2 4.7-3.4 7.6-3.8c-1.3 2.1-3.1 3.7-5.3 4.9c-.7.4-1.5.5-2.3.3c-.3-.1-.4-.5 0-.8Z" fill="url(#g-wingroad-w)" stroke="#4c1d95" stroke-width=".7"/>
-            <path d="M20 12c-2.2-2-4.7-3.4-7.6-3.8c1.3 2.1 3.1 3.7 5.3 4.9c.7.4 1.5.5 2.3.3c.3-.1.4-.5 0-.8Z" fill="url(#g-wingroad-w)" stroke="#4c1d95" stroke-width=".7"/>
-            <!-- road -->
-            <path d="M11.5 8c2.6 3.9 3.6 7.4 3.9 12H8.6c.3-4.6 1.3-8.1 3.9-12Z" fill="url(#g-wingroad-r)" stroke="#374151" stroke-width=".7"/>
-            <path d="M12 10.2v7.8" stroke="#111827" stroke-width=".8" stroke-dasharray="1.2 2" stroke-linecap="round"/>
-        </symbol>
-        <!-- New: bridge for flawless levels -->
-        <symbol id="achv-bridge" viewBox="0 0 24 24">
-            <rect x="3" y="12" width="18" height="2.2" fill="#94a3af" stroke="#475569" stroke-width="1.3"/>
-            <path d="M4 12c2.2-3 13.8-3 16 0" stroke="#1f2937" stroke-width="1.4"/>
-            <rect x="5" y="10" width="2" height="2" fill="#475569"/>
-            <rect x="9" y="10" width="2" height="2" fill="#475569"/>
-            <rect x="13" y="10" width="2" height="2" fill="#475569"/>
-            <rect x="17" y="10" width="2" height="2" fill="#475569"/>
-        </symbol>
-
-        <symbol id="achv-crossshield" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-shield" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#60a5fa"/>
-                    <stop offset="1" stop-color="#1d4ed8"/>
-                </linearGradient>
-            </defs>
-            <path d="M12 2l8 4v6c0 5-3.3 9.4-8 10c-4.7-.6-8-5-8-10V6l8-4Z" fill="url(#g-shield)" stroke="#1e3a8a" stroke-width=".8"/>
-            <path d="M12 6v12M8 12h8" stroke="#f9fafb" stroke-width="1.4" stroke-linecap="round"/>
-        </symbol>
-
-    <symbol id="achv-cross" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-cross-fill" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#f87171"/>
-                    <stop offset="1" stop-color="#ef4444"/>
-                </linearGradient>
-                <linearGradient id="g-cross-bevel" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#ffffff" stop-opacity=".35"/>
-                    <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
-                </linearGradient>
-            </defs>
-            <path d="M11 3h2v7h6v2h-6v9h-2v-9H5v-2h6V3Z" fill="url(#g-cross-fill)" stroke="#7f1d1d" stroke-width="1"/>
-            <path d="M11 3h2v7h6v.6h-6v1.4h-2v-1.4H5V10h6V3Z" fill="url(#g-cross-bevel)"/>
-        </symbol>
-
-        <symbol id="achv-folder" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-folder" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#fde68a"/>
-                    <stop offset="1" stop-color="#f59e0b"/>
-                </linearGradient>
-            </defs>
-            <path d="M3 6h6l2 2h10v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6Z" fill="url(#g-folder)" stroke="#92400e" stroke-width=".7"/>
-            <path d="M3 9h18" stroke="#b45309" stroke-width=".8"/>
-        </symbol>
-    <symbol id="achv-trophy" viewBox="0 0 24 24"><path fill="currentColor" d="M7 4h10v3h3a3 3 0 0 1-3 3c-1.66 2.5-4.34 3.5-6 3.87V17h4v2H9v-2h4v-3.13C11.34 13.5 8.66 12.5 7 10A3 3 0 0 1 4 10a3 3 0 0 1 3-3V4Zm10 3V6H7v1c0 3.31 2.69 6 6 6s6-2.69 6-6Z"/></symbol>
-    <symbol id="achv-crown" viewBox="0 0 24 24"><path fill="currentColor" d="M2 7l5 4l5-6l5 6l5-4v12H2V7Zm4 10h12v-5l-4 3l-4-5l-4 5l-4-3v5Z"/></symbol>
-    <symbol id="achv-chain" viewBox="0 0 24 24"><path fill="currentColor" d="M10 14l-2 2a3 3 0 1 1-4-4l2-2l2 2l-2 2a1 1 0 1 0 2 2l2-2l2 2Zm4-4l2-2a3 3 0 1 1 4 4l-2 2l-2-2l2-2a1 1 0 0 0-2-2l-2 2l-2-2Z"/></symbol>
-    <symbol id="achv-stopwatch" viewBox="0 0 24 24">
-        <defs>
-            <linearGradient id="g-sw-1" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stop-color="#e5e7eb"/>
-                <stop offset="1" stop-color="#9ca3af"/>
-            </linearGradient>
-            <radialGradient id="g-sw-2" cx="50%" cy="45%" r="60%">
-                <stop offset="0" stop-color="#ffffff"/>
-                <stop offset="1" stop-color="#cbd5e1"/>
-            </radialGradient>
-        </defs>
-        <!-- Crown and button -->
-        <rect x="9" y="2" width="6" height="2" rx=".6" fill="#374151"/>
-        <rect x="16.2" y="3.6" width="2.2" height="1.3" rx=".6" fill="#374151"/>
-        <!-- Bezel -->
-        <circle cx="12" cy="13" r="8.8" fill="url(#g-sw-1)" stroke="#475569" stroke-width=".9"/>
-        <circle cx="12" cy="13" r="7.3" fill="url(#g-sw-2)" stroke="#64748b" stroke-width=".7"/>
-        <!-- Ticks -->
-        <g stroke="#475569" stroke-width=".8"><path d="M12 5.8v1.9M18.2 13h1.9M12 20.2v1.9M3.9 13H5.8"/></g>
-        <!-- Hands -->
-        <path d="M12 13l3.6 1.8" stroke="#111827" stroke-width="1.2" stroke-linecap="round"/>
-        <path d="M12 13v-3.3" stroke="#ef4444" stroke-width="1.2" stroke-linecap="round"/>
-        <circle cx="12" cy="13" r=".9" fill="#111827"/>
-    </symbol>
-    <symbol id="achv-book" viewBox="0 0 24 24"><path fill="currentColor" d="M4 3h12a3 3 0 0 1 3 3v14H7a3 3 0 0 1-3-3V3Zm2 2v12a1 1 0 0 0 1 1h11V6a1 1 0 0 0-1-1H6Z"/></symbol>
-        <!-- Batch 1: 15 colorful unique medal symbols -->
-        <symbol id="achv-laurel" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-laurel-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#14532d"/>
-                    <stop offset="1" stop-color="#22c55e"/>
-                </linearGradient>
-                <linearGradient id="g-laurel-2" x1="1" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#166534"/>
-                    <stop offset="1" stop-color="#86efac"/>
-                </linearGradient>
-                <radialGradient id="g-laurel-3" cx="50%" cy="45%" r="55%">
-                    <stop offset="0" stop-color="#fde68a"/>
-                    <stop offset="1" stop-color="#d97706"/>
-                </radialGradient>
-            </defs>
-            <path fill="url(#g-laurel-1)" d="M6.5 12.5c-2.8-.4-4.7-3-4.3-5.8C2.6 3.8 5.2 2 8 2c.2 2.5-.4 4.9-1.8 6.7c.8.7 1.9 2.2 2 3.6c-1 .4-1.9.5-1.7.2Z"/>
-            <path fill="url(#g-laurel-2)" d="M17.5 12.5c.2.3-.7.2-1.7-.2c.1-1.4 1.2-2.9 2-3.6c-1.4-1.8-2-4.2-1.8-6.7c2.8 0 5.4 1.8 5.8 4.7c.4 2.8-1.5 5.4-4.3 5.8Z"/>
-            <circle cx="12" cy="14" r="5" fill="url(#g-laurel-3)" stroke="#92400e" stroke-width="1"/>
-            <circle cx="12" cy="14" r="2" fill="#fff7ed"/>
-        </symbol>
-        <symbol id="achv-gem" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-gem-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#0ea5e9"/>
-                    <stop offset="1" stop-color="#67e8f9"/>
-                </linearGradient>
-                <linearGradient id="g-gem-2" x1="0" y1="1" x2="1" y2="0">
-                    <stop offset="0" stop-color="#164e63"/>
-                    <stop offset="1" stop-color="#0891b2"/>
-                </linearGradient>
-            </defs>
-            <path fill="url(#g-gem-1)" d="M7 3h10l4 5l-9 13L3 8l4-5Z" stroke="#083344" stroke-width=".8"/>
-            <path fill="url(#g-gem-2)" d="M12 21L8 8h8l-4 13Z"/>
-            <path fill="#a5f3fc" d="M9.5 7l2.5-3l2.5 3H9.5Z" opacity=".7"/>
-        </symbol>
-        <symbol id="achv-starburst" viewBox="0 0 24 24">
-            <defs>
-                <radialGradient id="g-starburst-1" cx="50%" cy="50%" r="60%">
-                    <stop offset="0" stop-color="#fff7ed"/>
-                    <stop offset="1" stop-color="#f59e0b"/>
-                </radialGradient>
-            </defs>
-            <path fill="url(#g-starburst-1)" d="M12 1.8l2.3 4.9l5 2l-5 2l-2.3 4.9L9.7 10.7l-5-2l5-2L12 1.8Z" stroke="#92400e" stroke-width=".8"/>
-            <circle cx="12" cy="10.8" r="2.2" fill="#fde68a" stroke="#92400e" stroke-width=".6"/>
-        </symbol>
-        <symbol id="achv-wing" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-wing-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#e11d48"/>
-                    <stop offset="1" stop-color="#fb7185"/>
-                </linearGradient>
-            </defs>
-            <path fill="url(#g-wing-1)" d="M3 13c5-2 9-6 14-6c2 0 4 1 4 3c0 3-5 5-9 5c-3 0-5 1-6 3c-1-2 0-4 1-5Z" stroke="#881337" stroke-width=".8"/>
-            <path fill="#fecaca" d="M6.8 14.2c2-1 5-3 8-3c.7 0 1.4.2 1.8.7c-1.2.9-3.2 1.7-5.1 1.9c-1.8.2-3.5.1-4.7-.6Z" opacity=".85"/>
-            <path fill="#fee2e2" d="M5.8 16c1.3-1.2 3.7-1.7 6-1.7c-2.1.7-3.7 1.6-4.6 2.5c-.5.1-1-.1-1.4-.8Z" opacity=".9"/>
-        </symbol>
-        <symbol id="achv-hourglass2" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-hg-1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#bfdbfe"/>
-                    <stop offset="1" stop-color="#3b82f6"/>
-                </linearGradient>
-            </defs>
-            <path fill="#0f172a" d="M6 2h12v4c0 2-2 4-6 5c-4-1-6-3-6-5V2Zm0 20h12v-4c0-2-2-4-6-5c-4 1-6 3-6 5v4Z"/>
-            <path fill="url(#g-hg-1)" d="M8 5h8c0 1.5-2.2 3-4 3s-4-1.5-4-3Zm0 14c0-1.5 2.2-3 4-3s4 1.5 4 3H8Z" stroke="#1e3a8a" stroke-width=".6"/>
-            <circle cx="12" cy="12" r=".8" fill="#1d4ed8"/>
-        </symbol>
-        <symbol id="achv-target2" viewBox="0 0 24 24">
-            <defs>
-                <radialGradient id="g-target-1" cx="50%" cy="50%" r="50%">
-                    <stop offset="0" stop-color="#fff1f2"/>
-                    <stop offset="1" stop-color="#ef4444"/>
-                </radialGradient>
-            </defs>
-            <circle cx="12" cy="12" r="8.5" fill="url(#g-target-1)" stroke="#991b1b" stroke-width=".8"/>
-            <circle cx="12" cy="12" r="6" fill="#ffffff" stroke="#fecaca" stroke-width=".6"/>
-            <circle cx="12" cy="12" r="3.2" fill="#ef4444"/>
-            <circle cx="12" cy="12" r="1.1" fill="#fee2e2"/>
-        </symbol>
-        <symbol id="achv-compass" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-comp-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#22d3ee"/>
-                    <stop offset="1" stop-color="#0ea5e9"/>
-                </linearGradient>
-            </defs>
-            <circle cx="12" cy="12" r="9.5" fill="#0c4a6e" stroke="#082f49" stroke-width=".8"/>
-            <path fill="url(#g-comp-1)" d="M12 5.5l3.2 6.3l-6.3 3.2L12 5.5Z" stroke="#0891b2" stroke-width=".5"/>
-            <circle cx="12" cy="12" r="1.4" fill="#e2e8f0" stroke="#94a3b8" stroke-width=".5"/>
-        </symbol>
-        <symbol id="achv-sword" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-sword-1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#f1f5f9"/>
-                    <stop offset="1" stop-color="#94a3b8"/>
-                </linearGradient>
-            </defs>
-            <path fill="url(#g-sword-1)" d="M13 2l7 7l-2 2l-7-7l2-2Zm-1 3l-7 7l2 2l7-7l-2-2Z" stroke="#475569" stroke-width=".7"/>
-            <rect x="3" y="17" width="8" height="2.2" rx="1" fill="#a16207" stroke="#78350f" stroke-width=".6"/>
-        </symbol>
-        <symbol id="achv-lamp" viewBox="0 0 24 24">
-            <defs>
-                <radialGradient id="g-lamp-1" cx="50%" cy="40%" r="60%">
-                    <stop offset="0" stop-color="#fff7ed"/>
-                    <stop offset="1" stop-color="#f59e0b"/>
-                </radialGradient>
-            </defs>
-            <path fill="#78350f" d="M4 14h10c0 2.8-2.2 5-5 5H5a3 3 0 0 1-1-5Z"/>
-            <circle cx="16" cy="10" r="3.2" fill="url(#g-lamp-1)" stroke="#92400e" stroke-width=".6"/>
-            <path fill="#fed7aa" d="M14.8 9.2a2 2 0 0 1 2.6 1.8c-1-.3-1.9-.6-2.6-1.8Z" opacity=".9"/>
-        </symbol>
-        <symbol id="achv-anchor" viewBox="0 0 24 24">
-            <path fill="#0f172a" d="M11 3h2v4h-2V3Zm1 6a2 2 0 1 1 0 4a2 2 0 0 1 0-4Zm0 5c2 0 3.5-1 4.5-2.5l1.5 1.5C16.8 15.7 14.7 17 12 17s-4.8-1.3-6-4l1.5-1.5C7.5 14 9 15 11 15v6h2v-6Z" stroke="#334155" stroke-width=".7"/>
-            <circle cx="12" cy="7" r="1.2" fill="#93c5fd"/>
-        </symbol>
-        <symbol id="achv-dove" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-dove-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#e0f2fe"/>
-                    <stop offset="1" stop-color="#60a5fa"/>
-                </linearGradient>
-            </defs>
-            <path fill="url(#g-dove-1)" d="M3 13c3-1 6-3 8-6c.5 2 2.5 3 4 3c2 0 4 1 6 3c-2 1-4 1.5-6 1.5c-2.5 0-4.5.5-6 2c-1-1-1.5-2.5-1.5-3.5c-1 0-2-.3-2.5-1Z" stroke="#1e3a8a" stroke-width=".7"/>
-            <circle cx="10" cy="8" r=".65" fill="#1e293b"/>
-            <path fill="#bfdbfe" d="M7.4 12.2c1.8-1 3.7-2.8 5-4.5c.3.8 1.2 1.4 1.9 1.7c-1.7.6-3.7 1.5-6.9 2.8Z" opacity=".9"/>
-        </symbol>
-        <symbol id="achv-scroll" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-scroll-1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#fde68a"/>
-                    <stop offset="1" stop-color="#facc15"/>
-                </linearGradient>
-                <radialGradient id="g-scroll-2" cx="30%" cy="20%" r="70%">
-                    <stop offset="0" stop-color="#fff7ed" stop-opacity=".8"/>
-                    <stop offset="1" stop-color="#000" stop-opacity="0"/>
-                </radialGradient>
-            </defs>
-            <path fill="url(#g-scroll-1)" d="M5 5h11a2 2 0 0 1 2 2v9H7a2 2 0 1 1-2-2V5Z" stroke="#92400e" stroke-width=".9"/>
-            <path d="M5 5h11a2 2 0 0 1 2 2v2H7a2 2 0 1 1-2-2V5Z" fill="url(#g-scroll-2)"/>
-            <rect x="8" y="8" width="8.6" height="1.3" fill="#a16207"/>
-            <rect x="8" y="11" width="7.9" height="1.3" fill="#a16207"/>
-            <path d="M8 14.3h6.8" stroke="#a16207" stroke-width=".9" opacity=".7"/>
-            <circle cx="6" cy="16" r="1" fill="#78350f"/>
-        </symbol>
-        <symbol id="achv-ribbon" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-ribbon-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#f43f5e"/>
-                    <stop offset="1" stop-color="#fb7185"/>
-                </linearGradient>
-            </defs>
-            <circle cx="12" cy="8" r="4.4" fill="url(#g-ribbon-1)" stroke="#9f1239" stroke-width=".8"/>
-            <path fill="#9f1239" d="M10 12l-3 8l5-3l5 3l-3-8h-4Z"/>
-            <circle cx="12" cy="8" r="1.2" fill="#fecdd3"/>
-        </symbol>
-        <symbol id="achv-helm" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-helm-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#e2e8f0"/>
-                    <stop offset="1" stop-color="#94a3b8"/>
-                </linearGradient>
-            </defs>
-            <path fill="url(#g-helm-1)" d="M12 3a9 9 0 0 0-9 9h4a5 5 0 1 1 10 0h4a9 9 0 0 0-9-9Z" stroke="#475569" stroke-width=".8"/>
-            <rect x="5" y="12" width="14" height="6" rx="2" fill="#475569" stroke="#1f2937" stroke-width=".6"/>
-            <circle cx="12" cy="10.5" r="1.2" fill="#94a3b8"/>
-        </symbol>
-        <symbol id="achv-olive" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-olive-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#84cc16"/>
-                    <stop offset="1" stop-color="#a3e635"/>
-                </linearGradient>
-            </defs>
-            <ellipse cx="9" cy="9" rx="5.2" ry="3.4" fill="url(#g-olive-1)" stroke="#3f6212" stroke-width=".6"/>
-            <ellipse cx="15" cy="13" rx="5.2" ry="3.4" fill="#65a30d" stroke="#3f6212" stroke-width=".6"/>
-            <circle cx="12" cy="11" r="1.1" fill="#d9f99d"/>
-        </symbol>
-        <!-- Second batch biblical icons -->
-        <symbol id="achv-tablets" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-tab-1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#e7e5e4"/>
-                    <stop offset="1" stop-color="#9ca3af"/>
-                </linearGradient>
-                <radialGradient id="g-tab-2" cx="50%" cy="20%" r="70%">
-                    <stop offset="0" stop-color="#ffffff" stop-opacity=".7"/>
-                    <stop offset="1" stop-color="#000000" stop-opacity="0"/>
-                </radialGradient>
-            </defs>
-            <!-- Left tablet with bevel highlight and engravings -->
-            <rect x="4" y="5" width="7" height="14" rx="3" fill="url(#g-tab-1)" stroke="#6b7280" stroke-width=".9"/>
-            <rect x="4" y="5" width="7" height="14" rx="3" fill="url(#g-tab-2)"/>
-            <path d="M6.2 8h3M6.2 10h3M6.2 12h3M5.7 14.8c.6-.3 1.6-.5 2.6-.3" stroke="#374151" stroke-width=".8" stroke-linecap="round" opacity=".95"/>
-            <!-- Right tablet with subtle cracks -->
-            <rect x="13" y="5" width="7" height="14" rx="3" fill="url(#g-tab-1)" stroke="#6b7280" stroke-width=".9"/>
-            <rect x="13" y="5" width="7" height="14" rx="3" fill="url(#g-tab-2)"/>
-            <path d="M15.2 8h3M15.2 10h3M15.2 12h3" stroke="#374151" stroke-width=".8" stroke-linecap="round"/>
-            <path d="M16 14.2l1 .6m-.4-2l1 .6" stroke="#334155" stroke-width=".7" opacity=".5"/>
-        </symbol>
-        <symbol id="achv-ark" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-ark-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#92400e"/>
-                    <stop offset="1" stop-color="#f59e0b"/>
-                </linearGradient>
-            </defs>
-            <rect x="5" y="6" width="14" height="9" rx="2" fill="url(#g-ark-1)" stroke="#78350f" stroke-width=".8"/>
-            <rect x="8" y="4" width="8" height="3" rx="1" fill="#d97706"/>
-            <circle cx="9.5" cy="10" r="1" fill="#fde68a"/>
-            <circle cx="14.5" cy="10" r="1" fill="#fde68a"/>
-        </symbol>
-        <symbol id="achv-lyre" viewBox="0 0 24 24">
-            <path fill="#92400e" d="M7 4a2 2 0 0 0 0 4v6a5 5 0 0 0 10 0V8a2 2 0 0 0 0-4h-1v2a1 1 0 1 1-2 0V4h-4v2a1 1 0 0 1-2 0V4H7Z"/>
-            <path d="M10 8v7M12 8v7M14 8v7" stroke="#fde68a" stroke-width=".8"/>
-        </symbol>
-        <symbol id="achv-vine" viewBox="0 0 24 24">
-            <path fill="#166534" d="M6 18c3-2 5-5 5-8c0-2-1-3-3-3c-1.5 0-2.5.5-3 1.5c.5-2 2-4.5 5-4.5c2.5 0 4 1.8 4 4c0 4-2.5 7.5-5.5 10H6Z"/>
-            <circle cx="15" cy="8" r="2" fill="#65a30d"/>
-            <circle cx="17.5" cy="10.5" r="1.6" fill="#84cc16"/>
-        </symbol>
-        <symbol id="achv-fish" viewBox="0 0 24 24">
-            <path fill="#0ea5e9" d="M3 12c2.5-2 5.5-3 9-3c3.5 0 6.5 1 9 3c-2.5 2-5.5 3-9 3c-3.5 0-6.5-1-9-3Z"/>
-            <circle cx="8" cy="12" r=".8" fill="#0c4a6e"/>
-        </symbol>
-        <symbol id="achv-wheat" viewBox="0 0 24 24">
-            <path fill="#f59e0b" d="M12 3c1.5 2 2 3.5 2 5s-.5 3-2 5c-1.5-2-2-3.5-2-5s.5-3 2-5Z"/>
-            <path fill="#fbbf24" d="M12 8c1.8 1.2 2.8 2.5 3 4c-1.8-.2-3-.9-3-2c0-1.1 1.2-1.8 3-2c-.2-1.5-1.2-2.8-3-4c-1.8 1.2-2.8 2.5-3 4c1.8.2 3 .9 3 2c0 1.1-1.2 1.8-3 2c.2 1.5 1.2 2.8 3 4c1.8-1.2 2.8-2.5 3-4c-1.8-.2-3-.9-3-2c0-1.1 1.2-1.8 3-2Z" opacity=".9"/>
-            <rect x="11.4" y="12" width="1.2" height="8" fill="#92400e"/>
-        </symbol>
-        <symbol id="achv-staff" viewBox="0 0 24 24">
-            <path fill="#78350f" d="M8 20V8c0-2.2 1.8-4 4-4s4 1.8 4 4h-2a2 2 0 0 0-4 0v12H8Z"/>
-        </symbol>
-        <symbol id="achv-crossolive" viewBox="0 0 24 24">
-            <path fill="#1f2937" d="M11 3h2v4h4v2h-4v12h-2V9H7V7h4V3Z"/>
-            <ellipse cx="17.5" cy="9.5" rx="2.2" ry="1.4" fill="#84cc16"/>
-        </symbol>
-        <symbol id="achv-menorah" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-mnrh-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#fde68a"/>
-                    <stop offset="1" stop-color="#eab308"/>
-                </linearGradient>
-                <radialGradient id="g-mnrh-2" cx="50%" cy="30%" r="60%">
-                    <stop offset="0" stop-color="#fff7ed"/>
-                    <stop offset="1" stop-color="#f59e0b"/>
-                </radialGradient>
-            </defs>
-            <path fill="url(#g-mnrh-1)" d="M5 6h2v4a5 5 0 0 0 10 0V6h2v4a7 7 0 0 1-6 6.92V20h3v2H8v-2h3v-3.08A7 7 0 0 1 5 10V6Z" stroke="#a16207" stroke-width=".8"/>
-            <circle cx="6" cy="5" r="1.1" fill="url(#g-mnrh-2)"/>
-            <circle cx="12" cy="5" r="1.1" fill="url(#g-mnrh-2)"/>
-            <circle cx="18" cy="5" r="1.1" fill="url(#g-mnrh-2)"/>
-        </symbol>
-        <symbol id="achv-rainbow" viewBox="0 0 24 24">
-            <path fill="#ef4444" d="M4 16a8 8 0 0 1 16 0h-2a6 6 0 0 0-12 0H4Z"/>
-            <path fill="#f59e0b" d="M6 16a6 6 0 0 1 12 0h-2a4 4 0 0 0-8 0H6Z"/>
-            <path fill="#10b981" d="M8 16a4 4 0 0 1 8 0h-2a2 2 0 0 0-4 0H8Z"/>
-        </symbol>
-        <symbol id="achv-star" viewBox="0 0 24 24">
-            <path fill="#f59e0b" d="M12 3l2.3 5.3L20 9.2l-4 3.6l1.2 5.9L12 16.8L6.8 18.7L8 12.8L4 9.2l5.7-.9L12 3Z"/>
-        </symbol>
-        <symbol id="achv-crown2" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-cr2-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#f59e0b"/>
-                    <stop offset="1" stop-color="#fde68a"/>
-                </linearGradient>
-            </defs>
-            <path d="M3 7l4 5l5-6l5 6l4-5v11H3V7Z" fill="url(#g-cr2-1)" stroke="#c2410c" stroke-width=".9"/>
-            <rect x="5" y="15" width="14" height="2.2" fill="#f59e0b" stroke="#c2410c" stroke-width=".7"/>
-            <circle cx="12" cy="9" r="1" fill="#ef4444"/>
-            <circle cx="7.5" cy="11" r=".9" fill="#60a5fa"/>
-            <circle cx="16.5" cy="11" r=".9" fill="#22c55e"/>
-        </symbol>
-        <symbol id="achv-banner" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-banner-1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#fb923c"/>
-                    <stop offset="1" stop-color="#ea580c"/>
-                </linearGradient>
-                <linearGradient id="g-banner-2" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#fecaca" stop-opacity=".7"/>
-                    <stop offset="1" stop-color="#ef4444" stop-opacity="0"/>
-                </linearGradient>
-            </defs>
-            <!-- Fabric with fold highlight and tassels -->
-            <path d="M6 3h10v10l-5-3l-5 3V3Z" fill="url(#g-banner-1)" stroke="#9a3412" stroke-width=".9"/>
-            <path d="M7 4c3 .8 6 .8 8 0" stroke="url(#g-banner-2)" stroke-width="1.2"/>
-            <circle cx="6.9" cy="21" r=".9" fill="#9a3412"/>
-            <circle cx="8.4" cy="21" r=".9" fill="#9a3412"/>
-            <rect x="6" y="3" width="2" height="18" fill="#9a3412"/>
-        </symbol>
-        <symbol id="achv-wall" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-wall-1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#cbd5e1"/>
-                    <stop offset="1" stop-color="#94a3af"/>
-                </linearGradient>
-            </defs>
-            <!-- Brick rows -->
-            <rect x="3" y="6" width="18" height="12" rx="1.5" fill="url(#g-wall-1)" stroke="#64748b" stroke-width=".9"/>
-            <g stroke="#64748b" stroke-width=".8">
-                <path d="M3 10h18M3 14h18"/>
-                <path d="M7.5 6v4M16.5 6v4M12 10v4M7.5 14v4M16.5 14v4M12 14v4"/>
-            </g>
-            <path d="M4 7.5h2.8M9.2 7.5h2.8M14.4 7.5h2.8" stroke="#94a3b8" stroke-width=".7" opacity=".7"/>
-        </symbol>
-        <!-- Battlement wall (with merlons) -->
-        <symbol id="achv-battlement" viewBox="0 0 24 24">
-            <rect x="3" y="8" width="18" height="10" rx="1.2" fill="#cbd5e1" stroke="#64748b" stroke-width="1.3"/>
-            <g fill="#94a3af" stroke="#64748b" stroke-width="1">
-                <rect x="4" y="6" width="2" height="2"/>
-                <rect x="7.5" y="6" width="2" height="2"/>
-                <rect x="11" y="6" width="2" height="2"/>
-                <rect x="14.5" y="6" width="2" height="2"/>
-                <rect x="18" y="6" width="2" height="2"/>
-            </g>
-            <g stroke="#64748b" stroke-width="1.1">
-                <path d="M3 12h18M3 15h18"/>
-                <path d="M7.5 8v4M16.5 8v4M12 12v4M7.5 15v3M16.5 15v3M12 15v3"/>
-            </g>
-        </symbol>
-        <symbol id="achv-hammernail" viewBox="0 0 24 24">
-            <path fill="#374151" d="M4 10l6 6l-2 2l-6-6l2-2Z"/>
-            <rect x="12" y="4" width="7" height="2" fill="#6b7280"/>
-            <rect x="14" y="6" width="3" height="10" fill="#9ca3af"/>
-        </symbol>
-        <!-- Third batch biblical icons -->
-        <symbol id="achv-sinai" viewBox="0 0 24 24">
-            <path fill="#64748b" d="M3 18l6-9l3 4l3-5l6 10H3Z"/>
-            <path d="M2 18h20" stroke="#0f172a" stroke-width=".8"/>
-        </symbol>
-        <symbol id="achv-burningbush" viewBox="0 0 24 24">
-            <path fill="#16a34a" d="M6 16c3-2 6-5 6-8c0-2-1-3-3-3c-1.2 0-2 .4-2.6 1.2C7 4.5 9 3 11.5 3C14 3 16 4.8 16 7c0 4-3 7-6.5 9.5H6Z"/>
-            <path fill="#ef4444" d="M15 10c.2-1.5.8-2.5 2-3c.7.7 1 1.6 1 2.6c0 2.1-1.5 3.8-3.5 4.4c.6-1 .9-2 .5-4Z"/>
-        </symbol>
-        <symbol id="achv-manna" viewBox="0 0 24 24">
-            <rect x="7" y="6" width="10" height="12" rx="2" fill="#f59e0b"/>
-            <circle cx="12" cy="10" r="1.2" fill="#fde68a"/>
-            <circle cx="9.5" cy="13" r="1" fill="#fde68a"/>
-            <circle cx="14.5" cy="13.5" r=".9" fill="#fde68a"/>
-        </symbol>
-        <symbol id="achv-ladder" viewBox="0 0 24 24">
-            <rect x="7" y="3" width="2.2" height="18" fill="#78350f"/>
-            <rect x="14.8" y="3" width="2.2" height="18" fill="#78350f"/>
-            <rect x="8.8" y="6" width="7.2" height="1.4" fill="#a16207"/>
-            <rect x="8.8" y="10" width="7.2" height="1.4" fill="#a16207"/>
-            <rect x="8.8" y="14" width="7.2" height="1.4" fill="#a16207"/>
-        </symbol>
-        <symbol id="achv-shofar" viewBox="0 0 24 24">
-            <path fill="#92400e" d="M3 13c3 4 8 6 12 6c3.5 0 6-2 6-5c-3 1-5 .5-7-1c-2-1.5-4-2-6-2c-2 0-3 1-5 2Z"/>
-        </symbol>
-        <symbol id="achv-cup" viewBox="0 0 24 24">
-            <path fill="#d97706" d="M6 3h12v3a6 6 0 0 1-12 0V3Z"/>
-            <rect x="10" y="12" width="4" height="8" fill="#92400e"/>
-        </symbol>
-        <symbol id="achv-basket" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-basket-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#a16207"/>
-                    <stop offset="1" stop-color="#78350f"/>
-                </linearGradient>
-            </defs>
-            <rect x="4" y="9" width="16" height="8" rx="2" fill="url(#g-basket-1)" stroke="#7c2d12" stroke-width=".9"/>
-            <path d="M6 9c2-3 10-3 12 0" stroke="#9a3412" stroke-width="1.1"/>
-            <!-- Weave pattern -->
-            <g stroke="#a16207" stroke-width=".7" opacity=".75">
-                <path d="M5.5 12h13"/>
-                <path d="M5.5 13.8h13"/>
-                <path d="M8 10v6M10.6 10v6M13.2 10v6M15.8 10v6"/>
-            </g>
-        </symbol>
-        <symbol id="achv-sheep" viewBox="0 0 24 24">
-            <circle cx="9" cy="12" r="3" fill="#e5e7eb"/>
-            <circle cx="14" cy="12" r="3.2" fill="#e5e7eb"/>
-            <circle cx="11.5" cy="10.5" r="2.2" fill="#111827"/>
-        </symbol>
-        <symbol id="achv-olivetree" viewBox="0 0 24 24">
-            <rect x="10.5" y="12" width="3" height="8" fill="#78350f"/>
-            <circle cx="12" cy="10" r="5" fill="#16a34a"/>
-        </symbol>
-        <symbol id="achv-boat" viewBox="0 0 24 24">
-            <path fill="#0ea5e9" d="M4 18h16l-2 2H6l-2-2Z"/>
-            <path fill="#92400e" d="M6 13l12 0l-3 5H9l-3-5Z"/>
-            <rect x="11" y="6" width="2" height="7" fill="#1e293b"/>
-        </symbol>
-        <symbol id="achv-sea" viewBox="0 0 24 24">
-            <path fill="#60a5fa" d="M3 17c2-2 4-3 9-3s7 1 9 3v2H3v-2Z"/>
-            <path fill="#93c5fd" d="M3 15c2-2 4-3 9-3s7 1 9 3v1c-2-1.2-4.5-2-9-2s-7 0.8-9 2v-1Z"/>
-        </symbol>
-        <symbol id="achv-bethlehem" viewBox="0 0 24 24">
-            <rect x="6" y="12" width="12" height="7" fill="#92400e"/>
-            <rect x="10" y="9" width="4" height="3" fill="#a16207"/>
-            <circle cx="12" cy="6" r="1.2" fill="#fde68a"/>
-        </symbol>
-        <symbol id="achv-keys" viewBox="0 0 24 24">
-            <circle cx="8" cy="10" r="2" fill="#6b7280"/>
-            <rect x="10" y="9.5" width="9" height="1" fill="#374151"/>
-            <rect x="14" y="11" width="5" height="1" fill="#374151"/>
-        </symbol>
-        <symbol id="achv-breastplate" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-breast-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#e5e7eb"/>
-                    <stop offset="1" stop-color="#9ca3af"/>
-                </linearGradient>
-            </defs>
-            <rect x="6" y="5" width="12" height="14" rx="3" fill="url(#g-breast-1)" stroke="#64748b" stroke-width=".9"/>
-            <!-- 12 stones -->
-            <g>
-                <rect x="8.2" y="7.8" width="2.2" height="2" rx=".3" fill="#ef4444"/>
-                <rect x="10.9" y="7.8" width="2.2" height="2" rx=".3" fill="#f59e0b"/>
-                <rect x="13.6" y="7.8" width="2.2" height="2" rx=".3" fill="#22c55e"/>
-                <rect x="8.2" y="10.2" width="2.2" height="2" rx=".3" fill="#60a5fa"/>
-                <rect x="10.9" y="10.2" width="2.2" height="2" rx=".3" fill="#a78bfa"/>
-                <rect x="13.6" y="10.2" width="2.2" height="2" rx=".3" fill="#f472b6"/>
-                <rect x="8.2" y="12.6" width="2.2" height="2" rx=".3" fill="#f97316"/>
-                <rect x="10.9" y="12.6" width="2.2" height="2" rx=".3" fill="#84cc16"/>
-                <rect x="13.6" y="12.6" width="2.2" height="2" rx=".3" fill="#06b6d4"/>
-            </g>
-        </symbol>
-        <!-- Armor for 全副軍裝 -->
-        <symbol id="achv-armor" viewBox="0 0 24 24">
-            <path d="M7 4h10l1 3v11c0 2-2 4-6 4s-6-2-6-4V7l1-3Z" fill="#e5e7eb" stroke="#374151" stroke-width="1.2"/>
-            <path d="M8 9h8v2H8zM9 12h6v2H9z" fill="#9ca3af"/>
-        </symbol>
-        <symbol id="achv-sandals" viewBox="0 0 24 24">
-            <rect x="6" y="13" width="5" height="6" rx="2" fill="#f59e0b"/>
-            <rect x="13" y="13" width="5" height="6" rx="2" fill="#f59e0b"/>
-            <path d="M6 15h12" stroke="#92400e" stroke-width=".9"/>
-        </symbol>
-        <!-- Fourth batch biblical icons -->
-        <symbol id="achv-grapes" viewBox="0 0 24 24">
-            <defs>
-                <radialGradient id="g-grape-1" cx="35%" cy="35%" r="65%">
-                    <stop offset="0" stop-color="#ddd6fe"/>
-                    <stop offset="1" stop-color="#6d28d9"/>
-                </radialGradient>
-                <radialGradient id="g-grape-2" cx="35%" cy="35%" r="65%">
-                    <stop offset="0" stop-color="#e9d5ff"/>
-                    <stop offset="1" stop-color="#7c3aed"/>
-                </radialGradient>
-            </defs>
-            <!-- Cluster with three highlighted berries and a vine stem -->
-            <circle cx="10" cy="10" r="2.2" fill="url(#g-grape-1)" stroke="#4c1d95" stroke-width=".7"/>
-            <circle cx="12.8" cy="12.2" r="2.2" fill="url(#g-grape-2)" stroke="#4c1d95" stroke-width=".7"/>
-            <circle cx="8.6" cy="14" r="2.2" fill="url(#g-grape-1)" stroke="#4c1d95" stroke-width=".7"/>
-            <path d="M10.8 6.2c1 .2 1.8.8 2.2 1.8" stroke="#14532d" stroke-width=".9" stroke-linecap="round"/>
-            <path d="M11.6 6l-1.1 2.9" stroke="#166534" stroke-width="1.1" stroke-linecap="round"/>
-        </symbol>
-        <!-- Richer grape cluster for streak ladder -->
-    <symbol id="achv-grapes-rich" viewBox="0 0 24 24">
-            <defs>
-                <radialGradient id="g-grapeR-1" cx="35%" cy="35%" r="65%"><stop offset="0" stop-color="#e9d5ff"/><stop offset="1" stop-color="#7c3aed"/></radialGradient>
-                <radialGradient id="g-grapeR-2" cx="35%" cy="35%" r="65%"><stop offset="0" stop-color="#ddd6fe"/><stop offset="1" stop-color="#6d28d9"/></radialGradient>
-            </defs>
-            <circle cx="9" cy="9" r="2.1" fill="url(#g-grapeR-1)" stroke="#4c1d95" stroke-width="1"/>
-            <circle cx="12" cy="9.8" r="2" fill="url(#g-grapeR-2)" stroke="#4c1d95" stroke-width="1"/>
-            <circle cx="7.6" cy="11.6" r="2.1" fill="url(#g-grapeR-2)" stroke="#4c1d95" stroke-width="1"/>
-            <circle cx="10.6" cy="12.8" r="2.1" fill="url(#g-grapeR-1)" stroke="#4c1d95" stroke-width="1"/>
-            <circle cx="13.2" cy="11.6" r="2.1" fill="url(#g-grapeR-2)" stroke="#4c1d95" stroke-width="1"/>
-            <path d="M10.8 6.2c1 .2 1.8.8 2.2 1.8" stroke="#14532d" stroke-width=".9" stroke-linecap="round"/>
-            <path d="M11.6 6l-1.1 2.9" stroke="#166534" stroke-width="1.1" stroke-linecap="round"/>
-        </symbol>
-        <!-- Cherries for 多結果子 T1 -->
-        <symbol id="achv-cherries" viewBox="0 0 24 24">
-            <circle cx="9" cy="15" r="2.6" fill="#ef4444" stroke="#991b1b" stroke-width="1.2"/>
-            <circle cx="14.5" cy="15.5" r="2.6" fill="#f87171" stroke="#991b1b" stroke-width="1.2"/>
-            <path d="M9 12c1.5-2.5 3.5-4 6-4" stroke="#166534" stroke-width="1.2"/>
-            <path d="M14.5 12.2c.8-1.8 2.2-2.8 4.2-3" stroke="#14532d" stroke-width="1.2"/>
-            <circle cx="9.6" cy="14.2" r=".5" fill="#fecaca"/>
-            <circle cx="15.1" cy="15" r=".5" fill="#fee2e2"/>
-        </symbol>
-        <!-- Dumbbell for 聖徒的忍耐 -->
-        <symbol id="achv-dumbbell" viewBox="0 0 24 24">
-            <rect x="5" y="10" width="3" height="4" rx=".6" fill="#1f2937" stroke="#0b0f19" stroke-width=".9"/>
-            <rect x="16" y="10" width="3" height="4" rx=".6" fill="#1f2937" stroke="#0b0f19" stroke-width=".9"/>
-            <rect x="8" y="11.2" width="8" height="1.6" rx=".8" fill="#64748b" stroke="#111827" stroke-width=".9"/>
-        </symbol>
-        <!-- Rock for 穩定如影 (optional use) -->
-        <symbol id="achv-rock" viewBox="0 0 24 24">
-            <path d="M5 16l3-7l6-3l5 6l-2 6H5Z" fill="#9ca3af" stroke="#374151" stroke-width="1.2"/>
-        </symbol>
-        <!-- Calm wave for 風平浪靜 -->
-        <symbol id="achv-calmwave" viewBox="0 0 24 24">
-            <path d="M3 15c2-1.2 4-1.8 9-1.8s7 .6 9 1.8v2c-2-1.2-4-1.8-9-1.8s-7 .6-9 1.8v-2Z" fill="#93c5fd" stroke="#1f2937" stroke-width="1"/>
-        </symbol>
-        <!-- Heart pulse for 復活的大能 -->
-        <symbol id="achv-heartpulse" viewBox="0 0 24 24">
-            <path d="M12 21l-7-7a4.5 4.5 0 0 1 6.4-6.4L12 8.2l.6-.6a4.5 4.5 0 0 1 6.4 6.4L12 21Z" fill="#ef4444" stroke="#991b1b" stroke-width="1.2"/>
-            <path d="M6 12h3l1.2-2.6l1.6 4l1.2-2.2H18" stroke="#fff" stroke-width="1.6" fill="none"/>
-        </symbol>
-        <symbol id="achv-jar" viewBox="0 0 24 24">
-            <rect x="8" y="6" width="8" height="12" rx="3" fill="#fbbf24"/>
-            <rect x="9" y="5" width="6" height="2" rx="1" fill="#a16207"/>
-        </symbol>
-        <symbol id="achv-sling" viewBox="0 0 24 24">
-            <path fill="#78350f" d="M6 18c3-6 9-10 12-12l1 1c-3 2-9 6-12 12H6Z"/>
-            <circle cx="16.5" cy="7.5" r="1.2" fill="#111827"/>
-        </symbol>
-        <symbol id="achv-pillarcloud" viewBox="0 0 24 24">
-            <circle cx="12" cy="10" r="4" fill="#cbd5e1"/>
-            <rect x="10.5" y="14" width="3" height="6" fill="#94a3b8"/>
-        </symbol>
-        <symbol id="achv-pillarfire" viewBox="0 0 24 24">
-            <circle cx="12" cy="10" r="4" fill="#ef4444"/>
-            <rect x="10.5" y="14" width="3" height="6" fill="#b91c1c"/>
-        </symbol>
-        <symbol id="achv-gate" viewBox="0 0 24 24">
-            <rect x="5" y="7" width="14" height="12" rx="2" fill="#6b7280"/>
-            <rect x="11" y="7" width="2" height="12" fill="#111827"/>
-        </symbol>
-        <symbol id="achv-olivebranch" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-oliveb-1" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0" stop-color="#16a34a"/>
-                    <stop offset="1" stop-color="#22c55e"/>
-                </linearGradient>
-            </defs>
-            <path d="M4 16c5-3 10-6 16-8c-3 3-8 6-12 9c-1 1.5-2 1.7-3 .9c-.7-.6-.7-1.2-.3-1.8Z" fill="url(#g-oliveb-1)" stroke="#166534" stroke-width=".8"/>
-            <path d="M7 14c.8-.8 1.8-1.3 2.9-1.6" stroke="#14532d" stroke-width=".9" stroke-linecap="round"/>
-        </symbol>
-        <symbol id="achv-sundial" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-sund-1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#fde68a"/>
-                    <stop offset="1" stop-color="#eab308"/>
-                </linearGradient>
-            </defs>
-            <circle cx="12" cy="12" r="8.2" fill="url(#g-sund-1)" stroke="#b45309" stroke-width=".9"/>
-            <g stroke="#b45309" stroke-width=".8"><path d="M12 4.8v1.6M19.2 12h-1.6M12 19.2v-1.6M4.8 12h1.6"/></g>
-            <path d="M12 12L17 7" stroke="#92400e" stroke-width="1.3" stroke-linecap="round"/>
-            <circle cx="12" cy="12" r=".9" fill="#92400e"/>
-        </symbol>
-        <symbol id="achv-map" viewBox="0 0 24 24">
-            <path fill="#34d399" d="M4 6l5 2l6-2l5 2v12l-5-2l-6 2l-5-2V6Z"/>
-            <circle cx="12" cy="12" r="1.2" fill="#064e3b"/>
-        </symbol>
-        <symbol id="achv-oilflask" viewBox="0 0 24 24">
-            <rect x="9" y="5" width="6" height="4" rx="1" fill="#a3e635"/>
-            <rect x="8" y="9" width="8" height="10" rx="3" fill="#65a30d"/>
-        </symbol>
-        <symbol id="achv-quill" viewBox="0 0 24 24">
-            <path fill="#0ea5e9" d="M5 19c6-7 10-10 14-12c-3 4-6 8-12 14H5Z"/>
-            <rect x="5" y="19" width="8" height="1.2" fill="#111827"/>
-        </symbol>
-        <symbol id="achv-bread" viewBox="0 0 24 24">
-            <rect x="5" y="10" width="14" height="7" rx="3.5" fill="#f59e0b"/>
-            <path d="M8 12h8" stroke="#92400e" stroke-width="1"/>
-        </symbol>
-        <symbol id="achv-net" viewBox="0 0 24 24">
-            <path d="M4 8c6 0 10 4 16 4M4 12c6 0 10 4 16 4" stroke="#0f172a" stroke-width=".9"/>
-            <path d="M8 6c0 8 4 10 4 14" stroke="#0f172a" stroke-width=".9"/>
-        </symbol>
-        <symbol id="achv-temple" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-temple-1" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0" stop-color="#e5e7eb"/>
-                    <stop offset="1" stop-color="#cbd5e1"/>
-                </linearGradient>
-            </defs>
-            <rect x="4" y="10" width="16" height="9" fill="url(#g-temple-1)" stroke="#64748b" stroke-width=".8"/>
-            <rect x="9" y="7" width="6" height="3" fill="#9ca3af" stroke="#475569" stroke-width=".7"/>
-            <rect x="6" y="12" width="3" height="7" fill="#374151"/>
-            <rect x="15" y="12" width="3" height="7" fill="#374151"/>
-            <path d="M4 10h16" stroke="#475569" stroke-width=".8"/>
-        </symbol>
-        <symbol id="achv-alpha" viewBox="0 0 24 24">
-            <path fill="#f97316" d="M8 17l4-10l4 10h-2l-1-3H11l-1 3H8Zm4-7l-1 3h2l-1-3Z"/>
-        </symbol>
-        <!-- Extra richer icons -->
-        <symbol id="achv-linkedrings" viewBox="0 0 24 24">
-            <defs>
-                <radialGradient id="g-rings-1" cx="40%" cy="40%" r="70%">
-                    <stop offset="0" stop-color="#ede9fe"/>
-                    <stop offset="1" stop-color="#8b5cf6"/>
-                </radialGradient>
-                <radialGradient id="g-rings-2" cx="40%" cy="40%" r="70%">
-                    <stop offset="0" stop-color="#dbeafe"/>
-                    <stop offset="1" stop-color="#60a5fa"/>
-                </radialGradient>
-            </defs>
-            <circle cx="9" cy="12" r="4.2" fill="url(#g-rings-1)" stroke="#5b21b6" stroke-width=".8"/>
-            <circle cx="15" cy="12" r="4.2" fill="url(#g-rings-2)" stroke="#1d4ed8" stroke-width=".8"/>
-            <circle cx="12" cy="12" r="2.3" fill="#e0e7ff" stroke="#94a3b8" stroke-width=".6"/>
-        </symbol>
-        <symbol id="achv-clock" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-clock-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#e5e7eb"/>
-                    <stop offset="1" stop-color="#cbd5e1"/>
-                </linearGradient>
-                <radialGradient id="g-clock-gloss" cx="35%" cy="30%" r="60%">
-                    <stop offset="0" stop-color="#ffffff" stop-opacity=".8"/>
-                    <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
-                </radialGradient>
-            </defs>
-            <circle cx="12" cy="12" r="8.8" fill="url(#g-clock-1)" stroke="#9ca3af" stroke-width="1.2"/>
-            <circle cx="12" cy="12" r="7.2" fill="#ffffff" stroke="#94a3b8" stroke-width=".9"/>
-            <!-- minute ticks -->
-            <g stroke="#94a3b8" stroke-width=".7" opacity=".9">
-                <path d="M12 4.9v.9M16.9 7.1l-.6.6M19.1 12h-.9M16.9 16.9l-.6-.6M12 19.1v-.9M7.1 16.9l.6-.6M4.9 12h.9M7.1 7.1l.6.6"/>
-            </g>
-            <path d="M12 12v-4" stroke="#1f2937" stroke-width="1.4" stroke-linecap="round"/>
-            <path d="M12 12l3.6 2.1" stroke="#1f2937" stroke-width="1.4" stroke-linecap="round"/>
-            <circle cx="12" cy="12" r=".9" fill="#1f2937"/>
-            <circle cx="10" cy="9" r="4.8" fill="url(#g-clock-gloss)"/>
-        </symbol>
-        <symbol id="achv-chariot" viewBox="0 0 24 24">
-            <circle cx="8" cy="16" r="2.5" fill="#0ea5e9"/>
-            <circle cx="16" cy="16" r="2.5" fill="#0284c7"/>
-            <rect x="7" y="8" width="10" height="6" rx="2" fill="#92400e"/>
-            <rect x="5" y="10" width="2" height="2" fill="#7c2d12"/>
-        </symbol>
-        <symbol id="achv-steps" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-steps-1" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0" stop-color="#cbd5e1"/>
-                    <stop offset="1" stop-color="#94a3af"/>
-                </linearGradient>
-            </defs>
-            <rect x="5" y="15" width="14" height="2.2" rx=".6" fill="url(#g-steps-1)" stroke="#64748b" stroke-width=".7"/>
-            <rect x="7" y="12" width="12" height="2.2" rx=".6" fill="url(#g-steps-1)" stroke="#64748b" stroke-width=".7"/>
-            <rect x="9" y="9" width="10" height="2.2" rx=".6" fill="url(#g-steps-1)" stroke="#64748b" stroke-width=".7"/>
-            <path d="M5 16l3-3l3-3l3-3" stroke="#f59e0b" stroke-width="1" stroke-linecap="round"/>
-        </symbol>
-        <!-- New enriched symbols for improved clarity/rarity -->
-        <symbol id="achv-gears" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-gears-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#e5e7eb"/>
-                    <stop offset="1" stop-color="#9ca3af"/>
-                </linearGradient>
-            </defs>
-            <circle cx="9" cy="9" r="3.5" fill="url(#g-gears-1)" stroke="#374151" stroke-width=".8"/>
-            <circle cx="15" cy="15" r="3.5" fill="url(#g-gears-1)" stroke="#374151" stroke-width=".8"/>
-            <path d="M9 5.5v-1.2M9 13.7v1.2M5.5 9h-1.2M13.7 9h1.2" stroke="#111827" stroke-width=".9"/>
-            <path d="M15 11.5v-1.2M15 19.7v1.2M11.5 15h-1.2M19.7 15h1.2" stroke="#111827" stroke-width=".9"/>
-            <circle cx="9" cy="9" r=".9" fill="#111827"/>
-            <circle cx="15" cy="15" r=".9" fill="#111827"/>
-        </symbol>
-        <symbol id="achv-bolt7" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-bolt7-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#fca5a5"/>
-                    <stop offset="1" stop-color="#ef4444"/>
-                </linearGradient>
-            </defs>
-            <path fill="url(#g-bolt7-1)" d="M9 2h7l-3.2 6.8H18L9 22l3.2-6.8H7L9 2Z" stroke="#991b1b" stroke-width=".9"/>
-            <text x="16.8" y="12.6" font-size="6" fill="#fee2e2" font-weight="800">7</text>
-        </symbol>
-        <symbol id="achv-reticle" viewBox="0 0 24 24">
-            <defs>
-                <radialGradient id="g-ret-1" cx="50%" cy="50%" r="55%">
-                    <stop offset="0" stop-color="#fff"/>
-                    <stop offset="1" stop-color="#60a5fa"/>
-                </radialGradient>
-            </defs>
-            <circle cx="12" cy="12" r="8.2" fill="url(#g-ret-1)" stroke="#1e40af" stroke-width=".9"/>
-            <circle cx="12" cy="12" r="4.2" fill="none" stroke="#1d4ed8" stroke-width=".9"/>
-            <circle cx="12" cy="12" r="1.2" fill="#1d4ed8"/>
-            <path d="M4 12h3M17 12h3M12 4v3M12 17v3" stroke="#1e3a8a" stroke-width=".9"/>
-        </symbol>
-        <symbol id="achv-metronome" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-metro-1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#fef3c7"/>
-                    <stop offset="1" stop-color="#f59e0b"/>
-                </linearGradient>
-            </defs>
-            <path d="M8 20l4-14l4 14H8Z" fill="url(#g-metro-1)" stroke="#92400e" stroke-width=".9"/>
-            <path d="M6 9l12 6" stroke="#b45309" stroke-width=".9"/>
-            <circle cx="18" cy="15" r="1.1" fill="#b45309"/>
-        </symbol>
-    <symbol id="achv-sea" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-sea-1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#93c5fd"/>
-                    <stop offset="1" stop-color="#60a5fa"/>
-                </linearGradient>
-            </defs>
-            <path fill="url(#g-sea-1)" d="M3 17c2-2 4-3 9-3s7 1 9 3v2H3v-2Z" stroke="#1f2937" stroke-width="1"/>
-            <path fill="#bfdbfe" d="M3.8 16.2c2-1.2 4.2-1.8 8.2-1.8s6.2.6 8.2 1.8c-2-1-4.2-1.5-8.2-1.5s-6.2.5-8.2 1.5Z" opacity=".6"/>
-            <path fill="#e0f2fe" d="M4.5 15.2c1.8-1 3.8-1.4 7.5-1.4s5.7.4 7.5 1.4c-1.8-.8-3.8-1.2-7.5-1.2s-5.7.4-7.5 1.2Z" opacity=".5"/>
-        </symbol>
-                    <stop offset="1" stop-color="#d97706"/>
-                </linearGradient>
-            </defs>
-            <circle cx="12" cy="12" r="7.8" fill="url(#g-seal-1)" stroke="#92400e" stroke-width=".9"/>
-            <path d="M7 12l3 3l7-7" stroke="#166534" stroke-width="1.4"/>
-        </symbol>
-        <!-- Prestige T1 set -->
-        <symbol id="achv-boltcrown" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-boltcrown-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#f59e0b"/>
-                    <stop offset="1" stop-color="#fde68a"/>
-                </linearGradient>
-                <linearGradient id="g-boltcrown-2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#fecaca"/>
-                    <stop offset="1" stop-color="#ef4444"/>
-                </linearGradient>
-            </defs>
-            <!-- Crown base -->
-            <path d="M3.5 9l3.5 2.5L12 6.5l5 5L20.5 9v7.5H3.5V9Z" fill="url(#g-boltcrown-1)" stroke="#92400e" stroke-width=".9"/>
-            <!-- Lightning overlay -->
-            <path d="M10 9h4l-2 3h3l-6 6l2.2-4H9.2L10 9Z" fill="url(#g-boltcrown-2)" stroke="#991b1b" stroke-width=".7"/>
-        </symbol>
-        <symbol id="achv-gemcross" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-gemcross-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#e0e7ff"/>
-                    <stop offset="1" stop-color="#a78bfa"/>
-                </linearGradient>
-            </defs>
-            <!-- Gem diamond -->
-            <path d="M12 3l7 5l-7 13l-7-13l7-5Z" fill="url(#g-gemcross-1)" stroke="#4c1d95" stroke-width=".9"/>
-            <!-- Cross inlay -->
-            <path d="M11 8h2v3h3v2h-3v3h-2v-3H8v-2h3V8Z" fill="#fff"/>
-        </symbol>
-        <symbol id="achv-chronocrown" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-chronocrown-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#fde68a"/>
-                    <stop offset="1" stop-color="#f59e0b"/>
-                </linearGradient>
-            </defs>
-            <!-- Clock ring -->
-            <circle cx="12" cy="12" r="7.8" fill="#fff" stroke="#1f2937" stroke-width=".9"/>
-            <path d="M12 8v4l3 2" stroke="#1f2937" stroke-width="1.2" stroke-linecap="round"/>
-            <circle cx="12" cy="12" r=".9" fill="#1f2937"/>
-            <!-- Crown on top -->
-            <path d="M7.5 5.5l2 1.5l2.5-2.8l2.5 2.8l2-1.5v2.7H7.5V5.5Z" fill="url(#g-chronocrown-1)" stroke="#92400e" stroke-width=".8"/>
-        </symbol>
-        <symbol id="achv-phoenixwreath" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-phoenix-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#fb923c"/>
-                    <stop offset="1" stop-color="#ef4444"/>
-                </linearGradient>
-                <linearGradient id="g-wreath-1" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0" stop-color="#86efac"/>
-                    <stop offset="1" stop-color="#10b981"/>
-                </linearGradient>
-            </defs>
-            <!-- Laurel ring (semi) -->
-            <path d="M6 14c-1.2-1.6-1.8-3.6-1.4-5.6c.3-1.4 1-2.7 2-3.7" stroke="url(#g-wreath-1)" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-            <path d="M18 14c1.2-1.6 1.8-3.6 1.4-5.6c-.3-1.4-1-2.7-2-3.7" stroke="url(#g-wreath-1)" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-            <!-- Phoenix flame body -->
-            <path d="M12 7c1.8 1.4 3 3.3 3 5c0 2.2-1.8 4-4 4s-4-1.8-4-4c0-1.2.7-2.5 1.9-3.7C9.3 9.8 11 10.7 12 12c.1-1.5.6-3 0-5Z" fill="url(#g-phoenix-1)" stroke="#7f1d1d" stroke-width=".8"/>
-        </symbol>
-        <symbol id="achv-laurelmetro" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-laurelmetro-1" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0" stop-color="#a7f3d0"/>
-                    <stop offset="1" stop-color="#34d399"/>
-                </linearGradient>
-                <linearGradient id="g-laurelmetro-2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#fef3c7"/>
-                    <stop offset="1" stop-color="#f59e0b"/>
-                </linearGradient>
-            </defs>
-            <!-- Laurel halves -->
-            <path d="M6 16c-1.4-1.4-2.2-3.3-2.1-5.3c0-1.1.3-2.2.8-3.2" stroke="url(#g-laurelmetro-1)" stroke-width="1.3" fill="none" stroke-linecap="round"/>
-            <path d="M18 16c1.4-1.4 2.2-3.3 2.1-5.3c0-1.1-.3-2.2-.8-3.2" stroke="url(#g-laurelmetro-1)" stroke-width="1.3" fill="none" stroke-linecap="round"/>
-            <!-- Metronome -->
-            <path d="M10 18l2-8l2 8h-4Z" fill="url(#g-laurelmetro-2)" stroke="#92400e" stroke-width=".8"/>
-            <path d="M7 10l10 5" stroke="#b45309" stroke-width=".8"/>
-            <circle cx="17" cy="15" r="1" fill="#b45309"/>
-        </symbol>
-        <symbol id="achv-wingedsword" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-wingedsword-1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#e5e7eb"/>
-                    <stop offset="1" stop-color="#9ca3af"/>
-                </linearGradient>
-            </defs>
-            <!-- Sword -->
-            <path d="M12 3l3 3l-2 2l2 10l-3 3l-3-3l2-10l-2-2l3-3Z" fill="url(#g-wingedsword-1)" stroke="#111827" stroke-width=".9"/>
-            <!-- Wings -->
-            <path d="M7 12c-1.5-.2-2.8-.8-3.8-1.8c.4 2 1.6 3.6 3.3 4.5c.6.3 1.3.5 2 .6" fill="none" stroke="#93c5fd" stroke-width="1.1"/>
-            <path d="M17 12c1.5-.2 2.8-.8 3.8-1.8c-.4 2-1.6 3.6-3.3 4.5c-.6.3-1.3.5-2 .6" fill="none" stroke="#93c5fd" stroke-width="1.1"/>
-        </symbol>
-        <!-- New icons: average pace dial and bolt-chain for ultrafast chains -->
-        <symbol id="achv-avgpace" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-avgpace-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#cffafe"/>
-                    <stop offset="1" stop-color="#38bdf8"/>
-                </linearGradient>
-                <linearGradient id="g-avgpace-2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#fde68a"/>
-                    <stop offset="1" stop-color="#f59e0b"/>
-                </linearGradient>
-            </defs>
-            <!-- Dial base -->
-            <circle cx="12" cy="12" r="8.8" fill="url(#g-avgpace-1)" stroke="#0ea5e9" stroke-width=".9"/>
-            <!-- Tick marks -->
-            <g stroke="#0369a1" stroke-width=".8">
-                <path d="M12 4.2v2.1"/>
-                <path d="M19.8 12h-2.1"/>
-                <path d="M12 19.8v-2.1"/>
-                <path d="M4.2 12h2.1"/>
-            </g>
-            <!-- Needle -->
-            <path d="M12 12l4.8-2.4" stroke="#0c4a6e" stroke-width="1.4" stroke-linecap="round"/>
-            <circle cx="12" cy="12" r="1.1" fill="#0c4a6e"/>
-            <!-- Pace band -->
-            <path d="M6.5 15.5A7 7 0 0 0 17.5 6.5" fill="none" stroke="url(#g-avgpace-2)" stroke-width="2.2" stroke-linecap="round"/>
-        </symbol>
-        <symbol id="achv-boltchain" viewBox="0 0 24 24">
-            <defs>
-                <linearGradient id="g-boltchain-1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#fde68a"/>
-                    <stop offset="1" stop-color="#f59e0b"/>
-                </linearGradient>
-                <linearGradient id="g-boltchain-2" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#93c5fd"/>
-                    <stop offset="1" stop-color="#3b82f6"/>
-                </linearGradient>
-            </defs>
-            <!-- Chain links -->
-            <path d="M7 9a3 3 0 0 1 4.2 0l.8.8a3 3 0 0 1 0 4.2l-1.1 1.1a3 3 0 0 1-4.2 0l-.8-.8" fill="none" stroke="url(#g-boltchain-2)" stroke-width="1.6" stroke-linecap="round"/>
-            <path d="M17 7a3 3 0 0 1 0 4.2l-1.1 1.1a3 3 0 0 1-4.2 0" fill="none" stroke="url(#g-boltchain-2)" stroke-width="1.6" stroke-linecap="round"/>
-            <!-- Lightning accent -->
-            <path d="M10 5h5l-2 3h3l-6 9l2.1-5H9.2L10 5Z" fill="url(#g-boltchain-1)" stroke="#92400e" stroke-width=".8"/>
-        </symbol>
-    </svg>
+    <!-- Achievement SVG Sprite is loaded from data/achievement-sprite.svg -->
     <!-- Startup images are preloaded dynamically below based on a quick pick; remove static duplicates to save bandwidth. -->
-    <script src="js/modules/diagnostics.js"></script>
-    <script src="js/ui/achievement-ui.js"></script>
-    <script src="js/core/error-logger.js"></script>
-    <script src="js/core/utils.js"></script>
-    <script src="js/ui/intro-animation.js"></script>
-    <script>
-    // Centralized constants & lightweight utilities (Batch A)
-    (function(){
-        if (window.__BC_CONSTS) return; // idempotent
-        const C = {
-            VERSION: '1.0.0-refactor-a1',
-            LEADERBOARD_LIMIT: 20,
-            LEADERBOARD_PREVIEW_LIMIT: 5,
-            LEADERBOARD_CACHE_TTL_MS: 5 * 60 * 1000, // 5 分鐘
-            STORAGE_KEY_LEADERBOARD: 'bibleGameLeaderboard',
-            STORAGE_KEY_PLAYER_NAME: 'bibleGamePlayerName',
-            STORAGE_KEY_SETTINGS: 'bibleGameSettings'
-        };
-        // Safe JSON parse
-        function safeParse(str, fallback){
-            try { return JSON.parse(str); } catch(_) { return fallback; }
-        }
-        const storage = {
-            get(k, def){ try { return safeParse(localStorage.getItem(k), def); } catch(_) { return def; } },
-            set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(_) { return false; } },
-            getRaw(k){ try { return localStorage.getItem(k); } catch(_) { return null; } },
-            setRaw(k,v){ try { localStorage.setItem(k,v); return true; } catch(_) { return false; } },
-            remove(k){ try { localStorage.removeItem(k); return true; } catch(_) { return false; } }
-        };
-        const logger = (function(){
-            const base = '[BC]';
-            function ts(){ return new Date().toISOString().replace('T',' ').replace('Z',''); }
-            function fmt(args){ return [base, ts(), ...args]; }
-            return {
-                info: (...a)=>{ try { console.log(...fmt(a)); } catch(_) {} },
-                warn: (...a)=>{ try { console.warn(...fmt(a)); } catch(_) {} },
-                error: (...a)=>{ try { console.error(...fmt(a)); } catch(_) {} },
-                debug: (...a)=>{ if (location && location.hash && location.hash.includes('debug')) { try { console.debug(...fmt(a)); } catch(_) {} } }
-            };
-        })();
-        function normalizeLeaderboard(data){
-            try {
-                if (!data || typeof data !== 'object') return { classic: [], survival: [] };
-                const limit = C.LEADERBOARD_LIMIT;
-                const out = { classic: Array.isArray(data.classic)? data.classic.slice(): [], survival: Array.isArray(data.survival)? data.survival.slice(): [] };
-                ['classic','survival'].forEach(k => {
-                    out[k].sort((a,b)=> (b.score||0) - (a.score||0));
-                    if (out[k].length > limit) out[k] = out[k].slice(0, limit);
-                });
-                return out;
-            } catch(e) { logger.warn('normalizeLeaderboard failed', e); return { classic: [], survival: [] }; }
-        }
-        window.__BC_CONSTS = C;
-        window.__bcStorage = storage;
-        window.__bcLog = logger;
-        window.__normalizeLeaderboard = normalizeLeaderboard;
-        // Player name helpers
-        window.getSavedPlayerName = function(){
-            try { const key = C.STORAGE_KEY_PLAYER_NAME; const v = window.__bcStorage.getRaw(key); return v || ''; } catch(_) { return ''; }
-        };
-        window.setSavedPlayerName = function(name){
-            try { const key = C.STORAGE_KEY_PLAYER_NAME; if (name==null) name=''; localStorage.setItem(key, name); return true; } catch(_) { return false; }
-        };
-        // Settings helpers (simple shallow merge persistence)
-        window.loadSettings = function(){
-            try { return window.__bcStorage.get(C.STORAGE_KEY_SETTINGS, {}) || {}; } catch(_) { return {}; }
-        };
-        window.saveSettings = function(part){
-            try { const cur = window.loadSettings(); const next = Object.assign({}, cur, part||{}); window.__bcStorage.set(C.STORAGE_KEY_SETTINGS, next); return true; } catch(_) { return false; }
-        };
-        // One-time purge: remove legacy local seed leaderboard entries (id starts with 'seed-') to avoid residual dev ranks
-        (function purgeLegacySeedRecordsOnce(){
-            try {
-                const flagKey = 'bc.seedCleanup.v1';
-                if (localStorage.getItem(flagKey)) return; // already purged
-                const key = C.STORAGE_KEY_LEADERBOARD;
-                const raw = window.__bcStorage.get(key, null);
-                if (raw && (raw.classic || raw.survival)) {
-                    const cleaned = { classic: Array.isArray(raw.classic) ? raw.classic.filter(r => !(r && typeof r.id === 'string' && r.id.startsWith('seed-'))) : [],
-                                      survival: Array.isArray(raw.survival) ? raw.survival.filter(r => !(r && typeof r.id === 'string' && r.id.startsWith('seed-'))) : [] };
-                    window.__bcStorage.set(key, cleaned);
-                }
-                localStorage.setItem(flagKey, '1');
-            } catch(_) {}
-        })();
-        // Migration from legacy 'bibleChallenge.prefs' key
-        (function migrateOldSettings(){
-            try {
-                const legacyKey = 'bibleChallenge.prefs';
-                const newKey = C.STORAGE_KEY_SETTINGS;
-                const existingNew = window.__bcStorage.get(newKey, null);
-                if (!existingNew) {
-                    const raw = localStorage.getItem(legacyKey);
-                    if (raw) {
-                        const parsed = safeParse(raw, {});
-                        if (parsed && typeof parsed === 'object') {
-                            window.__bcStorage.set(newKey, parsed);
-                            try { localStorage.removeItem(legacyKey); } catch(_) {}
-                        }
-                    }
-                }
-            } catch(_) {}
-        })();
-        (function gateConsoleNoise(){
-            try {
-                const debugEnabled = !!(window.__BC_DEBUG_LOGS || (location && location.hash && location.hash.includes('debug')));
-                window.__BC_DEBUG_ENABLED = debugEnabled;
-                if (debugEnabled) return;
-                const noisyPrefixes = [
-                    '[ACHV', '[EQUIP', '[GAME', '[REPLAY', '[LEADERBOARD', '[SelfTest', '[StressTest', '[DevDiagnostics',
-                    '[ThirdBatchAudits', '[ExtendedDiagnostics', '[lazy', '[icons', '[rebalance', '[DEBUG'
-                ];
-                const matchPrefix = (args) => {
-                    if (!args || !args.length) return false;
-                    const first = args[0];
-                    return typeof first === 'string' && noisyPrefixes.some(prefix => first.startsWith(prefix));
-                };
-                const originalLog = console.log ? console.log.bind(console) : null;
-                if (originalLog) {
-                    console.log = function(...args){ if (matchPrefix(args)) return; originalLog(...args); };
-                }
-                const originalWarn = console.warn ? console.warn.bind(console) : null;
-                if (originalWarn) {
-                    console.warn = function(...args){ if (matchPrefix(args)) return; originalWarn(...args); };
-                }
-            } catch(_) { /* ignore gating failures */ }
-        })();
-        // Lightweight local leaderboard adapter (independent of online adapter)
-        window.LeaderboardLocal = {
-            load(){
-                try {
-                    const raw = window.__bcStorage.get(C.STORAGE_KEY_LEADERBOARD, { classic:[], survival:[] });
-                    return window.__normalizeLeaderboard ? window.__normalizeLeaderboard(raw) : raw;
-                } catch(e){ window.__bcLog && window.__bcLog.warn('LeaderboardLocal.load failed', e); return { classic:[], survival:[] }; }
-            },
-            save(record, mode){
-                try {
-                    const data = this.load();
-                    const bucket = mode || record.playMode || 'classic';
-                    if (!data[bucket]) data[bucket] = [];
-                    data[bucket].push(record);
-                    const norm = window.__normalizeLeaderboard ? window.__normalizeLeaderboard(data) : data;
-                    window.__bcStorage.set(C.STORAGE_KEY_LEADERBOARD, norm);
-                    return norm;
-                } catch(e){ window.__bcLog && window.__bcLog.warn('LeaderboardLocal.save failed', e); return null; }
-            }
-        };
-        window.invalidateLeaderboardCache = function(){ try { window.__lbLatestData = null; window.__lbLatestTs = 0; } catch(_) {} };
-    window.announce = function(msg){ try { const el = document.getElementById('ariaAnnouncements'); if(!el) return; el.textContent=''; setTimeout(()=>{ el.textContent=msg; }, 10); } catch(_) {} };
-    })();
-    </script>
-    <script src="js/ui/modal-manager.js"></script>
-    <link rel="stylesheet" href="css/main.css">
+    <script src="js/core/bootstrap.js" defer></script>
 </head>
 <body class="bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100 min-h-screen">
     <a href="#mainContent" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[10000] bg-indigo-600 text-white px-4 py-2 rounded shadow">跳到主要內容</a>
@@ -1284,55 +127,36 @@
                 </div>
             </div>
             <div id="mainMenuGrid" class="grid lg:grid-cols-3 gap-4">
-                <!-- 左：開始 + 排行模式 -->
-                <div id="modeCard" class="cute-card bg-white p-4 start-intro-card">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-3 text-center">⭐ 排行模式</h2>
-                    <!-- 開始遊戲按鈕 -->
-                    <div class="text-center mb-4">
-                        <button id="startGameBtn" class="cute-button bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 px-8 text-2xl font-bold hover:from-purple-600 hover:to-pink-600 shadow-xl w-full" style="letter-spacing: 0.3em;">
-                            開始遊戲
-                        </button>
-                        <div id="gameStartHint" class="text-sm text-gray-500 mt-2 opacity-0 transition-opacity duration-300"></div>
+                <!-- 左：Step 1 模式選擇（單一入口） -->
+                <div id="modeCard" class="cute-card bg-white p-4 start-intro-card lg:col-span-2">
+                    <div class="mb-3">
+                        <h2 class="text-2xl font-bold text-gray-800 text-center">Step 1｜選擇模式</h2>
                     </div>
-                    <div class="grid grid-cols-1 gap-3">
+                    <div class="home-mode-grid grid grid-cols-1 md:grid-cols-2 gap-3">
                         <button id="modeClassicBtn" class="mode-card-interactive w-full text-left p-5 rounded-2xl border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-pink-50 shadow-sm hover:shadow-md transition">
                             <div class="flex items-start justify-between">
                                 <div>
-                                    <div class="text-xl font-extrabold text-rose-700 tracking-wide">闖關挑戰</div>
+                                    <div class="mode-title-with-icon home-mode-title text-xl font-extrabold text-rose-700 tracking-wide"><span class="mode-title-icon" aria-hidden="true">🏁</span><span>闖關挑戰</span></div>
                                     <div class="mt-1 text-sm text-rose-700/80">10 關 × 每關 5 題，節奏漸進、扎實累積熟練度</div>
                                 </div>
-                                <div class="ml-3 shrink-0"><span class="inline-block text-xs font-bold text-rose-700 bg-rose-100 border border-rose-300 rounded-full px-2 py-1">回合制</span></div>
+                                <div class="ml-3 shrink-0"><span class="mode-kind-badge inline-block text-xs font-bold text-rose-700 bg-rose-100 border border-rose-300 rounded-full px-2 py-1">回合制</span></div>
                             </div>
                         </button>
                         <button id="modeSurvivalBtn" class="mode-card-interactive w-full text-left p-5 rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 shadow-sm hover:shadow-md transition">
                             <div class="flex items-start justify-between">
                                 <div>
-                                    <div class="text-xl font-extrabold text-emerald-700 tracking-wide">生存計時</div>
+                                    <div class="mode-title-with-icon home-mode-title text-xl font-extrabold text-emerald-700 tracking-wide"><span class="mode-title-icon" aria-hidden="true">⏱️</span><span>生存計時</span></div>
                                     <div class="mt-1 text-sm text-emerald-700/80">90 秒倒數，答對補秒、失誤扣秒，衝刺極限反應！</div>
-                                    <div class="mt-2 flex flex-wrap gap-2">
-                                        <span class="text-[11px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 rounded-full px-2 py-0.5">答對補秒</span>
-                                        <span class="text-[11px] font-bold text-rose-700 bg-rose-100 border border-rose-300 rounded-full px-2 py-0.5">失誤扣秒</span>
-                                    </div>
                                 </div>
-                                <div class="ml-3 shrink-0"><span class="inline-block text-xs font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 rounded-full px-2 py-1">計時制</span></div>
+                                <div class="ml-3 shrink-0"><span class="mode-kind-badge inline-block text-xs font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 rounded-full px-2 py-1">計時制</span></div>
                             </div>
                         </button>
-                    </div>
-                    <div class="mt-3 pt-3 border-t border-gray-200 flex items-center justify-end">
-                        <button id="openAchievementsFromMenu" data-open-modal="achievementsModal" class="cute-button w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-4 py-2 font-bold text-sm shadow">勳章一覽</button>
-                    </div>
-                </div>
-
-                <!-- 中：裝備課程 + 自訂專區（自訂面板在選取時顯示） -->
-                <div id="rangeCard" class="cute-card bg-white p-4 start-intro-card">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-3 text-center">🧩 練習模式</h2>
-                    <div class="space-y-4">
                         <!-- 裝備課程 -->
                         <div id="equipCourseCard" role="button" tabindex="0" aria-pressed="false" class="mode-card-interactive p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 cursor-pointer transition">
                             <div class="flex items-center justify-between mb-2">
                                 <div class="flex items-center">
                                     <span class="heading-icon mr-1">📚</span>
-                                    <h3 class="text-base md:text-xl font-bold text-purple-700"><span class="heading-label">裝備課程</span></h3>
+                                    <h3 class="home-mode-title text-base md:text-xl font-bold text-purple-700"><span class="heading-label">裝備課程</span></h3>
                                 </div>
                                 <div id="equipHeadingSub" class="heading-sub text-purple-500 opacity-80 text-xs md:text-sm font-semibold">經文題庫</div>
                             </div>
@@ -1350,7 +174,7 @@
                                     <button type="button" data-equip-info="leader" class="equip-info-btn cute-button bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold text-sm px-3 rounded-xl" aria-label="查看領袖班題庫 (📘)">📘</button>
                                 </div>
                             </div>
-                            <div class="mt-3 text-[12px] leading-relaxed text-purple-700/90 font-medium bg-white/60 rounded-lg p-3 border border-purple-200">
+                            <div class="equip-mode-detail mt-3 text-[12px] leading-relaxed text-purple-700/90 font-medium bg-white/60 rounded-lg p-3 border border-purple-200">
                                 分為三階段訓練：<span class="font-semibold">抽卷→選章→排序經文</span>。<br class="hidden sm:block"/>採卓越行道會裝備課程所用的背誦經文。
                             </div>
                         </div>
@@ -1360,10 +184,16 @@
                             <div class="flex items-center justify-between mb-2">
                                 <div class="flex items-center">
                                     <span class="heading-icon mr-1">🧩</span>
-                                    <h3 class="text-base md:text-xl font-bold text-blue-700"><span class="heading-label">自訂專區</span></h3>
+                                    <h3 class="home-mode-title text-base md:text-xl font-bold text-blue-700"><span class="heading-label">自訂專區</span></h3>
                                 </div>
                                 <div class="heading-sub text-blue-500 opacity-80 text-xs md:text-sm font-semibold">不列入排行</div>
                             </div>
+
+                            <div class="custom-mode-summary text-[12px] leading-relaxed text-blue-700/90 font-medium bg-white/60 rounded-lg p-3 border border-blue-200 mb-2">
+                                選取後可快速勾選書卷，建立你的自訂題庫。
+                            </div>
+
+                            <div class="custom-settings-content">
 
                             <!-- 快速選擇 -->
                             <!-- 新版快速勾選：兩行九分類 -->
@@ -1403,62 +233,28 @@
                             <div id="rangeWarning" class="text-red-500 text-center text-sm hidden mt-4">
                                 ⚠️ 選擇的書卷過少，無法開始遊戲！
                             </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 右：計分說明（獨立卡片） -->
-                <div id="scoringCard" class="cute-card bg-white p-4 start-intro-card">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-3 text-center">📊 計分說明</h2>
-                    <div class="space-y-1 text-sm text-gray-700 scoring-remarks">
-                        <div class="flex justify-between items-center">
-                            <span class="font-medium text-gray-800">• 基礎分數：</span>
-                            <span id="baseScoreRuleValue" class="font-bold text-purple-600">+100分/題</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="font-medium text-gray-800">• 連擊加成：</span>
-                            <span class="font-bold text-indigo-600">+25%/題</span>
-                        </div>
-                        <div id="timeRewardRule" class="flex justify-between items-center">
-                            <span class="font-medium text-gray-800">• 時間獎勵：</span>
-                            <span class="font-bold text-blue-600">+50~0分/題</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="font-medium text-gray-800">• 全對關卡：</span>
-                            <span class="font-bold text-green-600">+100分/關</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="font-medium text-gray-800">• 完美關卡：</span>
-                            <span class="font-bold text-yellow-600">+300分/關</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="font-medium text-gray-800">• 剩餘提示：</span>
-                            <span class="font-bold text-orange-600">+100分/次</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="font-medium text-gray-800">• 失誤扣分：</span>
-                            <span class="font-bold text-red-600">-50分/次</span>
-                        </div>
-                    </div>
-                    <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                        <div class="text-xs text-gray-600 scoring-remarks">
-                            <div>※ 失誤扣分：每失誤 1 次，該題分數減 50。</div>
-                            <div>※ 完美關卡：該關無失誤無提示。</div>
-                            <div id="timeRewardNote">※ 時間獎勵：3 秒內 +50；至 15 秒降為 +0（每題）</div>
-                            <div id="adaptiveNote" class="space-y-1">
-                                <div>※ 動態難度：三軸協同調整</div>
-                                <ul class="list-disc pl-5 space-y-1">
-                                    <li><span class="font-medium">配對模式：</span> 連擊 < 8 → 簡單；≥8 → 普通；≥16 → 困難；改變配對型態與色彩。</li>
-                                    <li><span class="font-medium">題型變化：</span> 單局時間 0–139 / 140–279 / 280s+ 三階段調整書卷分布與混淆度（不受連擊回落）。</li>
-                                    <li><span class="font-medium">經文罕見度：</span> 逐關依上一關完成時間漸進：常見 → 一般 → 冷門（或反向逐步下降）。</li>
-                                    
+                <!-- 中：Step 2 模式設定與開始 -->
+                <div id="rangeCard" class="cute-card bg-white p-4 start-intro-card">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-3 text-center">Step 2｜確認並開始</h2>
 
-                                </ul>
-                            </div>
-                        </div>
+                    <div class="text-center mb-4">
+                        <button id="startGameBtn" class="cute-button bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 px-8 text-2xl font-bold hover:from-purple-600 hover:to-pink-600 shadow-xl w-full" style="letter-spacing: 0.3em;">
+                            開始遊戲
+                        </button>
+                        <div id="gameStartHint" class="text-sm text-gray-500 mt-2 opacity-0 transition-opacity duration-300"></div>
                     </div>
-                    <div class="mt-4">
-                        <button id="openSettingsFromMenu" class="cute-button w-full bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white px-4 py-2 font-bold text-sm shadow">設定</button>
+
+                    <div class="pt-3 border-t border-gray-200">
+                        <div class="menu-action-list grid grid-cols-1 gap-2">
+                            <button id="openScoreGuideFromMenu" data-open-modal="scoreGuideModal" class="menu-action-btn menu-action-score cute-button w-full bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 text-white px-4 py-2 font-bold text-sm shadow"><span class="menu-action-inner"><span class="menu-action-icon" aria-hidden="true">📊</span><span class="menu-action-label">計分說明</span></span></button>
+                            <button id="openAchievementsFromMenu" data-open-modal="achievementsModal" class="menu-action-btn menu-action-achv cute-button w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-4 py-2 font-bold text-sm shadow"><span class="menu-action-inner"><span class="menu-action-icon" aria-hidden="true">🏅</span><span class="menu-action-label">勳章一覽</span></span></button>
+                            <button id="openSettingsFromMenu" class="menu-action-btn menu-action-settings cute-button w-full bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white px-4 py-2 font-bold text-sm shadow"><span class="menu-action-inner"><span class="menu-action-icon" aria-hidden="true">⚙️</span><span class="menu-action-label">設定</span></span></button>
+                        </div>
                     </div>
                 </div>
 
@@ -1496,6 +292,61 @@
     <a href="#mainContent" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:bg-white focus:text-blue-600 focus:p-2 focus:rounded focus:shadow-lg z-[100000]">跳至主要內容</a>
     <img id="menuBrandCorner" src="logo/logo0-light.png" alt="brand" aria-hidden="true"
          style="position: fixed; right: 10px; bottom: 10px; width: 96px; height: auto; opacity: .9; pointer-events: none; z-index: 50;" />
+
+    <!-- 計分說明視窗 -->
+    <div id="scoreGuideModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="scoreGuideTitle" tabindex="-1">
+        <div class="cute-card bg-white p-6 max-w-2xl mx-4 w-full text-left rounded-2xl border-2 border-sky-200 shadow-2xl modal-shell">
+            <div class="flex items-center justify-between mb-3">
+                <h3 id="scoreGuideTitle" class="text-xl font-bold text-gray-800">📊 計分說明</h3>
+                <button data-close-modal="scoreGuideModal" class="cute-button bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 font-bold rounded" aria-label="關閉計分說明視窗 (Esc)">✖</button>
+            </div>
+            <div class="space-y-1 text-sm text-gray-700 scoring-remarks">
+                <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-800">• 基礎分數：</span>
+                    <span id="baseScoreRuleValue" class="font-bold text-purple-600">+100分/題</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-800">• 連擊加成：</span>
+                    <span class="font-bold text-indigo-600">+25%/題</span>
+                </div>
+                <div id="timeRewardRule" class="flex justify-between items-center">
+                    <span class="font-medium text-gray-800">• 時間獎勵：</span>
+                    <span class="font-bold text-blue-600">+50~0分/題</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-800">• 全對關卡：</span>
+                    <span class="font-bold text-green-600">+100分/關</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-800">• 完美關卡：</span>
+                    <span class="font-bold text-yellow-600">+300分/關</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-800">• 剩餘提示：</span>
+                    <span class="font-bold text-orange-600">+100分/次</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-800">• 失誤扣分：</span>
+                    <span class="font-bold text-red-600">-50分/次</span>
+                </div>
+            </div>
+            <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="text-xs text-gray-600 scoring-remarks">
+                    <div>※ 失誤扣分：每失誤 1 次，該題分數減 50。</div>
+                    <div>※ 完美關卡：該關無失誤無提示。</div>
+                    <div id="timeRewardNote">※ 時間獎勵：3 秒內 +50；至 15 秒降為 +0（每題）</div>
+                    <div id="adaptiveNote" class="space-y-1">
+                        <div>※ 動態難度：三軸協同調整</div>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li><span class="font-medium">配對模式：</span> 連擊 < 8 → 簡單；≥8 → 普通；≥16 → 困難；改變配對型態與色彩。</li>
+                            <li><span class="font-medium">題型變化：</span> 單局時間 0–139 / 140–279 / 280s+ 三階段調整書卷分布與混淆度（不受連擊回落）。</li>
+                            <li><span class="font-medium">經文罕見度：</span> 逐關依上一關完成時間漸進：常見 → 一般 → 冷門（或反向逐步下降）。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- 自訂書卷選擇視窗 -->
     <div id="customBooksModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-labelledby="customBooksTitle" aria-describedby="customBooksDesc" tabindex="-1">
@@ -1820,6 +671,13 @@
                     </div>
                     <div id="equipStageBadge" class="text-xs font-bold text-purple-800 bg-purple-100 px-3 py-1 rounded-full border-2 border-purple-200 equip-header-stage">準備中</div>
                 </div>
+                <div id="equipStepProgress" class="equip-stepper mb-2" role="group" aria-label="裝備課程三階段進度">
+                    <span class="equip-step-dot" data-step="1" title="階段 1：抽卷"></span>
+                    <span class="equip-step-line" aria-hidden="true"></span>
+                    <span class="equip-step-dot" data-step="2" title="階段 2：選章"></span>
+                    <span class="equip-step-line" aria-hidden="true"></span>
+                    <span class="equip-step-dot" data-step="3" title="階段 3：排序"></span>
+                </div>
                 <div id="equipSubtitle" class="text-sm text-purple-700 font-semibold mb-3 equip-header-sub"></div>
                 <div id="equipContent" class="space-y-3">
                     <!-- 三階段內容將由腳本動態渲染：
@@ -2039,38 +897,7 @@
     <script src="js/game/score.js" defer></script>
     <script src="js/game/engine.js" defer></script>
 
-        <script>
-            // Register a simple service worker to cache startup images and core assets for faster repeat visits
-            if ('serviceWorker' in navigator) {
-                // Emergency SW Reset: Unregister any existing SW to clear corrupted/naked UI cache
-                // This ensures the next load (or this one if fast enough) gets a fresh start.
-                // We will re-register the NEW Safe Mode SW immediately after.
-                navigator.serviceWorker.getRegistrations().then(regs => {
-                    for(let reg of regs) {
-                       // Optional: check scope or skip unregister if we are confident, 
-                       // but for "Naked UI" fix, unregistering old ones is safest.
-                       // relying on "sw.js" byte difference is sometimes not enough for deep stagnant caches.
-                    }
-                });
-
-                window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('sw.js', { scope: './' }).then(reg=>{
-                        // Ping version once active
-                        if (navigator.serviceWorker.controller) {
-                            navigator.serviceWorker.controller.postMessage({ type:'ping-version' });
-                        } else {
-                            navigator.serviceWorker.addEventListener('controllerchange', ()=>{
-                                // Reload page immediately if a new controller takes over (e.g. fresh install from naked state)
-                                // This is the "Auto-Heal" for the Naked UI state.
-                                window.location.reload();
-                            });
-                        }
-                    }).catch(function(_){});
-
-                    /* BroadcastChannel removed in Safe Mode SW to reduce complexity */
-                });
-            }
-
-        </script>
+        <script src="js/core/sw-register.js" defer></script>
     </body>
     </html>
+

@@ -27,6 +27,7 @@
                 const reduced = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || (window.innerWidth < 640);
                 const cards = [
                     document.getElementById('titleCard'),
+                    document.getElementById('modeStepCard'),
                     document.getElementById('modeCard'),
                     document.getElementById('rangeCard'),
                     document.getElementById('scoringCard'),
@@ -74,7 +75,7 @@
         // Performance: drop will-change after intro animations complete
         window.addEventListener('load', () => {
             try {
-                const targets = ['titleCard','modeCard','rangeCard','scoringCard','leaderboardSection']
+                const targets = ['titleCard','modeStepCard','modeCard','rangeCard','scoringCard','leaderboardSection']
                     .map(id=>document.getElementById(id)).filter(Boolean);
                 targets.forEach(el => {
                     el.addEventListener('animationend', (ev) => {

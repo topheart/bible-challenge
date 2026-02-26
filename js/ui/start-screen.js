@@ -51,6 +51,11 @@ function setupMobileScoreBadges() {
                     gameState.gameCompleted = false;
                 }
             } catch(_) {}
+            try {
+                if (typeof window.highlightSelectedEquipTier === 'function') {
+                    window.highlightSelectedEquipTier(null);
+                }
+            } catch(_) {}
             // 安全停止所有計時器（避免生存模式殘留）
             try { if (gameState.timerInterval) { clearInterval(gameState.timerInterval); gameState.timerInterval = null; } } catch(_) {}
             try { if (gameState.survivalTimerInterval) { clearInterval(gameState.survivalTimerInterval); gameState.survivalTimerInterval = null; } } catch(_) {}
@@ -95,19 +100,8 @@ function setupMobileScoreBadges() {
             try { showEquipUI(false); } catch(_) {}
             try { highlightSelectedModeCard(gameState.playMode || null); } catch(_) {}
             
-            // Sync dimming state on screen show
-            try {
-                const equipActive = document.getElementById('equipCourseCard')?.getAttribute('aria-pressed') === 'true';
-                const customActive = document.getElementById('customAreaCard')?.getAttribute('aria-pressed') === 'true';
-                const grid = document.getElementById('mainMenuGrid');
-                if (grid) {
-                    if (gameState.playMode || equipActive || customActive) {
-                        grid.classList.add('mode-selection-active');
-                    } else {
-                        grid.classList.remove('mode-selection-active');
-                    }
-                }
-            } catch(_) {}
+            // Sync menu mode UI through centralized updater
+            try { if (window.__applyModeUI) window.__applyModeUI(); } catch(_) {}
 
             try { setUnifiedHeaderLayout(false); } catch(_) {}
             try { document.body.classList.remove('equip-running'); } catch(_) {}
@@ -123,22 +117,7 @@ function setupMobileScoreBadges() {
                 }
             } catch(_) {}
 
-            // Update the grid dimming state based on whether ANY mode is currently active (aria-pressed)
-            try {
-                const classicPressed = document.getElementById('modeClassicBtn')?.getAttribute('aria-pressed') === 'true';
-                const survivalPressed = document.getElementById('modeSurvivalBtn')?.getAttribute('aria-pressed') === 'true';
-                const equipPressed = document.getElementById('equipCourseCard')?.getAttribute('aria-pressed') === 'true';
-                const customPressed = document.getElementById('customAreaCard')?.getAttribute('aria-pressed') === 'true';
-                
-                const grid = document.getElementById('mainMenuGrid');
-                if (grid) {
-                    if (classicPressed || survivalPressed || equipPressed || customPressed) {
-                        grid.classList.add('mode-selection-active');
-                    } else {
-                        grid.classList.remove('mode-selection-active');
-                    }
-                }
-            } catch(_) {}
+            // Grid dimming state is handled by __applyModeUI
         }
         
     // 副標題功能已移除

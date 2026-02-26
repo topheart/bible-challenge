@@ -9,21 +9,77 @@
                 const wrap = document.getElementById('levelProgressMini');
                 if (!wrap) return;
                 const levelCount = getLevelCount();
+                const survival = isSurvival();
+                const cache = renderMiniLevelPlaceholders.__cache || (renderMiniLevelPlaceholders.__cache = { sig: '' });
+                const sig = `c:${levelCount || 0}|s:${survival ? 1 : 0}`;
+                if (cache.sig === sig) return;
                 // Survival: hide mini progress entirely
-                if (!levelCount || isSurvival()) {
+                if (!levelCount || survival) {
                     wrap.classList.add('hidden');
-                    wrap.innerHTML = '';
+                    if (wrap.childElementCount) wrap.innerHTML = '';
+                    cache.sig = sig;
                     return;
                 }
                 wrap.classList.remove('hidden');
-                wrap.innerHTML = '';
                 setMiniProgressGridColumns(levelCount);
-                for (let i = 0; i < levelCount; i++) {
+                while (wrap.children.length < levelCount) {
                     const dot = document.createElement('div');
-                    dot.className = 'mini-dot bg-gray-200 border-gray-300';
                     wrap.appendChild(dot);
                 }
+                while (wrap.children.length > levelCount) {
+                    wrap.removeChild(wrap.lastElementChild);
+                }
+                for (let i = 0; i < levelCount; i++) {
+                    const dot = wrap.children[i];
+                    dot.className = 'mini-dot bg-gray-200 border-gray-300';
+                }
+                cache.sig = sig;
             } catch (_) { /* ignore */ }
+        }
+
+        function ensureComboSegmentsReady() {
+            try {
+                const wrap = document.getElementById('comboSegments');
+                if (!wrap) return;
+                const targetCount = 8;
+                if (wrap.children.length !== targetCount) {
+                    wrap.innerHTML = '';
+                    for (let i = 0; i < targetCount; i++) {
+                        const seg = document.createElement('div');
+                        seg.className = 'combo-seg';
+                        wrap.appendChild(seg);
+                    }
+                    return;
+                }
+                for (let i = 0; i < targetCount; i++) {
+                    const seg = wrap.children[i];
+                    if (seg) seg.className = 'combo-seg';
+                }
+            } catch(_) { /* ignore */ }
+        }
+
+        function ensureAdaptiveProxyBindings() {
+            try {
+                const proxyHint = document.getElementById('adaptiveHintBtn');
+                const realHint = document.getElementById('hintBtn');
+                if (proxyHint && realHint) {
+                    const target = realHint.id || 'hintBtn';
+                    if (proxyHint.dataset.proxyTarget !== target) {
+                        proxyHint.onclick = () => realHint.click();
+                        proxyHint.dataset.proxyTarget = target;
+                    }
+                }
+
+                const proxyBack = document.getElementById('adaptiveBackBtn');
+                const realBack = document.getElementById('backToMenuFromGame');
+                if (proxyBack && realBack) {
+                    const target = realBack.id || 'backToMenuFromGame';
+                    if (proxyBack.dataset.proxyTarget !== target) {
+                        proxyBack.onclick = () => realBack.click();
+                        proxyBack.dataset.proxyTarget = target;
+                    }
+                }
+            } catch(_) { /* ignore */ }
         }
 
 // Moved to survival.js
@@ -74,6 +130,38 @@ function initializeGame() {
             document.getElementById('startGameBtn').addEventListener('click', startGame);
             // Unlock audio on first gesture
             try { document.getElementById('startGameBtn')?.addEventListener('click', () => SFX.resume()); } catch(_) {}
+            const scheduleStartButtonStateUpdate = () => {
+                try {
+                    if (window.__startBtnStateRafPending) return;
+                    window.__startBtnStateRafPending = true;
+                    const run = () => {
+                        window.__startBtnStateRafPending = false;
+                        try { updateStartButtonState(); } catch(_) {}
+                    };
+                    if (window.requestAnimationFrame) {
+                        window.requestAnimationFrame(run);
+                    } else {
+                        setTimeout(run, 0);
+                    }
+                } catch(_) {}
+            };
+            // 外部題庫載入完成/失敗時，即時同步開始按鈕與提示文案
+            try {
+                if (!window.__externalVerseLoadedStartSyncWired) {
+                    window.__externalVerseLoadedStartSyncWired = true;
+                    window.addEventListener('externalVersesLoaded', () => {
+                        scheduleStartButtonStateUpdate();
+                    }, { passive: true });
+                }
+            } catch(_) {}
+            try {
+                if (!window.__externalVerseLoadingStartSyncWired) {
+                    window.__externalVerseLoadingStartSyncWired = true;
+                    window.addEventListener('externalVersesLoading', () => {
+                        scheduleStartButtonStateUpdate();
+                    }, { passive: true });
+                }
+            } catch(_) {}
 
             // Restore and apply prefs for volume and time-bar visibility (default: volume 0.2, showBar true)
             (function restoreAudioAndTimeBarPrefs(){
@@ -122,7 +210,6 @@ function initializeGame() {
             try {
                 const modeClassicBtn = document.getElementById('modeClassicBtn');
                 const modeSurvivalBtn = document.getElementById('modeSurvivalBtn');
-                const modeDesc = document.getElementById('modeDesc');
                 const customAreaCard = document.getElementById('customAreaCard');
                 const equipCourseCard = document.getElementById('equipCourseCard');
 
@@ -159,15 +246,6 @@ function initializeGame() {
                                 equipCourseCard.style.borderWidth=''; equipCourseCard.style.borderColor=''; equipCourseCard.style.boxShadow='';
                                 equipCourseCard.setAttribute('aria-pressed','false');
                             }
-                        }
-                    } catch(_) {}
-
-                    // Apply visual dimming to unselected modes
-                    try {
-                        const grid = document.getElementById('mainMenuGrid');
-                        if (grid) {
-                            if (kind) grid.classList.add('mode-selection-active');
-                            else grid.classList.remove('mode-selection-active');
                         }
                     } catch(_) {}
 
@@ -232,6 +310,12 @@ function initializeGame() {
 
                     updateSettingsDisplay();
                     updateStartButtonState();
+                    try {
+                        if (typeof requestUrgentVerseLoad === 'function') {
+                            // 先拿可用分片，完整題庫由背景補齊
+                            requestUrgentVerseLoad(false);
+                        }
+                    } catch(_) {}
                     try { window.__applyModeUI && window.__applyModeUI(); } catch (_) {}
                     // Mobile 自動滾動：僅在選擇 core 模式 (classic/survival) 時觸發（取消/自訂/裝備不滾）
                     try {
@@ -264,6 +348,7 @@ function initializeGame() {
                     const c = gameState.playMode === 'classic';
                     const inPractice = !!gameState.range; // 任一練習範圍（含主題/自訂）
                     const hasEquipPending = !!gameState.__pendingEquipTier;
+                    const customSelected = gameState.range === 'custom';
                     const baseClass = 'mode-card-interactive cute-button w-full text-left p-5 rounded-2xl border-2 transition-all duration-300 ';
                     
                     if (inPractice) {
@@ -274,7 +359,6 @@ function initializeGame() {
                         modeSurvivalBtn.className = baseClass + 'border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50';
                         modeSurvivalBtn.setAttribute('aria-pressed', 'false');
                         modeSurvivalBtn.removeAttribute('aria-disabled');
-                        if (modeDesc) modeDesc.textContent = '練習模式：10 關，每關 5 題；不列入排行';
                     } else {
                         // 一般：依選擇顯示闖關/生存
                         const classicSelected = c && !hasEquipPending;
@@ -287,9 +371,6 @@ function initializeGame() {
                         modeSurvivalBtn.className = survivalClass;
                         modeSurvivalBtn.setAttribute('aria-pressed', survivalSelected ? 'true' : 'false');
                         modeSurvivalBtn.removeAttribute('aria-disabled');
-                        if (modeDesc) modeDesc.textContent = (gameState.playMode === 'classic')
-                            ? '10 關，每關 5 題；完成全部進入結算'
-                            : '90 秒倒數；答對依速度變動加秒；失誤立即扣秒，最終答錯補扣至固定總額；時間到結算';
                     }
 
                     // 若有裝備課程班級待選（將進入裝備模式），將闖關/生存外觀重置為未選以避免色框殘留
@@ -299,6 +380,14 @@ function initializeGame() {
                         modeSurvivalBtn.className = baseClass + 'border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50';
                         modeSurvivalBtn.setAttribute('aria-pressed', 'false');
                     }
+
+                    try {
+                        customAreaCard?.setAttribute('aria-pressed', customSelected ? 'true' : 'false');
+                        equipCourseCard?.setAttribute('aria-pressed', hasEquipPending ? 'true' : 'false');
+                        const grid = document.getElementById('mainMenuGrid');
+                        const hasActive = (gameState.playMode === 'classic') || (gameState.playMode === 'survival') || customSelected || hasEquipPending;
+                        if (grid) grid.classList.toggle('mode-selection-active', hasActive);
+                    } catch(_) {}
                 };
                 // 讓其他地方可呼叫 UI 更新
                 window.__applyModeUI = applyModeUI;
@@ -327,10 +416,7 @@ function initializeGame() {
         if (modeClassicBtn) modeClassicBtn.addEventListener('click', () => {
                     if (!gameState.range && gameState.playMode === 'classic') {
                         gameState.playMode = null; // deselect
-                        highlightSelectedModeCard(null);
-                        updateStartButtonState();
-                        applyModeUI();
-            try { modeClassicBtn.style.borderColor=''; modeClassicBtn.style.boxShadow=''; } catch(_) {}
+                        selectHomeMode(null);
                         try { const m=MODE_HINTS.deselect; showCuteHint(m.lines, m.theme, undefined, m.icon); } catch(_) {}
                         return;
                     }
@@ -340,10 +426,7 @@ function initializeGame() {
         if (modeSurvivalBtn) modeSurvivalBtn.addEventListener('click', () => {
                     if (!gameState.range && gameState.playMode === 'survival') {
                         gameState.playMode = null;
-                        highlightSelectedModeCard(null);
-                        updateStartButtonState();
-                        applyModeUI();
-            try { modeSurvivalBtn.style.borderColor=''; modeSurvivalBtn.style.boxShadow=''; } catch(_) {}
+                        selectHomeMode(null);
                         try { const m=MODE_HINTS.deselect; showCuteHint(m.lines, m.theme, undefined, m.icon); } catch(_) {}
                         return;
                     }
@@ -379,13 +462,8 @@ function initializeGame() {
                             try { gameState.customBooks = []; initializeCustomBooksInExpandCard(); refreshQuickSelectCategoryStates(); } catch(_) {}
                             gameState.range = null;
                             // 一併清除核心模式，回到「未選模式」
-                            try { gameState.playMode = null; highlightSelectedModeCard(null); } catch(_) {}
-                            // 視覺與 ARIA 回復
-                            try { customAreaCard.setAttribute('aria-pressed','false'); } catch(_) {}
-                            try { resetCard(customAreaCard); } catch(_) {}
-                            // 更新整體 UI 與提示
-                            try { applyModeUI(); } catch(_) {}
-                            updateStartButtonState();
+                            try { gameState.playMode = null; } catch(_) {}
+                            selectHomeMode(null);
                             try { const m=MODE_HINTS.deselect; showCuteHint(m.lines, m.theme, undefined, m.icon); } catch(_) {}
                             return;
                         }
@@ -406,11 +484,8 @@ function initializeGame() {
                                 try { gameState.customBooks = []; initializeCustomBooksInExpandCard(); refreshQuickSelectCategoryStates(); } catch(_) {}
                                 gameState.range = null;
                                 // 同步清除核心模式選擇
-                                try { gameState.playMode = null; highlightSelectedModeCard(null); } catch(_) {}
-                                try { customAreaCard.setAttribute('aria-pressed','false'); } catch(_) {}
-                                try { resetCard(customAreaCard); } catch(_) {}
-                                try { applyModeUI(); } catch(_) {}
-                                updateStartButtonState();
+                                try { gameState.playMode = null; } catch(_) {}
+                                selectHomeMode(null);
                                 try { const m=MODE_HINTS.deselect; showCuteHint(m.lines, m.theme, undefined, m.icon); } catch(_) {}
                             } else {
                                 selectHomeMode('custom');
@@ -551,6 +626,8 @@ function initializeGame() {
             
             // 排行榜標籤事件
             document.querySelectorAll('.leaderboard-tab').forEach(tab => {
+                if (tab.__bcBoundSelectTab) return;
+                tab.__bcBoundSelectTab = true;
                 tab.addEventListener('click', selectLeaderboardTab);
             });
 
@@ -578,8 +655,27 @@ function initializeGame() {
                 const confirm = document.getElementById('confirmDevCommand');
                 const cancel = document.getElementById('cancelDevCommand');
                 const closeX = document.getElementById('closeDevCommandX');
+                let diagnosticsLoading = null;
+                function ensureDiagnosticsReady(){
+                    try {
+                        if (window.__devDiagnosticsAdded) return Promise.resolve();
+                        if (diagnosticsLoading) return diagnosticsLoading;
+                        diagnosticsLoading = new Promise((resolve, reject) => {
+                            const script = document.createElement('script');
+                            script.src = 'js/modules/diagnostics.js';
+                            script.defer = true;
+                            script.onload = () => resolve();
+                            script.onerror = (e) => reject(e);
+                            document.head.appendChild(script);
+                        }).finally(() => { diagnosticsLoading = null; });
+                        return diagnosticsLoading;
+                    } catch (e) {
+                        return Promise.reject(e);
+                    }
+                }
                 function openDev(){
                     if (!modal) return; openModal('devCommandModal');
+                    try { ensureDiagnosticsReady().catch(()=>{}); } catch(_) {}
                     if (input){ input.value=''; confirm.disabled=true; confirm.setAttribute('aria-disabled','true'); confirm.classList.add('opacity-60','cursor-not-allowed'); setTimeout(()=>{ try { input.focus(); } catch(_){} },30); }
                     try { announce && announce('已開啟開發者指令視窗'); } catch(_) {}
                 }
@@ -616,7 +712,15 @@ function initializeGame() {
                         let effective = null;
                         try {
                             const res = window.Leaderboard.load();
-                            effective = (res && typeof res.then === 'function') ? await res : res;
+                            if (res && typeof res.then === 'function') {
+                                const timeoutMs = (window.__BC_CONSTS && window.__BC_CONSTS.LEADERBOARD_ONLINE_TIMEOUT_MS) || 7000;
+                                effective = await Promise.race([
+                                    res,
+                                    new Promise(resolve => setTimeout(() => resolve({ classic: [], survival: [] }), timeoutMs))
+                                ]);
+                            } else {
+                                effective = res;
+                            }
                         } catch(_) { effective = { classic: [], survival: [] }; }
                         const list = (effective && effective[mode]) ? effective[mode] : [];
                         const currentCount = Array.isArray(list) ? list.length : 0;
@@ -720,11 +824,18 @@ function initializeGame() {
                                 timeReward,
                                 usedHintsCount: (totalHints - hintsRemaining),
                                 createdAt: now + i,
-                                achievements: []
+                                achievements: [],
+                                isSeed: true
                             };
                             // Online-only: do NOT write to local storage
                             if (remoteAlso && window.Leaderboard && typeof window.Leaderboard.save === 'function') {
-                                try { await window.Leaderboard.save(rec); } catch(e){ console.warn('[DEV] remote seed save failed', e); }
+                                try {
+                                    const timeoutMs = (window.__BC_CONSTS && window.__BC_CONSTS.LEADERBOARD_ONLINE_TIMEOUT_MS) || 7000;
+                                    await Promise.race([
+                                        window.Leaderboard.save(rec),
+                                        new Promise((_, reject) => setTimeout(() => reject(new Error('dev-seed-save-timeout')), timeoutMs))
+                                    ]);
+                                } catch(e){ console.warn('[DEV] remote seed save failed', e); }
                             }
                             added.push(rec);
                         }
@@ -847,7 +958,9 @@ function initializeGame() {
 
                 // debug helper: surface whether timeReward was present/estimated for this record
                 try {
-                    console.log('[DEBUG] openLeaderboardRecordById record:', { id: record.id, score: record.score, timeReward: record.timeReward, timeRewardEstimated: record.timeRewardEstimated, hintsRemaining: record.hintsRemaining, totalHints: record.totalHints });
+                    if (window.__debugPerf || window.__BC_DEBUG_ENABLED) {
+                        console.log('[DEBUG] openLeaderboardRecordById record:', { id: record.id, score: record.score, timeReward: record.timeReward, timeRewardEstimated: record.timeRewardEstimated, hintsRemaining: record.hintsRemaining, totalHints: record.totalHints });
+                    }
                 } catch (e) {}
 
                 // 填入結算視窗內容（從儲存紀錄填充，不會進行新的儲存）
@@ -1128,11 +1241,7 @@ function initializeGame() {
                 // 重播啟動時重新建立連擊 8 格 UI 並重設 combo 狀態
                 try {
                     gameState.combo = 0; gameState.comboProgress = 0;
-                    const segWrap = document.getElementById('comboSegments');
-                    if (segWrap) {
-                        segWrap.innerHTML='';
-                        for (let i=0;i<8;i++){ const s=document.createElement('div'); s.className='combo-seg'; segWrap.appendChild(s);}    
-                    }
+                    ensureComboSegmentsReady();
                     if (typeof updateComboUI==='function') updateComboUI(true);
                 } catch(_) {}
                 // Reset per-level failed counter for the replay session
@@ -1147,7 +1256,8 @@ function initializeGame() {
                 // 初始化題目相關 UI
                 updateGameUI();
                 displayQuestions();
-                updateQuestionOvals();
+                if (typeof scheduleProgressUIUpdate === 'function') scheduleProgressUIUpdate({ question: true });
+                else updateQuestionOvals();
 
                 // start level timer so time-reward and score updates work for the replayed session
                 try {
@@ -1288,12 +1398,37 @@ function initializeGame() {
 
         <!-- Extracted: book-selection.js -->
 function startGame() {
+                if (window.__startFlowActive) return;
+                window.__startFlowActive = true;
+                const abortStartFlow = () => {
+                    try { window.__startFlowActive = false; } catch(_) {}
+                };
                 // Initialize Metrics for the new run
                 if (window.resetGameMetrics) window.resetGameMetrics(gameState.playMode);
+
+                // 題庫未就緒時不可進入倒數：主動急載入並給出即時提示
+                try {
+                    const hasData = !!(
+                        (Array.isArray(window.__normalizedDB) && window.__normalizedDB.length > 0) ||
+                        (Array.isArray(window.verseDatabase) && window.verseDatabase.length > 0)
+                    );
+                    if (!hasData) {
+                        try { if (typeof requestUrgentVerseLoad === 'function') requestUrgentVerseLoad(false); } catch(_) {}
+                        const hint = document.getElementById('gameStartHint');
+                        if (hint) {
+                            hint.textContent = '題庫載入中，請稍候再試…';
+                            hint.style.opacity = '1';
+                        }
+                        try { updateStartButtonState(); } catch(_) {}
+                        abortStartFlow();
+                        return;
+                    }
+                } catch(_) {}
 
                 // 允許啟動途徑：排行（罕見度）、練習（範圍）、或核心模式（闖關/生存）
                 const isCoreMode = (gameState.playMode === 'classic' || gameState.playMode === 'survival');
                 if (!isCoreMode && !gameState.rarity && !gameState.range && !gameState.__pendingEquipTier) {
+                    abortStartFlow();
                     return;
                 }
             try { hideCuteHint(); } catch(_) {}
@@ -1309,6 +1444,7 @@ function startGame() {
             warn.textContent = '⚠️ 自訂範圍至少選 1 本書卷';
                         warn.classList.remove('hidden');
                     }
+                    abortStartFlow();
                     return;
                 }
                 
@@ -1317,15 +1453,26 @@ function startGame() {
                 if (availableVersesCount < 5) {
             document.getElementById('rangeWarning').innerHTML = '⚠️ 可用經文不足（至少需要 5 篇），請擴大範圍或更換主題/範圍！';
                     document.getElementById('rangeWarning').classList.remove('hidden');
+                    abortStartFlow();
                     return;
                 }
             }
             
             // 開始倒數
-            startCountdown();
+            try { startCountdown(); } catch(_) { abortStartFlow(); }
         }
         
     function startCountdown() {
+            try {
+                if (window.__startCountdownInterval) {
+                    clearInterval(window.__startCountdownInterval);
+                    window.__startCountdownInterval = null;
+                }
+                if (window.__startFlowWatchdog) {
+                    clearTimeout(window.__startFlowWatchdog);
+                    window.__startFlowWatchdog = null;
+                }
+            } catch(_) {}
             // 顯示開始遊戲提示視窗
             showGameStartModal();
             
@@ -1380,6 +1527,20 @@ function startGame() {
                 }
             } catch(_) {}
             
+            try {
+                window.__startFlowWatchdog = setTimeout(() => {
+                    try {
+                        if (!window.__startFlowActive) return;
+                        const modal = document.getElementById('gameStartModal');
+                        if (modal) {
+                            hideGameStartModal();
+                            try { lockMainScreenButtons(false); } catch(_) {}
+                            try { updateStartButtonState(); } catch(_) {}
+                        }
+                    } catch(_) {}
+                }, 9000);
+            } catch(_) {}
+
             const countdownInterval = setInterval(() => {
                 if (countdown > 0) {
                     // 只更新提示視窗的倒數，不改變按鈕文字
@@ -1450,13 +1611,16 @@ function startGame() {
                 // 一旦觸發切換即可清除定時器，避免重複觸發
                 if (hasSwitched) {
                     clearInterval(countdownInterval);
+                    try { window.__startCountdownInterval = null; } catch(_) {}
                 } else if (countdown < -1) {
                     // 防守性：若未能觸發切換則直接開始
                     clearInterval(countdownInterval);
+                    try { window.__startCountdownInterval = null; } catch(_) {}
                     try { actuallyStartGame(); } catch(_) {}
                     try { hideGameStartModal(); } catch(_) {}
                 }
             }, 1000);
+            try { window.__startCountdownInterval = countdownInterval; } catch(_) {}
         }
         
         function showGameStartModal() {
@@ -1514,6 +1678,17 @@ function startGame() {
             if (modal) {
                 modal.remove();
             }
+            try {
+                if (window.__startCountdownInterval) {
+                    clearInterval(window.__startCountdownInterval);
+                    window.__startCountdownInterval = null;
+                }
+                if (window.__startFlowWatchdog) {
+                    clearTimeout(window.__startFlowWatchdog);
+                    window.__startFlowWatchdog = null;
+                }
+            } catch(_) {}
+            try { window.__startFlowActive = false; } catch(_) {}
         }
 
         function lockMainScreenButtons(lock) {
@@ -1557,6 +1732,17 @@ function startGame() {
         }
         
         function actuallyStartGame() {
+            try {
+                if (window.__startCountdownInterval) {
+                    clearInterval(window.__startCountdownInterval);
+                    window.__startCountdownInterval = null;
+                }
+                if (window.__startFlowWatchdog) {
+                    clearTimeout(window.__startFlowWatchdog);
+                    window.__startFlowWatchdog = null;
+                }
+            } catch(_) {}
+            try { window.__startFlowActive = false; } catch(_) {}
             // 若選擇了裝備課程班級，改走裝備課程流程（仍沿用倒數）
             if (gameState.__pendingEquipTier) {
                 const tier = gameState.__pendingEquipTier;
@@ -1655,7 +1841,10 @@ function startGame() {
             // 隱藏主選單品牌角標
             try { const m = document.getElementById('menuBrandCorner'); if (m) m.style.display = 'none'; } catch(_) {}
             // 先同步一次資訊卡（顯示觀察中與預設難度配色），避免舊狀態殘留
-            try { updateAdaptiveStatus(); } catch(_) {}
+            try {
+                if (typeof scheduleProgressUIUpdate === 'function') scheduleProgressUIUpdate({ adaptive: true });
+                else updateAdaptiveStatus();
+            } catch(_) {}
             // 初始化本局成就統計（闖關/生存）；練習/裝備不納入
             try {
                 const mode = (gameState.playMode === 'survival' && !gameState.range) ? 'survival' : 'classic';
@@ -1665,52 +1854,47 @@ function startGame() {
 
             generateLevel();
             updateGameUI();
+            const runPostStartUiHydration = () => {
+                // 應用時間獎勵顯示設定
+                updateTimeRewardVisibility();
 
-            // 應用時間獎勵顯示設定
-            updateTimeRewardVisibility();
+                // 初始化連擊槽 segment 方塊
+                try {
+                    ensureComboSegmentsReady();
+                    updateComboUI(true);
+                } catch(_) {}
 
-            // 初始化連擊槽 segment 方塊
-            try {
-                const segWrap = document.getElementById('comboSegments');
-                if (segWrap) {
-                    segWrap.innerHTML = '';
-                    for (let i = 0; i < 8; i++) {
-                        const s = document.createElement('div');
-                        s.className = 'combo-seg';
-                        segWrap.appendChild(s);
+                // 準備手機版迷你關卡進度條位置與內容（依模式/關卡數動態生成）
+                renderMiniLevelPlaceholders();
+
+                // 更新模式顯示並啟動/關閉生存倒數
+                try {
+                    const modeEl = document.getElementById('gameModeDisplay');
+                    if (modeEl) modeEl.textContent = gameState.range ? '練習模式' : (isSurvival() ? '生存計時' : '闖關挑戰');
+                    const card = document.getElementById('survivalTimerCard');
+                    if (isSurvival()) {
+                        if (card) card.classList.remove('hidden');
+                        startSurvivalTimer(90);
+                    } else {
+                        if (card) card.classList.add('hidden');
+                        stopSurvivalTimer();
                     }
-                }
-                updateComboUI(true);
-            } catch(_) {}
-
-            // 準備手機版迷你關卡進度條位置與內容（依模式/關卡數動態生成）
-            renderMiniLevelPlaceholders();
-
-            // 更新模式顯示並啟動/關閉生存倒數
+                    // Desktop: show inline controls; Mobile keeps pinned bar
+                    const controls = document.getElementById('adaptiveControls');
+                    if (controls) controls.classList.toggle('hidden', window.innerWidth < 768);
+                    const pinned = document.getElementById('gameControlsPinned');
+                    if (pinned) pinned.classList.toggle('hidden', window.innerWidth >= 768);
+                    // Wire proxy controls（僅在必要時重綁）
+                    ensureAdaptiveProxyBindings();
+                } catch (_) { /* ignore */ }
+            };
             try {
-                const modeEl = document.getElementById('gameModeDisplay');
-                if (modeEl) modeEl.textContent = gameState.range ? '練習模式' : (isSurvival() ? '生存計時' : '闖關挑戰');
-                const card = document.getElementById('survivalTimerCard');
-                if (isSurvival()) {
-                    if (card) card.classList.remove('hidden');
-                    startSurvivalTimer(90);
+                if (window.requestAnimationFrame) {
+                    window.requestAnimationFrame(() => { setTimeout(runPostStartUiHydration, 0); });
                 } else {
-                    if (card) card.classList.add('hidden');
-                    stopSurvivalTimer();
+                    setTimeout(runPostStartUiHydration, 0);
                 }
-                // Desktop: show inline controls; Mobile keeps pinned bar
-                const controls = document.getElementById('adaptiveControls');
-                if (controls) controls.classList.toggle('hidden', window.innerWidth < 768);
-                const pinned = document.getElementById('gameControlsPinned');
-                if (pinned) pinned.classList.toggle('hidden', window.innerWidth >= 768);
-                // Wire proxy controls
-                const proxyHint = document.getElementById('adaptiveHintBtn');
-                const realHint = document.getElementById('hintBtn');
-                if (proxyHint && realHint) proxyHint.onclick = () => realHint.click();
-                const proxyBack = document.getElementById('adaptiveBackBtn');
-                const realBack = document.getElementById('backToMenuFromGame');
-                if (proxyBack && realBack) proxyBack.onclick = () => realBack.click();
-            } catch (_) { /* ignore */ }
+            } catch(_) { try { runPostStartUiHydration(); } catch(_) {} }
         }
 
     // 生成一個關卡（抽題、重置狀態、更新 UI）
@@ -1724,34 +1908,47 @@ function startGame() {
         }
         function getDifficultyFromCombo(c) {
             const v = Number(c || 0);
-            // 當自訂範圍僅一本書卷時，跳過普通難度，直接在門檻後進入困難
+            const cur = String((gameState && gameState.difficulty) || 'easy');
+            // 當自訂範圍僅一本書卷時，跳過普通難度，改用遲滯門檻避免 8 附近來回跳
+            // 升級：>=8 進 hard；降級：<6 回 easy
             try {
                 if (typeof gameState === 'object' && gameState && gameState.range === 'custom') {
                     const books = Array.isArray(gameState.customBooks) ? gameState.customBooks : [];
                     if (books.length === 1) {
-                        // easy: <8；>=8 直接 hard（跳過 normal）
+                        if (cur === 'hard') return (v < 6) ? 'easy' : 'hard';
                         return (v >= 8) ? 'hard' : 'easy';
                     }
                 }
             } catch(_) { /* ignore, fallback to default */ }
-            return (v >= 16) ? 'hard' : (v >= 8) ? 'normal' : 'easy';
+
+            // 三階遲滯：
+            // easy -> normal: >=8；normal -> easy: <6
+            // normal -> hard: >=16；hard -> normal: <14
+            if (cur === 'hard') return (v < 14) ? 'normal' : 'hard';
+            if (cur === 'normal') {
+                if (v >= 16) return 'hard';
+                if (v < 6) return 'easy';
+                return 'normal';
+            }
+            return (v >= 8) ? 'normal' : 'easy';
         }
 
         // ===== 題型變化：改為依單局時間(0~420s)分階段，而非連擊 =====
-        // tier 0: 0~139s  （最寬鬆）
-        // tier 1: 140~279s（中等）
-        // tier 2: 280s+   （最集中 / 最分散 視模式）
+        // tier 0: 0~159s  （最寬鬆）
+        // tier 1: 160~319s（中等）
+        // tier 2: 320s+   （最集中 / 最分散 視模式）
         function getPatternTimeTier(){
             try {
                 const start = gameState.gameStartTime || Date.now();
                 const elapsed = (Date.now() - start) / 1000; // 秒
-                if (elapsed >= 280) return 2;
-                if (elapsed >= 140) return 1;
+                if (elapsed >= 320) return 2;
+                if (elapsed >= 160) return 1;
                 return 0;
             } catch(_) { return 0; }
         }
 
     function generateLevel() {
+            const isDebugGame = !!window.DEBUG_GAME;
             // 所有難度都是5題/關
             let questionCount = 5;
             // 取得可用經文（已自動補足）
@@ -1759,10 +1956,13 @@ function startGame() {
             // 若為自訂僅一本書卷，保護性地跳過普通難度（即使外部狀態意外設為 normal）
             try {
                 if (gameState && gameState.range === 'custom' && Array.isArray(gameState.customBooks) && gameState.customBooks.length === 1 && gameState.difficulty === 'normal') {
-                    console.log('[DEBUG] Single-book custom range detected. Forcing difficulty from normal to hard to avoid trivial patterns.');
+                    if (isDebugGame) console.log('[DEBUG] Single-book custom range detected. Forcing difficulty from normal to hard to avoid trivial patterns.');
                     gameState.difficulty = 'hard';
                     try { updateSettingsDisplay(); } catch(_) {}
-                    try { updateAdaptiveStatus(); } catch(_) {}
+                    try {
+                        if (typeof scheduleProgressUIUpdate === 'function') scheduleProgressUIUpdate({ adaptive: true });
+                        else updateAdaptiveStatus();
+                    } catch(_) {}
                 }
             } catch(_) { /* non-fatal */ }
             
@@ -1826,7 +2026,7 @@ function startGame() {
                 const usedCount = usedVersesSet.size;
                 const availableCount = availableVerses.length;
                 const unusedCount = availableVerses.filter(v => !usedVersesSet.has(usedKey(v))).length;
-                console.log(`[DEBUG] generateLevel: available=${availableCount}, used=${usedCount}, unused=${unusedCount}, currentLevel=${gameState.currentLevel}`);
+                if (isDebugGame) console.log(`[DEBUG] generateLevel: available=${availableCount}, used=${usedCount}, unused=${unusedCount}, currentLevel=${gameState.currentLevel}`);
             } catch (e) { console.warn('[DEBUG] generateLevel: logging failed', e); }
             // 依難度決定題型分布
             let selectedVerses = [];
@@ -1940,7 +2140,7 @@ function startGame() {
                 availableVerses = availableVerses.filter(v => trySplitVerseText(v.verse, true));
                 const after = availableVerses.length;
                 if (after < before) {
-                    console.log(`簡單模式：可拆分題庫 ${after}/${before}`);
+                    if (isDebugGame) console.log(`簡單模式：可拆分題庫 ${after}/${before}`);
                 }
 
                 // 若可拆分的題庫仍不足 5 題，嘗試合併相鄰經文（同章的相鄰節）生成較長文本
@@ -1960,14 +2160,16 @@ function startGame() {
                             }
                             if (availableVerses.length >= questionCount * 2) break; // 適度擴充，避免過大
                         }
-                        console.log(`簡單模式：合併相鄰經文後，可拆分題庫 = ${availableVerses.length}`);
+                        if (isDebugGame) console.log(`簡單模式：合併相鄰經文後，可拆分題庫 = ${availableVerses.length}`);
                     }
                 }
             }
             
             // 檢查可用經文數量
-            console.log(`可用經文數量: ${availableVerses.length}`);
-            console.log(`選擇的書卷:`, gameState.customBooks);
+            if (isDebugGame) {
+                console.log(`可用經文數量: ${availableVerses.length}`);
+                console.log(`選擇的書卷:`, gameState.customBooks);
+            }
             
             // 確保有足夠的經文（至少 5 題）
             if (availableVerses.length < questionCount) {
@@ -2028,7 +2230,7 @@ function startGame() {
             for (const v of selectedVerses) try { usedVersesSet.add(usedKey(v)); } catch(e) {}
             gameState.usedVerses = usedVersesSet;
         }
-        console.log(`最終生成 ${gameState.questionData.length} 道題目`);
+        if (isDebugGame) console.log(`最終生成 ${gameState.questionData.length} 道題目`);
         gameState.currentQuestion = 1;
         gameState.levelPerfect = true;
         gameState.questionAttempts = {};
@@ -2039,6 +2241,7 @@ function startGame() {
             gameState.questionAttempts[index] = maxAttempts[gameState.difficulty];
         });
         displayQuestions();
+        const levelTimerDelayMs = (gameState.currentLevel === 1) ? 30 : 100;
         setTimeout(() => {
             // levelStartTime 可能會在每題答對後被重置以支援倒數與節奏提示；另一份 _rarityLevelStartTime 專供整關耗時統計
             const nowTs = Date.now();
@@ -2049,7 +2252,7 @@ function startGame() {
             gameState._levelHintsStart = Number(gameState.hintsUsed||0);
             gameState.__comboDroppedForTimeout = false;
             startLevelTimer();
-        }, 100);
+        }, levelTimerDelayMs);
         // Record this level's question set & ordering for multi-level snapshot (v3)
         try {
             if (!Array.isArray(gameState._sessionQuestions)) gameState._sessionQuestions = [];
@@ -2657,7 +2860,7 @@ function startGame() {
             });
             
             // 選中當前經文
-            const selectedCard = document.querySelector(`[data-index="${index}"]`);
+            const selectedCard = document.querySelector(`#gameVerses [data-index="${index}"]`);
             if (selectedCard && gameState.questionAttempts[index] > 0) {
                 selectedCard.classList.add('selected-verse');
                 gameState.selectedVerseIndex = index;
@@ -2814,7 +3017,7 @@ function startGame() {
                 // 取消舊規則：不在答對時根據連續錯誤數顯示提示提醒（改採每關兩題完全答錯觸發）
 
                 // 若該題有提示效果，立即移除（easy 模式使用 pairId）
-                const hintVerseCard = document.querySelector(`[data-index="${gameState.selectedVerseIndex}"]`);
+                const hintVerseCard = document.querySelector(`#gameVerses [data-index="${gameState.selectedVerseIndex}"]`);
                 if (hintVerseCard) hintVerseCard.classList.remove('hint-flash');
                 if (gameState.difficulty === 'easy') {
                     const hintChapterCard = document.querySelector(`[data-pair-id="${selectedQuestion.pairId}"]`);
@@ -2860,7 +3063,8 @@ function startGame() {
                 // Metrics: 記錄正確答題（毫秒）：以事件式段起點計
                 try {
                     const baseTs = (gameMetrics && gameMetrics.speedEventStartTs) || __ansStart;
-                    recordAnswer(true, Math.max(1, Date.now() - baseTs));
+                    const qKey = `${gameState.currentLevel || 0}:${gameState.selectedVerseIndex || 0}`;
+                    recordAnswer(true, Math.max(1, Date.now() - baseTs), qKey);
                     if (gameMetrics) gameMetrics.speedEventStartTs = Date.now();
                 } catch(_) {}
                 // 正確答案：提高 Combo
@@ -2883,7 +3087,7 @@ function startGame() {
                 }
                 
                 // 移除經文卡片的選中狀態和點擊事件
-                const verseCard = document.querySelector(`[data-index="${gameState.selectedVerseIndex}"]`);
+                const verseCard = document.querySelector(`#gameVerses [data-index="${gameState.selectedVerseIndex}"]`);
                     if (verseCard) {
                     // mark verse correct and clear any lingering error/shake/red classes via helper
                     clearErrorState(verseCard);
@@ -2949,10 +3153,11 @@ function startGame() {
                 gameState.selectedVerseIndex = null;
                 
                 // 更新題目進度顯示
-                updateQuestionOvals();
+                if (typeof scheduleProgressUIUpdate === 'function') scheduleProgressUIUpdate({ question: true });
+                else updateQuestionOvals();
                 
-                // 檢查是否完成所有題目
-                setTimeout(() => checkLevelComplete(), 500);
+                // 檢查是否完成所有題目（合併重複觸發）
+                scheduleLevelCompleteCheck(140);
                 
                 // 答題結束後，在手機上將焦點回到前段經文面板
                 scrollToFrontPanel();
@@ -3017,7 +3222,8 @@ function startGame() {
                 // 保留成就與統計紀錄；自 adaptiveVerseRarity 改版後不再收集 recentAnswerTimes。
                 try {
                     const baseTs = (gameMetrics && gameMetrics.speedEventStartTs) || (gameState.currentQuestionStartTime || gameState.levelStartTime || Date.now());
-                    recordAnswer(false, Math.max(1, Date.now() - baseTs));
+                    const qKey = `${gameState.currentLevel || 0}:${gameState.selectedVerseIndex || 0}`;
+                    recordAnswer(false, Math.max(1, Date.now() - baseTs), qKey);
                     if (gameMetrics) gameMetrics.speedEventStartTs = Date.now();
                 } catch(_) {}
                 
@@ -3035,7 +3241,7 @@ function startGame() {
                 try { hideCuteHint(); } catch (_) {}
                 
                 // 顯示失誤扣分動畫
-                const verseCard = document.querySelector(`[data-index="${gameState.selectedVerseIndex}"]`);
+                const verseCard = document.querySelector(`#gameVerses [data-index="${gameState.selectedVerseIndex}"]`);
                 if (verseCard) {
                     showScoreAnimation('-50', false, verseCard);
                 }
@@ -3069,7 +3275,7 @@ function startGame() {
                         }
                     } catch(_) {}
                     // 沒有機會了，標記經文為錯誤
-                    const verseCard = document.querySelector(`[data-index="${gameState.selectedVerseIndex}"]`);
+                    const verseCard = document.querySelector(`#gameVerses [data-index="${gameState.selectedVerseIndex}"]`);
                     if (verseCard) {
                         verseCard.classList.add('bg-red-100', 'border-red-300');
                         const vInner = verseCard.querySelector('div') || verseCard;
@@ -3161,7 +3367,7 @@ function startGame() {
                         if (total > 0) {
                             const remaining = [];
                             for (let i = 0; i < total; i++) {
-                                const vc = document.querySelector(`[data-index="${i}"]`);
+                                const vc = document.querySelector(`#gameVerses [data-index="${i}"]`);
                                 if (!vc) continue;
                                 const isDoneWrong = vc.classList.contains('bg-red-100');
                                 const isDoneRight = vc.classList.contains('bg-green-100');
@@ -3173,7 +3379,7 @@ function startGame() {
                                 const q = gameState.questionData[remIdx];
                                 // 將剩餘題目直接標記為錯誤（不顯示扣分動畫，不更動分數）
                                 gameState.questionAttempts[remIdx] = 0;
-                                const remVerseCard = document.querySelector(`[data-index="${remIdx}"]`);
+                                const remVerseCard = document.querySelector(`#gameVerses [data-index="${remIdx}"]`);
                                 if (remVerseCard) {
                                     clearErrorState(remVerseCard);
                                     remVerseCard.classList.remove('bg-blue-50','border-blue-200','bg-yellow-100','border-yellow-300','bg-orange-100','border-orange-300','selected-verse');
@@ -3214,7 +3420,8 @@ function startGame() {
 
                                 // 清理狀態並刷新進度（後續會有統一的完成檢查排程）
                                 gameState.selectedVerseIndex = null;
-                                updateQuestionOvals();
+                                if (typeof scheduleProgressUIUpdate === 'function') scheduleProgressUIUpdate({ question: true });
+                                else updateQuestionOvals();
                                 // 視圖回到前段面板
                                 scrollToFrontPanel();
                             }
@@ -3225,10 +3432,11 @@ function startGame() {
                     gameState.selectedVerseIndex = null;
                     
                     // 更新題目進度顯示
-                    updateQuestionOvals();
+                    if (typeof scheduleProgressUIUpdate === 'function') scheduleProgressUIUpdate({ question: true });
+                    else updateQuestionOvals();
                     
-                    // 檢查是否所有題目都完成
-                    setTimeout(() => checkLevelComplete(), 500);
+                    // 檢查是否所有題目都完成（合併重複觸發）
+                    scheduleLevelCompleteCheck(140);
 
                     // 若該題次數用盡，將視圖回到前段面板，方便使用者查看下一題
                     scrollToFrontPanel();
@@ -3243,7 +3451,7 @@ function startGame() {
     // 依答題狀態改變經文卡顏色（對/錯/未答）
     // Update verse card color based on answer state
     function updateVerseCardColor(index) {
-            const verseCard = document.querySelector(`[data-index="${index}"]`);
+            const verseCard = document.querySelector(`#gameVerses [data-index="${index}"]`);
             if (!verseCard) return;
             
             const attempts = gameState.questionAttempts[index];
@@ -3289,15 +3497,41 @@ function startGame() {
             }
             
             // 更新題目進度顯示
-            updateQuestionOvals();
+            if (typeof scheduleProgressUIUpdate === 'function') scheduleProgressUIUpdate({ question: true });
+            else updateQuestionOvals();
+        }
+
+    // 輕節流：合併短時間內重複的關卡完成檢查
+    // Lightweight dedupe for repeated level-complete checks
+    function scheduleLevelCompleteCheck(delayMs = 140) {
+            try {
+                const delay = Math.max(80, Number(delayMs) || 140);
+                if (gameState.__levelCompleteTimer) {
+                    clearTimeout(gameState.__levelCompleteTimer);
+                    gameState.__levelCompleteTimer = null;
+                }
+                gameState.__levelCompleteTimer = setTimeout(() => {
+                    gameState.__levelCompleteTimer = null;
+                    checkLevelComplete();
+                }, delay);
+            } catch(_) {
+                try { checkLevelComplete(); } catch(__) {}
+            }
         }
 
     // 檢查本關是否完成，結算 perfect/complete/partial/failed 狀態
     // Check if level is finished and set result state
     function checkLevelComplete() {
+            const isDebugGame = !!window.DEBUG_GAME;
+            try {
+                if (gameState.__levelCompleteTimer) {
+                    clearTimeout(gameState.__levelCompleteTimer);
+                    gameState.__levelCompleteTimer = null;
+                }
+            } catch(_) {}
             // 確保有題目數據
             if (!gameState.questionData || gameState.questionData.length === 0) {
-                console.log('沒有題目數據，無法檢查關卡完成狀態');
+                if (isDebugGame) console.log('沒有題目數據，無法檢查關卡完成狀態');
                 return;
             }
             // 若本關結束流程已處理過，直接跳出避免重入
@@ -3305,29 +3539,37 @@ function startGame() {
             if (gameState.levelEndHandled) {
                 return;
             }
+
+            const totalQuestions = gameState.questionData.length;
+            const byIndex = new Map();
+            try {
+                document.querySelectorAll('#gameVerses [data-index]').forEach((card) => {
+                    const idx = Number(card.dataset && card.dataset.index);
+                    if (Number.isFinite(idx)) byIndex.set(idx, card);
+                });
+            } catch(_) {}
+
+            let completedQuestions = 0;
+            let correctQuestions = 0;
+            for (let index = 0; index < totalQuestions; index++) {
+                const verseCard = byIndex.get(index);
+                if (!verseCard) continue;
+                const isCorrect = verseCard.classList.contains('bg-green-100');
+                const isWrong = verseCard.classList.contains('bg-red-100');
+                if (isCorrect || isWrong) completedQuestions++;
+                if (isCorrect) correctQuestions++;
+            }
+            if (isDebugGame) console.log(`已完成題目: ${completedQuestions}/${totalQuestions}`);
             
-            const completedQuestions = gameState.questionData.filter((_, index) => {
-                const verseCard = document.querySelector(`[data-index="${index}"]`);
-                return verseCard && (verseCard.classList.contains('bg-green-100') || verseCard.classList.contains('bg-red-100'));
-            }).length;
-            
-            console.log(`已完成題目: ${completedQuestions}/${gameState.questionData.length}`);
-            
-            if (completedQuestions === gameState.questionData.length) {
+            if (completedQuestions === totalQuestions) {
                 // 標記：本關結束流程已處理，避免重複觸發
                 // Mark: handled to avoid duplicate transitions/scoring
                 gameState.levelEndHandled = true;
                 // 停止計時器
                 GameTimer.stopLevel();
-                
-                // 檢查獎勵
-                const correctQuestions = gameState.questionData.filter((_, index) => {
-                    const verseCard = document.querySelector(`[data-index="${index}"]`);
-                    return verseCard && verseCard.classList.contains('bg-green-100');
-                }).length;
-                
-                const allCorrect = correctQuestions === gameState.questionData.length;
-                console.log(`答對題目: ${correctQuestions}/${gameState.questionData.length}, 全對: ${allCorrect}`);
+
+                const allCorrect = correctQuestions === totalQuestions;
+                if (isDebugGame) console.log(`答對題目: ${correctQuestions}/${totalQuestions}, 全對: ${allCorrect}`);
                 
                 // 記錄關卡結果
                 // 檢查是否有使用過提示的題目（僅考慮本關的提示記錄）
@@ -3351,7 +3593,7 @@ function startGame() {
                     try { startStarRain(); } catch(_) {}
                     // 震撼特效（金色）
                     try { triggerLevelEffect('perfect'); } catch(_) {}
-                    console.log('完美關卡！');
+                    if (isDebugGame) console.log('完美關卡！');
                 } else if (allCorrect) {
                     // 全對關卡（全對但可能用了提示或有失誤）
                     gameState.levelResults[gameState.currentLevel] = 'complete';
@@ -3363,7 +3605,7 @@ function startGame() {
                     try { stopStarRain(false); } catch(_) {}
                     // 震撼特效（綠色）
                     try { triggerLevelEffect('complete'); } catch(_) {}
-                    console.log('全對關卡！');
+                    if (isDebugGame) console.log('全對關卡！');
                 } else {
                     // 部分正確或全錯
                     if (correctQuestions === 0) {
@@ -3372,18 +3614,19 @@ function startGame() {
                         try { SFX.play('wrong'); } catch(_) {}
                         // 震撼特效（紅色）
                         try { triggerLevelEffect('failed'); } catch(_) {}
-                        console.log('全錯關卡');
+                        if (isDebugGame) console.log('全錯關卡');
                     } else {
                         gameState.levelResults[gameState.currentLevel] = 'partial';
                         try { recordLevelResult(false); } catch(_) {}
-                        console.log('部分正確關卡');
+                        if (isDebugGame) console.log('部分正確關卡');
                     }
                     // 非完美：停止星星雨
                     try { stopStarRain(false); } catch(_) {}
                 }
                 
                 // 立即更新關卡進度顯示
-                updateLevelOvals();
+                if (typeof scheduleProgressUIUpdate === 'function') scheduleProgressUIUpdate({ level: true });
+                else updateLevelOvals();
                 // 關卡結束後嘗試即時成就評估（例如連續完美/層數）
                 try { evaluateRealtimeAchievements(); } catch(_) {}
                 // 裝備課程時，不進入闖關模式的切關流程（由 equip 流程自行管控）
@@ -3478,9 +3721,10 @@ function startGame() {
                 const handoffLevel = gameState.currentLevel;
                 gameState.__handoffDone = false;
                 const runHandoff = () => {
+                    const isDebugGame = !!window.DEBUG_GAME;
                     // 避免重複執行
                     if (gameState.__handoffDone) return;
-                    console.log(`當前關卡: ${gameState.currentLevel}`);
+                    if (isDebugGame) console.log(`當前關卡: ${gameState.currentLevel}`);
                     const safeCall = (fn) => {
                         try { fn(); } catch (e) { console.error('關卡切換發生例外，嘗試保護性解鎖', e); }
                         finally {
@@ -3492,19 +3736,19 @@ function startGame() {
                     const maxLevels = getLevelCount();
                     if (!maxLevels || isSurvival()) {
                         // Survival mode doesn't auto-complete on level; continue until timer ends
-                        console.log('生存模式：持續下一關');
+                        if (isDebugGame) console.log('生存模式：持續下一關');
                         try { showLevelEncouragementCute(); } catch (e) {}
-                        setTimeout(() => { console.log('執行下一關'); safeCall(() => nextLevel()); }, 30);
+                        setTimeout(() => { if (isDebugGame) console.log('執行下一關'); safeCall(() => nextLevel()); }, 30);
                         return;
                     }
                     if (gameState.currentLevel >= maxLevels) {
-                        console.log('遊戲完成！');
+                        if (isDebugGame) console.log('遊戲完成！');
                         try { showLevelEncouragementCute(); } catch (e) {}
-                        setTimeout(() => { console.log('執行完成遊戲'); safeCall(() => completeGame()); }, 30);
+                        setTimeout(() => { if (isDebugGame) console.log('執行完成遊戲'); safeCall(() => completeGame()); }, 30);
                     } else {
-                        console.log('進入下一關');
+                        if (isDebugGame) console.log('進入下一關');
                         try { showLevelEncouragementCute(); } catch (e) {}
-                        setTimeout(() => { console.log('執行下一關'); safeCall(() => nextLevel()); }, 30);
+                        setTimeout(() => { if (isDebugGame) console.log('執行下一關'); safeCall(() => nextLevel()); }, 30);
                     }
                 };
 
@@ -3695,7 +3939,7 @@ function startGame() {
             // 找到所有未完成且未答錯的題目
             const availableQuestions = [];
             gameState.questionData.forEach((question, index) => {
-                const verseCard = document.querySelector(`[data-index="${index}"]`);
+                const verseCard = document.querySelector(`#gameVerses [data-index="${index}"]`);
                 if (verseCard &&
                     !verseCard.classList.contains('bg-green-100') &&
                     !verseCard.classList.contains('bg-red-100') &&
@@ -3725,7 +3969,7 @@ function startGame() {
             let selectedQuestionIndex = null;
             if (gameState.selectedVerseIndex != null) {
                 const sel = gameState.selectedVerseIndex;
-                const selCard = document.querySelector(`[data-index="${sel}"]`);
+                const selCard = document.querySelector(`#gameVerses [data-index="${sel}"]`);
                 const selAttempts = typeof gameState.questionAttempts[sel] === 'number' ? gameState.questionAttempts[sel] : 0;
                 const selNotAnswered = selCard && !selCard.classList.contains('bg-green-100') && !selCard.classList.contains('bg-red-100') && selAttempts > 0;
                 if (selNotAnswered) selectedQuestionIndex = sel;
@@ -3750,7 +3994,7 @@ function startGame() {
             });
 
             // 找到正確的章節卡片（easy 使用 pairId）
-            const verseCard = document.querySelector(`[data-index="${selectedQuestionIndex}"]`);
+            const verseCard = document.querySelector(`#gameVerses [data-index="${selectedQuestionIndex}"]`);
             let correctChapter = null;
             if (gameState.difficulty === 'easy' && selectedQuestion.pairId) {
                 correctChapter = document.querySelector(`[data-pair-id="${selectedQuestion.pairId}"]`);
@@ -3819,10 +4063,12 @@ function startGame() {
             try {
                 const c = Number(gameState.combo || 0);
                 const nextDiff = getDifficultyFromCombo(c);
+                gameState._adaptiveDiffChangedThisTransition = false;
                 // 僅在變更時套用並提示
                 if (nextDiff !== gameState.difficulty) {
                     gameState.difficulty = nextDiff;
                     gameState._lastAdaptiveDifficulty = nextDiff;
+                    gameState._adaptiveDiffChangedThisTransition = true;
                     // 更新遊戲中的設定顯示卡片
                     try { updateSettingsDisplay(); } catch(_) {}
                     // 以可愛吐司提示玩家難度調整
@@ -3830,7 +4076,10 @@ function startGame() {
                     const theme = nextDiff === 'easy' ? 'green' : nextDiff === 'normal' ? 'amber' : 'red';
                     const icon = nextDiff === 'easy' ? '🌱' : nextDiff === 'normal' ? '⭐' : '🔥';
                     showCuteHint(msg, theme, 1600, icon);
-                    try { updateAdaptiveStatus(); } catch(_) {}
+                    try {
+                        if (typeof scheduleProgressUIUpdate === 'function') scheduleProgressUIUpdate({ adaptive: true });
+                        else updateAdaptiveStatus();
+                    } catch(_) {}
                 }
 
                     // ====== 新：逐關經文罕見度（common → normal → rare 漸進 / 反向漸退）======
@@ -3854,6 +4103,25 @@ function startGame() {
                     // 參數可後續抽離設定
                     function updateAdaptiveVerseRarity(prevLevelDurationSec){
                         try {
+                            // 若本次轉場會改變配對難度，則本關罕見度延後一關再評估（同關最多變一軸）
+                            try {
+                                const comboNow = Number(gameState.combo || 0);
+                                const predictedDiff = getDifficultyFromCombo(comboNow);
+                                const curDiff = String(gameState.difficulty || 'easy');
+                                if (predictedDiff !== curDiff) {
+                                    gameState._rarityPosBuf = 0;
+                                    gameState._rarityNegBuf = 0;
+                                    gameState.lastLevelDurationSec = Number(prevLevelDurationSec || 0);
+                                    gameState.lastLevelPerformanceScore = null;
+                                    console.log('[RARITY][PS] skipped due to pending difficulty switch', {
+                                        level: Number(gameState.currentLevel||0),
+                                        curDiff,
+                                        predictedDiff
+                                    });
+                                    return;
+                                }
+                            } catch(_) {}
+
                             const labelMap = { common:'常見', normal:'一般', rare:'冷門' };
                             const lvl = Number(gameState.currentLevel||0);
                             const duration = Number(prevLevelDurationSec||0);
@@ -3888,10 +4156,10 @@ function startGame() {
                             if (typeof gameState._rarityPosBuf !== 'number') gameState._rarityPosBuf = 0;
                             if (typeof gameState._rarityNegBuf !== 'number') gameState._rarityNegBuf = 0;
                             let promote = false, demote = false;
-                            if (PS >= 0.40) { promote = (cur !== 'rare'); gameState._rarityPosBuf = 0; gameState._rarityNegBuf = 0; }
-                            else if (PS <= -0.40) { demote = (cur !== 'common'); gameState._rarityPosBuf = 0; gameState._rarityNegBuf = 0; }
-                            else if (PS >= 0.15) { gameState._rarityPosBuf++; gameState._rarityNegBuf = 0; if (gameState._rarityPosBuf >= 2 && cur !== 'rare') { promote = true; gameState._rarityPosBuf = 0; } }
-                            else if (PS <= -0.15) { gameState._rarityNegBuf++; gameState._rarityPosBuf = 0; if (gameState._rarityNegBuf >= 2 && cur !== 'common') { demote = true; gameState._rarityNegBuf = 0; } }
+                            if (PS >= 0.55) { promote = (cur !== 'rare'); gameState._rarityPosBuf = 0; gameState._rarityNegBuf = 0; }
+                            else if (PS <= -0.55) { demote = (cur !== 'common'); gameState._rarityPosBuf = 0; gameState._rarityNegBuf = 0; }
+                            else if (PS >= 0.20) { gameState._rarityPosBuf++; gameState._rarityNegBuf = 0; if (gameState._rarityPosBuf >= 3 && cur !== 'rare') { promote = true; gameState._rarityPosBuf = 0; } }
+                            else if (PS <= -0.20) { gameState._rarityNegBuf++; gameState._rarityPosBuf = 0; if (gameState._rarityNegBuf >= 3 && cur !== 'common') { demote = true; gameState._rarityNegBuf = 0; } }
                             else { // 穩定區
                                 gameState._rarityPosBuf = 0; gameState._rarityNegBuf = 0;
                             }
@@ -3921,9 +4189,10 @@ function startGame() {
     // 進入下一關：檢查題庫剩餘數、重置單關狀態
     // Advance to next level; reset per-level flags
     function nextLevel() {
+            const isDebugGame = !!window.DEBUG_GAME;
             // If equip is running, do not use classic nextLevel; equip controls its own progression
             if (gameState.equipRunning) { console.warn('[EQUIP] Ignoring classic nextLevel during equip run'); try { setLevelInteractionLock(false); } catch(_) {} return; }
-            console.log('[DEBUG] nextLevel invoked, currentLevel=', gameState.currentLevel);
+            if (isDebugGame) console.log('[DEBUG] nextLevel invoked, currentLevel=', gameState.currentLevel);
             // 保守：在嘗試進入下一關前先鎖住互動，並在最終 finally 中一定會解除
             try { setLevelInteractionLock(true); } catch(_) {}
 
@@ -3946,7 +4215,7 @@ function startGame() {
                     const usedKey = (v) => `${v.book}|${v.chapter}|${v.verse}`;
                     const usedVersesSet = gameState.usedVerses || new Set();
                     const uniqueRemaining = Array.isArray(pool) ? pool.filter(v => !usedVersesSet.has(usedKey(v))).length : 0;
-                    console.log(`[DEBUG] nextLevel: uniqueRemaining=${uniqueRemaining}, used=${usedVersesSet.size}, pool=${Array.isArray(pool)?pool.length:0}, currentLevel=${gameState.currentLevel}`);
+                    if (isDebugGame) console.log(`[DEBUG] nextLevel: uniqueRemaining=${uniqueRemaining}, used=${usedVersesSet.size}, pool=${Array.isArray(pool)?pool.length:0}, currentLevel=${gameState.currentLevel}`);
                     if (uniqueRemaining < 5) {
                         console.warn('[DEBUG] nextLevel: insufficient uniqueRemaining -> completeGame()');
                         alert('⚠️ 剩餘未使用的可用經文不足 5 篇，請擴大範圍或改選罕見度。本局將結束。');
@@ -4180,12 +4449,20 @@ function startGame() {
                 if (gameState.finalMetrics && typeof gameState.finalMetrics.avgAnswerMs==='number') {
                     gameRecord.avgAnswerMs = gameState.finalMetrics.avgAnswerMs;
                     gameRecord.avgPerfectAnswerMs = gameState.finalMetrics.avgPerfectAnswerMs;
-                    if (typeof gameState.finalMetrics.noHintCorrectCount === 'number') {
+                    if (typeof gameState.finalMetrics.firstTryCorrectCount === 'number') {
+                        gameRecord.perfectAnswerCount = gameState.finalMetrics.firstTryCorrectCount;
+                    } else if (typeof gameState.finalMetrics.noHintCorrectCount === 'number') {
                         gameRecord.perfectAnswerCount = gameState.finalMetrics.noHintCorrectCount;
                     }
                     if (typeof gameState.finalMetrics.maxComboReached === 'number') gameRecord.maxComboReached = gameState.finalMetrics.maxComboReached;
                     // keep a shallow copy for record view helpers that look under finalMetrics on record
-                    gameRecord.finalMetrics = { maxComboReached: gameState.finalMetrics.maxComboReached, avgAnswerMs: gameState.finalMetrics.avgAnswerMs, avgPerfectAnswerMs: gameState.finalMetrics.avgPerfectAnswerMs };
+                    gameRecord.finalMetrics = {
+                        maxComboReached: gameState.finalMetrics.maxComboReached,
+                        avgAnswerMs: gameState.finalMetrics.avgAnswerMs,
+                        avgPerfectAnswerMs: gameState.finalMetrics.avgPerfectAnswerMs,
+                        firstTryCorrectCount: gameState.finalMetrics.firstTryCorrectCount,
+                        noHintCorrectCount: gameState.finalMetrics.noHintCorrectCount
+                    };
                 }
             } catch(_) {}
             if (!Array.isArray(gameRecord.achievements)) gameRecord.achievements = (gameState.unlockedAchievements||[]).map(a=>({...a}));

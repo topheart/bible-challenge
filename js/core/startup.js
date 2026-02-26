@@ -1,44 +1,128 @@
 
-        // 初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            // Force SW update check only once per session to avoid refresh loops on strict environments
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.ready.then(r => {
-                    // Always try to update on page load to catch hotfixes quickly.
-                    // The infinite loop usually happens if 'controllerchange' causes reload without checks.
-                    // We remove sessionStorage check here to ensure we always get latest if available.
-                    r.update().catch(()=>{});
+        ;(function initEquipPunctMap(){
+            if (window.__equipPunctMapInitialized) return;
+            window.__equipPunctMapInitialized = true;
+            const abbrev = {
+                '創世記':'GEN','出埃及記':'EXO','利未記':'LEV','民數記':'NUM','申命記':'DEU','約書亞記':'JOS','士師記':'JDG','路得記':'RUT','撒母耳記上':'1SA','撒母耳記下':'2SA',
+                '列王紀上':'1KI','列王紀下':'2KI','歷代志上':'1CH','歷代志下':'2CH','以斯拉記':'EZR','尼希米記':'NEH','以斯帖記':'EST','約伯記':'JOB','詩篇':'PSA','箴言':'PRO','傳道書':'ECC','雅歌':'SNG','以賽亞書':'ISA','耶利米書':'JER','耶利米哀歌':'LAM','以西結書':'EZK','但以理書':'DAN','何西阿書':'HOS','約珥書':'JOL','阿摩司書':'AMO','俄巴底亞書':'OBA','約拿書':'JON','彌迦書':'MIC','那鴻書':'NAM','哈巴谷書':'HAB','西番雅書':'ZEP','哈該書':'HAG','撒迦利亞書':'ZEC','瑪拉基書':'MAL',
+                '馬太福音':'MAT','馬可福音':'MRK','路加福音':'LUK','約翰福音':'JHN','使徒行傳':'ACT','羅馬書':'ROM','哥林多前書':'1CO','哥林多後書':'2CO','加拉太書':'GAL','以弗所書':'EPH','腓立比書':'PHP','歌羅西書':'COL','帖撒羅尼迦前書':'1TH','帖撒羅尼迦後書':'2TH','提摩太前書':'1TI','提摩太後書':'2TI','提多書':'TIT','腓利門書':'PHM','希伯來書':'HEB','雅各書':'JAM','彼得前書':'1PE','彼得後書':'2PE','約翰一書':'1JN','約翰二書':'2JN','約翰三書':'3JN','猶大書':'JUD','啟示錄':'REV'
+            };
+            function addAlias(base, k, v){ if(!base[k]&&v) base[k]=v; }
+            function buildAliases(base){
+                Object.keys(base).forEach(key=>{
+                    const v = base[key];
+                    const compact = key.replace(/\s+/g,' ').trim();
+                    if (compact!==key) addAlias(base, compact, v);
+                    const noSpace = compact.replace(/\s*(\d+:)/,' $1').replace(/\s+/g,'').trim();
+                    addAlias(base, noSpace, v);
+                    const m = compact.match(/^([^\d]+)\s+(\d+:\d+(?:-\d+)?)$/);
+                    if (m){
+                        const zhBook = m[1].trim();
+                        const ref = m[2];
+                        const ab = abbrev[zhBook];
+                        if (ab){
+                            addAlias(base, `${ab} ${ref}`, v);
+                            addAlias(base, `${ab}${ref}`, v);
+                        }
+                    }
                 });
             }
+            async function loadEquipPunct(){
+                try {
+                    const res = await fetch('equip-course-growth.json', { cache:'no-store' });
+                    if (!res.ok) throw new Error('equip json load failed');
+                    const data = await res.json();
+                    const punct = {};
+                    ['growth','disciple','leader'].forEach(group=>{
+                        if (!Array.isArray(data[group])) return;
+                        data[group].forEach(entry=>{
+                            if (!entry || !entry.book || !entry.chapter || !Array.isArray(entry.verses)) return;
+                            const key = `${entry.book} ${entry.chapter}`.trim();
+                            const raw = entry.verses.map(s=>s.trim()).filter(Boolean);
+                            let text = (entry.full && entry.full.trim()) || raw.join('，');
+                            if (text && !/[。！？!]$/.test(text)) text += '。';
+                            punct[key] = text;
+                        });
+                    });
+                    buildAliases(punct);
+                    window.__equipPunctMap = punct;
+                    window.__equipCourseRaw = data;
+                    window.__equipBookAbbrevMap = abbrev;
+                    window.dispatchEvent(new CustomEvent('equipPunctReady'));
+                } catch(e){
+                    console.warn('equip-course json load error', e);
+                    window.__equipPunctMap = window.__equipPunctMap || {};
+                }
+            }
+            loadEquipPunct();
+        })();
 
-            try { applyReducedMotionSetting(); } catch(_) {}
-            initializeGame();
-            // Trigger a non-blocking load of leaderboard (online adapter may resolve later)
+        function withPngFallback(src){
             try {
-                // Lazy: defer leaderboard preview paint to avoid competing with first render
-                const lazyLoadLeaderboard = () => {
+                if (!src || typeof src !== 'string') return src;
+                return src.replace(/\.webp(\?.*)?$/i, '.png$1');
+            } catch(_) { return src; }
+        }
+
+        function applyImageSrcWithFallback(imgEl, src){
+            try {
+                if (!imgEl || !src) return;
+                const fallback = withPngFallback(src);
+                imgEl.onerror = function(){
                     try {
-                        const r = loadLeaderboard();
-                        if (r && typeof r.then === 'function') {
-                            r.then(()=>updateLeaderboardDisplay('classic'));
-                        } else {
-                            updateLeaderboardDisplay('classic');
+                        if (fallback && imgEl.src && !imgEl.src.includes('.png')) {
+                            imgEl.src = fallback;
                         }
                     } catch(_) {}
                 };
-                if (window.requestIdleCallback) {
-                    requestIdleCallback(()=> lazyLoadLeaderboard(), { timeout: 1500 });
-                } else {
-                    setTimeout(lazyLoadLeaderboard, 550); // slight delay after initial layout
-                }
-            } catch(_){ }
-            // Defer verse marquee initialization (visual sugar) until idle / after a small delay
-            const initMarquee = () => { try { initializeVerseMarquee(); } catch(_) {} };
-            if (window.requestIdleCallback) {
-                requestIdleCallback(()=> initMarquee(), { timeout: 2000 });
-            } else {
-                setTimeout(initMarquee, 800);
-            }
+                imgEl.src = src;
+            } catch(_) {}
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            try { applyReducedMotionSetting(); } catch(_) {}
+            initializeGame();
+            // 非關鍵任務改為片頭結束後再排程，避免與首屏互動競爭
+            let postStartupScheduled = false;
+            const runPostStartupTasks = () => {
+                if (postStartupScheduled) return;
+                postStartupScheduled = true;
+
+                // Leaderboard preview: lazy and non-blocking
+                try {
+                    const lazyLoadLeaderboard = () => {
+                        try {
+                            const r = loadLeaderboard();
+                            if (r && typeof r.then === 'function') {
+                                r.then(()=>updateLeaderboardDisplay('classic'));
+                            } else {
+                                updateLeaderboardDisplay('classic');
+                            }
+                        } catch(_) {}
+                    };
+                    if (window.requestIdleCallback) {
+                        requestIdleCallback(()=> lazyLoadLeaderboard(), { timeout: 1800 });
+                    } else {
+                        setTimeout(lazyLoadLeaderboard, 700);
+                    }
+                } catch(_) {}
+
+                // Marquee is visual sugar; defer after first interactive moment
+                try {
+                    const initMarquee = () => { try { initializeVerseMarquee(); } catch(_) {} };
+                    if (window.requestIdleCallback) {
+                        requestIdleCallback(()=> initMarquee(), { timeout: 2200 });
+                    } else {
+                        setTimeout(initMarquee, 900);
+                    }
+                } catch(_) {}
+            };
+
+            window.addEventListener('startup-intro-finished', runPostStartupTasks, { once: true });
+            // Fallback: in case intro event is skipped/missed
+            setTimeout(runPostStartupTasks, 4800);
+
             // 啟動起始遮罩：
             //  - 至少顯示 2 秒，之後使用者可透過任意點擊或任意按鍵跳過
             //  - 未跳過則自動繼續，最長顯示 5 秒
@@ -68,16 +152,16 @@
                         overlay.classList.remove('theme-light','theme-dark');
                         overlay.classList.add(isDark ? 'theme-dark' : 'theme-light');
                         // 先指定 src，但暫停動畫，待 decode 完成後一次性播放
-                        if (logoEl && logoSrc) logoEl.src = logoSrc;
+                        if (logoEl && logoSrc) applyImageSrcWithFallback(logoEl, logoSrc);
                         if (wordEl && wordSrc) {
-                            wordEl.src = wordSrc;
-                            const isWord2 = /word2-(light|dark)\.png$/i.test(wordSrc);
+                            applyImageSrcWithFallback(wordEl, wordSrc);
+                            const isWord2 = /word2-(light|dark)\.(png|webp)$/i.test(wordSrc);
                             wordEl.classList.toggle('variant-word2', !!isWord2);
                         }
-                        if (brandEl && brandSrc) brandEl.src = brandSrc;
+                        if (brandEl && brandSrc) applyImageSrcWithFallback(brandEl, brandSrc);
                         // 同步主選單右下角品牌圖（跟隨片頭主題 light/dark）
                         if (menuBrand) {
-                            try { menuBrand.src = brandSrc || 'logo/logo.png'; } catch(_) {}
+                            try { applyImageSrcWithFallback(menuBrand, brandSrc || 'logo/logo.png'); } catch(_) {}
                         }
                         // Loading 文字固定英文
                         if (loadingEl) loadingEl.textContent = 'Loading...';
@@ -119,15 +203,40 @@
                     const maybeFinish = () => {
                         if (done) return; done = true;
                         try {
-                            overlay.style.opacity = '0';
                             // 片頭開始淡出時就通知主選單可以預先啟動卡片浮現（避免空白落差）
                             try { window.dispatchEvent(new Event('startup-intro-fadeout')); } catch(_) {}
                             const finalize = () => {
                                 overlay.style.display = 'none';
                                 try { window.dispatchEvent(new Event('startup-intro-finished')); } catch(_) {}
                             };
-                            overlay.addEventListener('transitionend', finalize, { once: true });
-                            setTimeout(finalize, 1100);
+                            const fadeMs = 850;
+                            let finalized = false;
+                            const safeFinalize = () => {
+                                if (finalized) return;
+                                finalized = true;
+                                finalize();
+                            };
+
+                            // 優先使用 WAAPI，避免在 reduced-motion 或 transition 被覆蓋時瞬間消失
+                            if (typeof overlay.animate === 'function') {
+                                try {
+                                    const anim = overlay.animate(
+                                        [{ opacity: 1 }, { opacity: 0 }],
+                                        { duration: fadeMs, easing: 'ease', fill: 'forwards' }
+                                    );
+                                    anim.onfinish = safeFinalize;
+                                    anim.oncancel = safeFinalize;
+                                    setTimeout(safeFinalize, fadeMs + 260);
+                                } catch(_) {
+                                    try { overlay.style.opacity = '0'; } catch(_) {}
+                                    overlay.addEventListener('transitionend', safeFinalize, { once: true });
+                                    setTimeout(safeFinalize, 1100);
+                                }
+                            } else {
+                                try { overlay.style.opacity = '0'; } catch(_) {}
+                                overlay.addEventListener('transitionend', safeFinalize, { once: true });
+                                setTimeout(safeFinalize, 1100);
+                            }
                         } catch(_) {}
                     };
                     // 在 2 秒時：同一個位置先淡出 Loading...，待完全消失（transitionend）後，再換字為 Completed 並淡入

@@ -1,6 +1,22 @@
     /* =============================================================
        Dev/Test Utilities (A5) - Pure function wrappers + mini tests
        可在 Console 呼叫 window.__runCoreSelfTest()
+             Leaderboard 同步檢查：
+                 - window.__diagLeaderboardSyncState()
+                 - await window.__runLeaderboardSyncPathTest()
+                 - await window.__runAchvLinkSyncPathTest()
+                 - window.__diagSyncFailedQueues({ limit: 20 })
+                 - await window.__runSyncHealthSuite({ includePathTests: false })
+                 - window.__diagSyncHealthHistory({ limit: 15 })
+                 - window.__clearSyncHealthHistory({ keepLast: 0 })
+                 - window.__clearSyncFailedQueues({ target: 'all' })
+                 - window.__clearDiagnosticFailedSyncItems({ target: 'all', dryRun: true })
+                 - await window.__requeueFailedSyncItems({ target: 'all', limit: 30 })
+                 - await window.__runSupabaseSchemaReadinessCheck()
+                 - await window.__runSupabaseReadHealthCheck({ timeoutMs: 7000 })
+                 - await window.__runSupabaseWritePathCheck({ runLiveWriteProbe: false })
+                 - await window.__runAppSanityCheck()
+                 - window.__diagExternalVerseState()
        ============================================================= */
     (function exposeCorePureHelpers(){
         try {
@@ -170,6 +186,1080 @@
                 const focusables = Array.from(m.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])'))
                   .filter(el=>!el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
                 return { count: focusables.length, first: focusables[0]&&focusables[0].tagName, last: focusables.at(-1)&&focusables.at(-1).tagName };
+            };
+
+            // ========= Leaderboard 同步健檢（不寫入真實線上資料） =========
+            window.__diagLeaderboardSyncState = function(){
+                try {
+                    const queueApi = window.PendingScoreSync;
+                    const queue = (queueApi && typeof queueApi.load==='function') ? queueApi.load() : [];
+                    const state = (queueApi && typeof queueApi.getState === 'function') ? queueApi.getState() : null;
+                    const achvApi = window.PendingAchvLinkSync;
+                    const achvQueue = (achvApi && typeof achvApi.load === 'function') ? achvApi.load() : [];
+                    const achvState = (achvApi && typeof achvApi.getState === 'function') ? achvApi.getState() : null;
+                    return {
+                        adapterReady: !!(window.Leaderboard && typeof window.Leaderboard.save === 'function'),
+                        queueEnabled: !!(queueApi && typeof queueApi.enqueue==='function' && typeof queueApi.flush==='function'),
+                        queueLength: Array.isArray(queue) ? queue.length : 0,
+                        flushing: !!(state && state.flushing),
+                        failedQueueLength: state ? (state.failedQueueLength || 0) : null,
+                        totalFlushed: state ? (state.totalFlushed || 0) : null,
+                        totalFailed: state ? (state.totalFailed || 0) : null,
+                        retryDelayMs: state ? (state.retryDelayMs || 0) : null,
+                        nextRetryAt: state ? (state.nextRetryAt || 0) : null,
+                        syncedKeyCount: state ? (state.syncedKeyCount || 0) : null,
+                        lastFlushAt: state ? (state.lastFlushAt || 0) : null,
+                        lastFlushError: state ? (state.lastFlushError || null) : null,
+                        achvLinkEnabled: !!(achvApi && typeof achvApi.enqueue==='function' && typeof achvApi.flush==='function'),
+                        achvLinkQueueLength: Array.isArray(achvQueue) ? achvQueue.length : 0,
+                        achvLinkFlushing: !!(achvState && achvState.flushing),
+                        achvLinkFailedQueueLength: achvState ? (achvState.failedQueueLength || 0) : null,
+                        achvLinkTotalFlushed: achvState ? (achvState.totalFlushed || 0) : null,
+                        achvLinkTotalFailed: achvState ? (achvState.totalFailed || 0) : null,
+                        achvLinkRetryDelayMs: achvState ? (achvState.retryDelayMs || 0) : null,
+                        achvLinkNextRetryAt: achvState ? (achvState.nextRetryAt || 0) : null,
+                        achvLinkedKeyCount: achvState ? (achvState.linkedKeyCount || 0) : null,
+                        achvLinkLastFlushAt: achvState ? (achvState.lastFlushAt || 0) : null,
+                        achvLinkLastFlushError: achvState ? (achvState.lastFlushError || null) : null,
+                        timeoutMs: (window.__BC_CONSTS && window.__BC_CONSTS.LEADERBOARD_ONLINE_TIMEOUT_MS) || null,
+                        online: (typeof navigator !== 'undefined') ? !!navigator.onLine : null
+                    };
+                } catch(e) {
+                    return { error: String(e && e.message || e) };
+                }
+            };
+
+            window.__runLeaderboardSyncPathTest = async function(){
+                const out = { startedAt: new Date().toISOString(), tests: [] };
+                const queueApi = window.PendingScoreSync;
+                const cfg = window.__BC_CONSTS || {};
+                if (!queueApi || typeof queueApi.enqueue!=='function' || typeof queueApi.flush!=='function') {
+                    out.error = 'PendingScoreSync not available';
+                    return out;
+                }
+
+                const key = cfg.STORAGE_KEY_PENDING_SCORE_QUEUE || 'bibleGamePendingScoreQueue';
+                const failedKey = cfg.STORAGE_KEY_PENDING_SCORE_FAILED || 'bibleGamePendingScoreFailed';
+                const originalQueue = (queueApi.load && queueApi.load()) || [];
+                const originalFailed = (window.__bcStorage && window.__bcStorage.get(failedKey, [])) || [];
+                const originalLeaderboard = window.Leaderboard;
+                const originalTimeout = cfg.LEADERBOARD_ONLINE_TIMEOUT_MS;
+
+                function clearQueue(){ try { window.__bcStorage && window.__bcStorage.set(key, []); } catch(_) {} }
+                function clearFailed(){ try { window.__bcStorage && window.__bcStorage.set(failedKey, []); } catch(_) {} }
+                function fakeRecord(tag){
+                    return {
+                        id: `diag-${tag}-${Date.now()}-${Math.floor(Math.random()*1e6)}`,
+                        playerName: 'diag',
+                        score: 123,
+                        playMode: 'classic',
+                        date: new Date().toLocaleDateString('zh-TW'),
+                        time: '0:10',
+                        mode: 'ranking'
+                    };
+                }
+
+                try {
+                    // test-1: success path
+                    clearQueue();
+                    window.Leaderboard = { save: async () => ({ ok:true }) };
+                    queueApi.enqueue(fakeRecord('success'));
+                    const r1 = await queueApi.flush({ limit: 5 });
+                    out.tests.push({ path:'success', result:r1, pass: !!(r1 && r1.flushed >= 1 && r1.remaining === 0) });
+
+                    // test-2: timeout path (fast timeout for diagnostics)
+                    clearQueue();
+                    try { if (window.__BC_CONSTS) window.__BC_CONSTS.LEADERBOARD_ONLINE_TIMEOUT_MS = 120; } catch(_) {}
+                    window.Leaderboard = { save: () => new Promise(()=>{}) };
+                    queueApi.enqueue(fakeRecord('timeout'));
+                    const r2 = await queueApi.flush({ limit: 5 });
+                    const q2 = (queueApi.load && queueApi.load()) || [];
+                    out.tests.push({ path:'timeout', result:r2, queueAfter:q2.length, pass: !!(q2.length >= 1) });
+
+                    // test-3: adapter unavailable path
+                    clearQueue();
+                    window.Leaderboard = null;
+                    queueApi.enqueue(fakeRecord('adapter-unavailable'));
+                    const r3 = await queueApi.flush({ limit: 5 });
+                    out.tests.push({ path:'adapter-unavailable', result:r3, pass: !!(r3 && r3.reason === 'adapter-unavailable') });
+
+                    // test-4: poison item path (max attempts -> move to failed queue)
+                    clearQueue();
+                    clearFailed();
+                    window.Leaderboard = { save: async () => { throw new Error('diag-poison-score'); } };
+                    queueApi.enqueue(fakeRecord('poison'));
+                    for (let i = 0; i < 4; i++) {
+                        try { await queueApi.flush({ limit: 1 }); } catch(_) {}
+                    }
+                    const q4 = (queueApi.load && queueApi.load()) || [];
+                    const f4 = (window.__bcStorage && window.__bcStorage.get(failedKey, [])) || [];
+                    out.tests.push({ path:'poison-isolation', queueAfter:q4.length, failedAfter:f4.length, pass: !!(q4.length === 0 && f4.length >= 1) });
+                } catch(e) {
+                    out.error = String(e && e.message || e);
+                } finally {
+                    try { if (window.__BC_CONSTS) window.__BC_CONSTS.LEADERBOARD_ONLINE_TIMEOUT_MS = originalTimeout; } catch(_) {}
+                    try { window.Leaderboard = originalLeaderboard; } catch(_) {}
+                    try { window.__bcStorage && window.__bcStorage.set(key, originalQueue); } catch(_) {}
+                    try { window.__bcStorage && window.__bcStorage.set(failedKey, originalFailed); } catch(_) {}
+                    out.finishedAt = new Date().toISOString();
+                    out.ok = !out.error && out.tests.length>0 && out.tests.every(t=>t.pass);
+                }
+                return out;
+            };
+
+            window.__runAchvLinkSyncPathTest = async function(){
+                const out = { startedAt: new Date().toISOString(), tests: [] };
+                const api = window.PendingAchvLinkSync;
+                const cfg = window.__BC_CONSTS || {};
+                if (!api || typeof api.enqueue!=='function' || typeof api.flush!=='function') {
+                    out.error = 'PendingAchvLinkSync not available';
+                    return out;
+                }
+
+                const key = cfg.STORAGE_KEY_PENDING_ACHV_LINK_QUEUE || 'bibleGamePendingAchvLinkQueue';
+                const failedKey = cfg.STORAGE_KEY_PENDING_ACHV_LINK_FAILED || 'bibleGamePendingAchvLinkFailed';
+                const originalQueue = (api.load && api.load()) || [];
+                const originalFailed = (window.__bcStorage && window.__bcStorage.get(failedKey, [])) || [];
+                const originalLinkFn = window.linkLatestAchievementRunToScore;
+
+                function clearQueue(){ try { window.__bcStorage && window.__bcStorage.set(key, []); } catch(_) {} }
+                function clearFailed(){ try { window.__bcStorage && window.__bcStorage.set(failedKey, []); } catch(_) {} }
+                function fakeItem(tag){ return { scoreId: `diag-score-${tag}-${Date.now()}`, runId: `diag-run-${tag}` }; }
+
+                try {
+                    // test-1: success path
+                    clearQueue();
+                    window.linkLatestAchievementRunToScore = async () => ({ ok:true });
+                    api.enqueue(fakeItem('success'));
+                    const r1 = await api.flush({ limit: 5 });
+                    out.tests.push({ path:'success', result:r1, pass: !!(r1 && r1.flushed >= 1 && r1.remaining === 0) });
+
+                    // test-2: failure path (should remain queued)
+                    clearQueue();
+                    window.linkLatestAchievementRunToScore = async () => { throw new Error('diag-link-fail'); };
+                    api.enqueue(fakeItem('failure'));
+                    const r2 = await api.flush({ limit: 5 });
+                    const q2 = (api.load && api.load()) || [];
+                    out.tests.push({ path:'failure', result:r2, queueAfter:q2.length, pass: !!(q2.length >= 1) });
+
+                    // test-3: API unavailable path
+                    clearQueue();
+                    window.linkLatestAchievementRunToScore = null;
+                    api.enqueue(fakeItem('api-unavailable'));
+                    const r3 = await api.flush({ limit: 5 });
+                    out.tests.push({ path:'api-unavailable', result:r3, pass: !!(r3 && r3.reason === 'link-api-unavailable') });
+
+                    // test-4: poison item path (max attempts -> move to failed queue)
+                    clearQueue();
+                    clearFailed();
+                    window.linkLatestAchievementRunToScore = async () => { throw new Error('diag-poison-achv'); };
+                    api.enqueue(fakeItem('poison'));
+                    for (let i = 0; i < 5; i++) {
+                        try { await api.flush({ limit: 1 }); } catch(_) {}
+                    }
+                    const q4 = (api.load && api.load()) || [];
+                    const f4 = (window.__bcStorage && window.__bcStorage.get(failedKey, [])) || [];
+                    out.tests.push({ path:'poison-isolation', queueAfter:q4.length, failedAfter:f4.length, pass: !!(q4.length === 0 && f4.length >= 1) });
+                } catch(e) {
+                    out.error = String(e && e.message || e);
+                } finally {
+                    try { window.linkLatestAchievementRunToScore = originalLinkFn; } catch(_) {}
+                    try { window.__bcStorage && window.__bcStorage.set(key, originalQueue); } catch(_) {}
+                    try { window.__bcStorage && window.__bcStorage.set(failedKey, originalFailed); } catch(_) {}
+                    out.finishedAt = new Date().toISOString();
+                    out.ok = !out.error && out.tests.length>0 && out.tests.every(t=>t.pass);
+                }
+                return out;
+            };
+
+            window.__diagSyncFailedQueues = function(options){
+                try {
+                    const cfg = window.__BC_CONSTS || {};
+                    const lim = Math.max(1, Number(options && options.limit) || 20);
+                    const scoreKey = cfg.STORAGE_KEY_PENDING_SCORE_FAILED || 'bibleGamePendingScoreFailed';
+                    const achvKey = cfg.STORAGE_KEY_PENDING_ACHV_LINK_FAILED || 'bibleGamePendingAchvLinkFailed';
+                    const scoreFailed = (window.__bcStorage && window.__bcStorage.get(scoreKey, [])) || [];
+                    const achvFailed = (window.__bcStorage && window.__bcStorage.get(achvKey, [])) || [];
+
+                    const isDiagEntry = (entry) => {
+                        if (!entry || typeof entry !== 'object') return false;
+                        const reason = String(entry.reason || '').toLowerCase();
+                        if (reason.includes('diag')) return true;
+                        const record = entry.record || null;
+                        const item = entry.item || null;
+                        const recordId = record && record.id != null ? String(record.id).toLowerCase() : '';
+                        const playerName = record && record.playerName != null ? String(record.playerName).toLowerCase() : '';
+                        const scoreId = item && item.scoreId != null ? String(item.scoreId).toLowerCase() : '';
+                        const runId = item && item.runId != null ? String(item.runId).toLowerCase() : '';
+                        return (
+                            recordId.startsWith('diag-') ||
+                            playerName.startsWith('diag-') ||
+                            scoreId.startsWith('diag-') ||
+                            runId.startsWith('diag-')
+                        );
+                    };
+
+                    const reasonStats = (arr) => {
+                        const stats = Object.create(null);
+                        (Array.isArray(arr) ? arr : []).forEach((x) => {
+                            const key = x && x.reason ? String(x.reason) : 'unknown';
+                            stats[key] = (stats[key] || 0) + 1;
+                        });
+                        return stats;
+                    };
+
+                    const toRecent = (arr) => (Array.isArray(arr) ? arr.slice(-lim) : []).map((x)=>(
+                        {
+                            reason: x && x.reason ? String(x.reason) : null,
+                            failedAt: x && x.failedAt ? Number(x.failedAt) : null,
+                            hasRecord: !!(x && x.record),
+                            hasItem: !!(x && x.item),
+                            recordId: (x && x.record && x.record.id != null) ? String(x.record.id) : null,
+                            playerName: (x && x.record && x.record.playerName != null) ? String(x.record.playerName) : null,
+                            playMode: (x && x.record && x.record.playMode != null) ? String(x.record.playMode) : null,
+                            score: (x && x.record && typeof x.record.score === 'number') ? x.record.score : null,
+                            scoreId: (x && x.item && x.item.scoreId) ? String(x.item.scoreId) : null,
+                            runId: (x && x.item && x.item.runId != null) ? String(x.item.runId) : null,
+                            diagnostic: isDiagEntry(x)
+                        }
+                    ));
+
+                    const scoreDiagCount = Array.isArray(scoreFailed) ? scoreFailed.filter(isDiagEntry).length : 0;
+                    const achvDiagCount = Array.isArray(achvFailed) ? achvFailed.filter(isDiagEntry).length : 0;
+                    return {
+                        scoreFailedCount: Array.isArray(scoreFailed) ? scoreFailed.length : 0,
+                        achvFailedCount: Array.isArray(achvFailed) ? achvFailed.length : 0,
+                        scoreFailedDiagnostic: scoreDiagCount,
+                        achvFailedDiagnostic: achvDiagCount,
+                        scoreFailedEffective: Math.max(0, (Array.isArray(scoreFailed) ? scoreFailed.length : 0) - scoreDiagCount),
+                        achvFailedEffective: Math.max(0, (Array.isArray(achvFailed) ? achvFailed.length : 0) - achvDiagCount),
+                        scoreReasonStats: reasonStats(scoreFailed),
+                        achvReasonStats: reasonStats(achvFailed),
+                        scoreRecent: toRecent(scoreFailed),
+                        achvRecent: toRecent(achvFailed)
+                    };
+                } catch(e) {
+                    return { error: String(e && e.message || e) };
+                }
+            };
+
+            window.__clearSyncFailedQueues = function(options){
+                try {
+                    const cfg = window.__BC_CONSTS || {};
+                    const target = String((options && options.target) || 'all').toLowerCase();
+                    const dryRun = !!(options && options.dryRun);
+                    const scoreKey = cfg.STORAGE_KEY_PENDING_SCORE_FAILED || 'bibleGamePendingScoreFailed';
+                    const achvKey = cfg.STORAGE_KEY_PENDING_ACHV_LINK_FAILED || 'bibleGamePendingAchvLinkFailed';
+                    const scoreFailed = (window.__bcStorage && window.__bcStorage.get(scoreKey, [])) || [];
+                    const achvFailed = (window.__bcStorage && window.__bcStorage.get(achvKey, [])) || [];
+                    const out = {
+                        target,
+                        dryRun,
+                        before: {
+                            scoreFailedCount: Array.isArray(scoreFailed) ? scoreFailed.length : 0,
+                            achvFailedCount: Array.isArray(achvFailed) ? achvFailed.length : 0
+                        },
+                        cleared: { score: 0, achv: 0 }
+                    };
+                    if (!dryRun) {
+                        if (target === 'all' || target === 'score') {
+                            out.cleared.score = out.before.scoreFailedCount;
+                            try { window.__bcStorage && window.__bcStorage.set(scoreKey, []); } catch(_) {}
+                        }
+                        if (target === 'all' || target === 'achv' || target === 'achvlink') {
+                            out.cleared.achv = out.before.achvFailedCount;
+                            try { window.__bcStorage && window.__bcStorage.set(achvKey, []); } catch(_) {}
+                        }
+                    }
+                    return out;
+                } catch(e) {
+                    return { error: String(e && e.message || e) };
+                }
+            };
+
+            window.__clearDiagnosticFailedSyncItems = function(options){
+                try {
+                    const cfg = window.__BC_CONSTS || {};
+                    const target = String((options && options.target) || 'all').toLowerCase();
+                    const dryRun = !!(options && options.dryRun);
+                    const scoreKey = cfg.STORAGE_KEY_PENDING_SCORE_FAILED || 'bibleGamePendingScoreFailed';
+                    const achvKey = cfg.STORAGE_KEY_PENDING_ACHV_LINK_FAILED || 'bibleGamePendingAchvLinkFailed';
+                    const scoreFailed = (window.__bcStorage && window.__bcStorage.get(scoreKey, [])) || [];
+                    const achvFailed = (window.__bcStorage && window.__bcStorage.get(achvKey, [])) || [];
+
+                    const isDiagEntry = (entry) => {
+                        if (!entry || typeof entry !== 'object') return false;
+                        const reason = String(entry.reason || '').toLowerCase();
+                        if (reason.includes('diag')) return true;
+                        const record = entry.record || null;
+                        const item = entry.item || null;
+                        const recordId = record && record.id != null ? String(record.id).toLowerCase() : '';
+                        const playerName = record && record.playerName != null ? String(record.playerName).toLowerCase() : '';
+                        const scoreId = item && item.scoreId != null ? String(item.scoreId).toLowerCase() : '';
+                        const runId = item && item.runId != null ? String(item.runId).toLowerCase() : '';
+                        return (
+                            recordId.startsWith('diag-') ||
+                            playerName.startsWith('diag-') ||
+                            scoreId.startsWith('diag-') ||
+                            runId.startsWith('diag-')
+                        );
+                    };
+
+                    const filterKeep = (arr) => (Array.isArray(arr) ? arr.filter((entry) => !isDiagEntry(entry)) : []);
+                    const scoreAfter = (target === 'all' || target === 'score') ? filterKeep(scoreFailed) : scoreFailed;
+                    const achvAfter = (target === 'all' || target === 'achv' || target === 'achvlink') ? filterKeep(achvFailed) : achvFailed;
+                    const removedScore = Math.max(0, (Array.isArray(scoreFailed) ? scoreFailed.length : 0) - (Array.isArray(scoreAfter) ? scoreAfter.length : 0));
+                    const removedAchv = Math.max(0, (Array.isArray(achvFailed) ? achvFailed.length : 0) - (Array.isArray(achvAfter) ? achvAfter.length : 0));
+
+                    if (!dryRun) {
+                        if (target === 'all' || target === 'score') {
+                            try { window.__bcStorage && window.__bcStorage.set(scoreKey, scoreAfter); } catch(_) {}
+                        }
+                        if (target === 'all' || target === 'achv' || target === 'achvlink') {
+                            try { window.__bcStorage && window.__bcStorage.set(achvKey, achvAfter); } catch(_) {}
+                        }
+                    }
+
+                    return {
+                        target,
+                        dryRun,
+                        removed: { score: removedScore, achv: removedAchv },
+                        before: {
+                            scoreFailedCount: Array.isArray(scoreFailed) ? scoreFailed.length : 0,
+                            achvFailedCount: Array.isArray(achvFailed) ? achvFailed.length : 0
+                        },
+                        after: {
+                            scoreFailedCount: Array.isArray(scoreAfter) ? scoreAfter.length : 0,
+                            achvFailedCount: Array.isArray(achvAfter) ? achvAfter.length : 0
+                        }
+                    };
+                } catch(e) {
+                    return { error: String(e && e.message || e) };
+                }
+            };
+
+            window.__requeueFailedSyncItems = async function(options){
+                const out = { startedAt: new Date().toISOString() };
+                try {
+                    const cfg = window.__BC_CONSTS || {};
+                    const target = String((options && options.target) || 'all').toLowerCase();
+                    const limit = Math.max(1, Number(options && options.limit) || 30);
+                    const scoreKey = cfg.STORAGE_KEY_PENDING_SCORE_FAILED || 'bibleGamePendingScoreFailed';
+                    const achvKey = cfg.STORAGE_KEY_PENDING_ACHV_LINK_FAILED || 'bibleGamePendingAchvLinkFailed';
+                    const scoreApi = window.PendingScoreSync;
+                    const achvApi = window.PendingAchvLinkSync;
+                    let scoreFailed = (window.__bcStorage && window.__bcStorage.get(scoreKey, [])) || [];
+                    let achvFailed = (window.__bcStorage && window.__bcStorage.get(achvKey, [])) || [];
+                    out.before = {
+                        scoreFailedCount: Array.isArray(scoreFailed) ? scoreFailed.length : 0,
+                        achvFailedCount: Array.isArray(achvFailed) ? achvFailed.length : 0
+                    };
+                    out.moved = { score: 0, achv: 0 };
+
+                    if ((target === 'all' || target === 'score') && scoreApi && typeof scoreApi.enqueue === 'function' && Array.isArray(scoreFailed) && scoreFailed.length) {
+                        const take = scoreFailed.slice(-limit);
+                        const remain = scoreFailed.slice(0, Math.max(0, scoreFailed.length - take.length));
+                        take.forEach((entry) => {
+                            try {
+                                if (entry && entry.record) {
+                                    const ok = scoreApi.enqueue(entry.record);
+                                    if (ok) out.moved.score++;
+                                }
+                            } catch(_) {}
+                        });
+                        scoreFailed = remain;
+                        try { window.__bcStorage && window.__bcStorage.set(scoreKey, scoreFailed); } catch(_) {}
+                        try { await scoreApi.flush({ limit: Math.min(20, limit) }); } catch(_) {}
+                    }
+
+                    if ((target === 'all' || target === 'achv' || target === 'achvlink') && achvApi && typeof achvApi.enqueue === 'function' && Array.isArray(achvFailed) && achvFailed.length) {
+                        const take = achvFailed.slice(-limit);
+                        const remain = achvFailed.slice(0, Math.max(0, achvFailed.length - take.length));
+                        take.forEach((entry) => {
+                            try {
+                                if (entry && entry.item) {
+                                    const ok = achvApi.enqueue(entry.item);
+                                    if (ok) out.moved.achv++;
+                                }
+                            } catch(_) {}
+                        });
+                        achvFailed = remain;
+                        try { window.__bcStorage && window.__bcStorage.set(achvKey, achvFailed); } catch(_) {}
+                        try { await achvApi.flush({ limit: Math.min(20, limit) }); } catch(_) {}
+                    }
+
+                    out.after = {
+                        scoreFailedCount: Array.isArray(scoreFailed) ? scoreFailed.length : 0,
+                        achvFailedCount: Array.isArray(achvFailed) ? achvFailed.length : 0
+                    };
+                    out.ok = true;
+                } catch(e) {
+                    out.ok = false;
+                    out.error = String(e && e.message || e);
+                }
+                out.finishedAt = new Date().toISOString();
+                return out;
+            };
+
+            window.__diagSyncHealthHistory = function(options){
+                try {
+                    const lim = Math.max(1, Number(options && options.limit) || 20);
+                    const onlyFailures = !!(options && options.onlyFailures);
+                    const key = 'bibleGameSyncHealthHistory';
+                    let hist = [];
+                    try {
+                        if (window.__bcStorage && typeof window.__bcStorage.get === 'function') {
+                            hist = window.__bcStorage.get(key, []);
+                        }
+                        if (!Array.isArray(hist)) hist = [];
+                    } catch(_) { hist = []; }
+                    if (!Array.isArray(hist) || hist.length === 0) {
+                        try {
+                            const raw = localStorage.getItem(key);
+                            if (raw) {
+                                const parsed = JSON.parse(raw);
+                                if (Array.isArray(parsed)) hist = parsed;
+                            }
+                        } catch(_) {}
+                    }
+                    const list = Array.isArray(hist) ? hist : [];
+                    const base = onlyFailures ? list.filter((x)=>x && x.ok === false) : list;
+                    const recent = base.slice(-lim);
+                    const failureCount = list.filter((x)=>x && x.ok === false).length;
+                    const degradation = (function(){
+                        if (list.length < 2) return false;
+                        const last = list[list.length - 1];
+                        const prev = list[list.length - 2];
+                        if (!last || !prev) return false;
+                        if (prev.ok === true && last.ok === false) return true;
+                        const prevScoreEff = Number(prev && prev.summary && prev.summary.scoreFailedEffective) || 0;
+                        const lastScoreEff = Number(last && last.summary && last.summary.scoreFailedEffective) || 0;
+                        const prevAchvEff = Number(prev && prev.summary && prev.summary.achvFailedEffective) || 0;
+                        const lastAchvEff = Number(last && last.summary && last.summary.achvFailedEffective) || 0;
+                        return (lastScoreEff > prevScoreEff) || (lastAchvEff > prevAchvEff);
+                    })();
+                    return {
+                        count: list.length,
+                        failureCount,
+                        healthyRatio: list.length ? +(((list.length - failureCount) / list.length).toFixed(3)) : 1,
+                        degradation,
+                        recent
+                    };
+                } catch(e) {
+                    return { error: String(e && e.message || e) };
+                }
+            };
+
+            window.__clearSyncHealthHistory = function(options){
+                try {
+                    const key = 'bibleGameSyncHealthHistory';
+                    const keepLast = Math.max(0, Number(options && options.keepLast) || 0);
+                    let hist = [];
+                    try {
+                        if (window.__bcStorage && typeof window.__bcStorage.get === 'function') {
+                            hist = window.__bcStorage.get(key, []);
+                        }
+                        if (!Array.isArray(hist)) hist = [];
+                    } catch(_) { hist = []; }
+                    if (!Array.isArray(hist) || hist.length === 0) {
+                        try {
+                            const raw = localStorage.getItem(key);
+                            if (raw) {
+                                const parsed = JSON.parse(raw);
+                                if (Array.isArray(parsed)) hist = parsed;
+                            }
+                        } catch(_) {}
+                    }
+                    const list = Array.isArray(hist) ? hist : [];
+                    const next = keepLast > 0 ? list.slice(-keepLast) : [];
+                    try { window.__bcStorage && window.__bcStorage.set && window.__bcStorage.set(key, next); } catch(_) {}
+                    try { localStorage.setItem(key, JSON.stringify(next)); } catch(_) {}
+                    return {
+                        before: list.length,
+                        after: next.length,
+                        cleared: Math.max(0, list.length - next.length)
+                    };
+                } catch(e) {
+                    return { error: String(e && e.message || e) };
+                }
+            };
+
+            window.__runSyncHealthSuite = async function(options){
+                const out = {
+                    startedAt: new Date().toISOString(),
+                    options: {
+                        includePathTests: !!(options && options.includePathTests),
+                        includeWriteCheck: (options && typeof options.includeWriteCheck === 'boolean') ? !!options.includeWriteCheck : true,
+                        includeSchemaCheck: (options && typeof options.includeSchemaCheck === 'boolean') ? !!options.includeSchemaCheck : true,
+                        ignoreDiagnosticFailed: (options && typeof options.ignoreDiagnosticFailed === 'boolean') ? !!options.ignoreDiagnosticFailed : true,
+                        failedQueueLimit: Math.max(1, Number(options && options.failedQueueLimit) || 20)
+                    }
+                };
+                try {
+                    const sync = (typeof window.__diagLeaderboardSyncState === 'function') ? window.__diagLeaderboardSyncState() : { error: 'diag-sync-state-unavailable' };
+                    const failed = (typeof window.__diagSyncFailedQueues === 'function')
+                        ? window.__diagSyncFailedQueues({ limit: out.options.failedQueueLimit })
+                        : { error: 'diag-failed-queues-unavailable' };
+
+                    out.sync = sync;
+                    out.failedQueues = failed;
+
+                    const isDiagEntry = (entry) => {
+                        if (!entry || typeof entry !== 'object') return false;
+                        const reason = String(entry.reason || '').toLowerCase();
+                        if (reason.includes('diag')) return true;
+                        const record = entry.record || null;
+                        const item = entry.item || null;
+                        const recordId = record && record.id != null ? String(record.id).toLowerCase() : '';
+                        const playerName = record && record.playerName != null ? String(record.playerName).toLowerCase() : '';
+                        const scoreId = item && item.scoreId != null ? String(item.scoreId).toLowerCase() : '';
+                        const runId = item && item.runId != null ? String(item.runId).toLowerCase() : '';
+                        return (
+                            recordId.startsWith('diag-') ||
+                            playerName.startsWith('diag-') ||
+                            scoreId.startsWith('diag-') ||
+                            runId.startsWith('diag-')
+                        );
+                    };
+
+                    const cfg = window.__BC_CONSTS || {};
+                    const scoreFailedKey = cfg.STORAGE_KEY_PENDING_SCORE_FAILED || 'bibleGamePendingScoreFailed';
+                    const achvFailedKey = cfg.STORAGE_KEY_PENDING_ACHV_LINK_FAILED || 'bibleGamePendingAchvLinkFailed';
+                    const scoreFailedRaw = (window.__bcStorage && window.__bcStorage.get(scoreFailedKey, [])) || [];
+                    const achvFailedRaw = (window.__bcStorage && window.__bcStorage.get(achvFailedKey, [])) || [];
+                    const scoreDiagFailedCount = Array.isArray(scoreFailedRaw) ? scoreFailedRaw.filter(isDiagEntry).length : 0;
+                    const achvDiagFailedCount = Array.isArray(achvFailedRaw) ? achvFailedRaw.filter(isDiagEntry).length : 0;
+
+                    const rawScoreFailed = Number(failed && failed.scoreFailedCount) || 0;
+                    const rawAchvFailed = Number(failed && failed.achvFailedCount) || 0;
+                    const effectiveScoreFailed = out.options.ignoreDiagnosticFailed ? Math.max(0, rawScoreFailed - scoreDiagFailedCount) : rawScoreFailed;
+                    const effectiveAchvFailed = out.options.ignoreDiagnosticFailed ? Math.max(0, rawAchvFailed - achvDiagFailedCount) : rawAchvFailed;
+
+                    out.summary = {
+                        queueBacklog: Number(sync && sync.queueLength) || 0,
+                        achvBacklog: Number(sync && sync.achvLinkQueueLength) || 0,
+                        scoreFailed: rawScoreFailed,
+                        achvFailed: rawAchvFailed,
+                        scoreFailedDiagnostic: scoreDiagFailedCount,
+                        achvFailedDiagnostic: achvDiagFailedCount,
+                        scoreFailedEffective: effectiveScoreFailed,
+                        achvFailedEffective: effectiveAchvFailed,
+                        online: (sync && typeof sync.online === 'boolean') ? sync.online : null,
+                        adapterReady: !!(sync && sync.adapterReady),
+                        queueEnabled: !!(sync && sync.queueEnabled),
+                        achvLinkEnabled: !!(sync && sync.achvLinkEnabled),
+                        hasLastError: !!((sync && sync.lastFlushError) || (sync && sync.achvLinkLastFlushError))
+                    };
+
+                    if (out.options.includeWriteCheck && typeof window.__runSupabaseWritePathCheck === 'function') {
+                        const writeCheck = await window.__runSupabaseWritePathCheck({ runLiveWriteProbe: false });
+                        out.writePath = writeCheck;
+                        out.summary.writePathOk = !!(writeCheck && writeCheck.ok);
+                    } else {
+                        out.summary.writePathOk = null;
+                    }
+
+                    if (out.options.includeSchemaCheck && typeof window.__runSupabaseSchemaReadinessCheck === 'function') {
+                        const schemaCheck = await window.__runSupabaseSchemaReadinessCheck();
+                        out.schemaCheck = schemaCheck;
+                        out.summary.schemaReady = !!(schemaCheck && schemaCheck.ok);
+                        out.summary.schemaDegraded = !!(schemaCheck && schemaCheck.degraded);
+                    } else {
+                        out.summary.schemaReady = null;
+                        out.summary.schemaDegraded = null;
+                    }
+
+                    const scoreReasonStats = (failed && failed.scoreReasonStats && typeof failed.scoreReasonStats === 'object') ? failed.scoreReasonStats : {};
+                    const achvReasonStats = (failed && failed.achvReasonStats && typeof failed.achvReasonStats === 'object') ? failed.achvReasonStats : {};
+                    out.reasonStats = { score: scoreReasonStats, achv: achvReasonStats };
+
+                    const actions = [];
+                    const addAction = (msg) => { if (msg && actions.indexOf(msg) === -1) actions.push(msg); };
+                    const reasonKeySet = Object.keys(scoreReasonStats).concat(Object.keys(achvReasonStats)).map((k)=>String(k||'').toLowerCase());
+                    const hasReason = (matcher) => reasonKeySet.some((k)=>matcher(k));
+
+                    if (!out.summary.adapterReady) addAction('Leaderboard adapter not ready; call tryInitOnlineLeaderboard() then re-check.');
+                    if (!out.summary.queueEnabled) addAction('PendingScoreSync unavailable; verify bootstrap execution and constants wiring.');
+                    if (!out.summary.achvLinkEnabled) addAction('PendingAchvLinkSync unavailable; verify bootstrap execution and achievement link wiring.');
+                    if (out.summary.scoreFailedEffective > 0 || out.summary.achvFailedEffective > 0) {
+                        addAction('Review failed items with __diagSyncFailedQueues(); then __requeueFailedSyncItems() or __clearSyncFailedQueues().');
+                    }
+                    if (out.options.ignoreDiagnosticFailed && (out.summary.scoreFailedDiagnostic > 0 || out.summary.achvFailedDiagnostic > 0)) {
+                        addAction('Diagnostic failed residues detected; clear only diagnostics via __clearDiagnosticFailedSyncItems({ target: "all" }).');
+                    }
+                    if (out.summary.queueBacklog > 0 || out.summary.achvBacklog > 0) {
+                        addAction('Backlog exists; call PendingScoreSync.flush() and PendingAchvLinkSync.flush() after network recovers.');
+                    }
+                    if (out.summary.writePathOk === false) {
+                        addAction('Write-path check failed; run __runSupabaseWritePathCheck() and inspect timeout/offline fallback behavior.');
+                    }
+                    if (out.summary.schemaReady === false) {
+                        addAction('Supabase schema is not fully aligned; run __runSupabaseSchemaReadinessCheck() and apply setup_supabase.sql when available.');
+                    }
+                    if (out.summary.schemaDegraded === true) {
+                        addAction('Supabase schema is partially aligned (degraded mode); apply setup_supabase.sql later to restore full dedupe/analytics fields.');
+                    }
+
+                    if (hasReason((k)=>/timeout/.test(k))) {
+                        addAction('Timeout-like failures detected; verify network latency and tune LEADERBOARD_ONLINE_TIMEOUT_MS if needed.');
+                    }
+                    if (hasReason((k)=>/offline|network|fetch/.test(k))) {
+                        addAction('Network/offline failures detected; keep PendingScoreSync/PendingAchvLinkSync enabled and retry after connectivity recovers.');
+                    }
+                    if (hasReason((k)=>/adapter-unavailable|link-api-unavailable|adapter-not-ready/.test(k))) {
+                        addAction('Adapter availability failures detected; ensure leaderboard adapter and link API are initialized before flush.');
+                    }
+                    if (hasReason((k)=>/poison|max-?attempt|attempt/.test(k))) {
+                        addAction('Repeated-failure items detected; inspect failed queues and requeue selectively after root-cause fix.');
+                    }
+
+                    if (!actions.length) addAction('Sync pipeline looks healthy. Keep periodic checks after deploy/update.');
+                    out.actions = actions;
+
+                    if (out.options.includePathTests) {
+                        const tests = {};
+                        if (typeof window.__runLeaderboardSyncPathTest === 'function') {
+                            tests.score = await window.__runLeaderboardSyncPathTest();
+                        }
+                        if (typeof window.__runAchvLinkSyncPathTest === 'function') {
+                            tests.achv = await window.__runAchvLinkSyncPathTest();
+                        }
+                        out.pathTests = tests;
+                    }
+
+                    out.ok = !!(
+                        out.summary.adapterReady &&
+                        out.summary.queueEnabled &&
+                        out.summary.achvLinkEnabled &&
+                        out.summary.queueBacklog === 0 &&
+                        out.summary.achvBacklog === 0 &&
+                        out.summary.scoreFailedEffective === 0 &&
+                        out.summary.achvFailedEffective === 0 &&
+                        (out.summary.writePathOk !== false) &&
+                        (out.summary.schemaReady !== false) &&
+                        !out.summary.hasLastError
+                    );
+                } catch(e) {
+                    out.ok = false;
+                    out.error = String(e && e.message || e);
+                }
+                out.finishedAt = new Date().toISOString();
+
+                try {
+                    const key = 'bibleGameSyncHealthHistory';
+                    let hist = [];
+                    try {
+                        if (window.__bcStorage && typeof window.__bcStorage.get === 'function') {
+                            hist = window.__bcStorage.get(key, []);
+                        }
+                        if (!Array.isArray(hist)) hist = [];
+                    } catch(_) { hist = []; }
+                    if (!Array.isArray(hist) || hist.length === 0) {
+                        try {
+                            const raw = localStorage.getItem(key);
+                            if (raw) {
+                                const parsed = JSON.parse(raw);
+                                if (Array.isArray(parsed)) hist = parsed;
+                            }
+                        } catch(_) {}
+                    }
+                    const list = Array.isArray(hist) ? hist : [];
+                    const snap = {
+                        ts: Date.now(),
+                        startedAt: out.startedAt,
+                        finishedAt: out.finishedAt,
+                        ok: !!out.ok,
+                        summary: out.summary ? {
+                            queueBacklog: Number(out.summary.queueBacklog) || 0,
+                            achvBacklog: Number(out.summary.achvBacklog) || 0,
+                            scoreFailedEffective: Number(out.summary.scoreFailedEffective) || 0,
+                            achvFailedEffective: Number(out.summary.achvFailedEffective) || 0,
+                            writePathOk: out.summary.writePathOk !== false,
+                            hasLastError: !!out.summary.hasLastError
+                        } : null,
+                        actions: Array.isArray(out.actions) ? out.actions.slice(0, 8) : []
+                    };
+                    list.push(snap);
+                    const maxKeep = 80;
+                    if (list.length > maxKeep) list.splice(0, list.length - maxKeep);
+                    try { window.__bcStorage && window.__bcStorage.set && window.__bcStorage.set(key, list); } catch(_) {}
+                    try { localStorage.setItem(key, JSON.stringify(list)); } catch(_) {}
+                } catch(_) {}
+
+                return out;
+            };
+
+            // 只讀實網健康檢查：不寫入分數，僅驗證 adapter + 讀取延遲/逾時
+            window.__runSupabaseSchemaReadinessCheck = async function(options){
+                const out = { startedAt: new Date().toISOString(), tests: [] };
+                try {
+                    const forceCheckOptional = !!(options && options.forceCheckOptional);
+                    const optionalCacheKey = 'bibleGameSchemaOptionalMissingCache';
+                    const cfg = window.SUPABASE_CONFIG || {};
+                    const table = cfg.table || 'scores';
+                    const url = cfg.url;
+                    const anonKey = cfg.anonKey;
+                    const hasConfig = !!(url && anonKey && table);
+                    out.configReady = hasConfig;
+                    if (!hasConfig) {
+                        out.ok = false;
+                        out.error = 'supabase-config-missing';
+                        out.finishedAt = new Date().toISOString();
+                        return out;
+                    }
+
+                    let client = null;
+                    try {
+                        if (window.supabase && typeof window.supabase.createClient === 'function') {
+                            const cacheKey = `${url}::${table}::${cfg.achvRunsTable || 'achv_runs'}`;
+                            if (window.__diagSupabaseClient && window.__diagSupabaseClientKey === cacheKey) {
+                                client = window.__diagSupabaseClient;
+                            } else {
+                                const baseOptions = cfg.options || {};
+                                const authOptions = Object.assign({}, baseOptions.auth || {}, {
+                                    persistSession: false,
+                                    autoRefreshToken: false,
+                                    detectSessionInUrl: false,
+                                    storageKey: 'bc-supabase-diag-schema-auth'
+                                });
+                                const finalOptions = Object.assign({}, baseOptions, { auth: authOptions });
+                                client = window.supabase.createClient(url, anonKey, finalOptions);
+                                window.__diagSupabaseClient = client;
+                                window.__diagSupabaseClientKey = cacheKey;
+                            }
+                        }
+                    } catch(_) {}
+
+                    if (!client) {
+                        out.ok = false;
+                        out.error = 'supabase-client-unavailable';
+                        out.finishedAt = new Date().toISOString();
+                        return out;
+                    }
+
+                    const probes = [
+                        { key: 'scores-table', query: () => client.from(table).select('id', { count: 'exact', head: true }).limit(1), required: true },
+                        { key: 'scores-client-record-id', query: () => client.from(table).select('client_record_id').limit(1), required: false },
+                        { key: 'scores-project-tag', query: () => client.from(table).select('project_tag').limit(1), required: false },
+                        { key: 'scores-play-mode', query: () => client.from(table).select('play_mode').limit(1), required: false },
+                        { key: 'scores-performance-fields', query: () => client.from(table).select('avg_answer_ms,max_combo_reached,combo_total_bonus').limit(1), required: false },
+                        { key: 'achv-runs-table', query: () => client.from((cfg.achvRunsTable || 'achv_runs')).select('id', { count: 'exact', head: true }).limit(1), required: true }
+                    ];
+
+                    let knownOptionalMissing = {};
+                    try {
+                        const raw = localStorage.getItem(optionalCacheKey);
+                        if (raw) {
+                            const parsed = JSON.parse(raw);
+                            if (parsed && typeof parsed === 'object' && parsed.keys && typeof parsed.keys === 'object') {
+                                knownOptionalMissing = parsed.keys;
+                            }
+                        }
+                    } catch(_) {}
+
+                    for (const p of probes) {
+                        if (!p.required && !forceCheckOptional && knownOptionalMissing && knownOptionalMissing[p.key]) {
+                            out.tests.push({ key: p.key, ok: false, required: false, skipped: true, cachedMissing: true, message: 'known-optional-missing-cached' });
+                            continue;
+                        }
+                        try {
+                            const { error } = await p.query();
+                            if (error) {
+                                out.tests.push({ key: p.key, ok: false, required: !!p.required, code: error.code || null, message: error.message || String(error) });
+                            } else {
+                                out.tests.push({ key: p.key, ok: true, required: !!p.required });
+                            }
+                        } catch(e) {
+                            out.tests.push({ key: p.key, ok: false, required: !!p.required, message: String(e && e.message || e) });
+                        }
+                    }
+
+                    const failedRequired = out.tests.filter((t)=>t && t.ok === false && t.required);
+                    const failedOptional = out.tests.filter((t)=>t && t.ok === false && !t.required);
+                    out.missingRequired = failedRequired.map((t)=>t.key);
+                    out.missingOptional = failedOptional.map((t)=>t.key);
+                    out.missing = out.missingRequired.concat(out.missingOptional);
+                    out.degraded = failedRequired.length === 0 && failedOptional.length > 0;
+                    out.ok = failedRequired.length === 0;
+
+                    try {
+                        const nextOptionalMap = {};
+                        failedOptional.forEach((t) => { if (t && t.key) nextOptionalMap[String(t.key)] = true; });
+                        localStorage.setItem(optionalCacheKey, JSON.stringify({
+                            ts: Date.now(),
+                            table,
+                            keys: nextOptionalMap
+                        }));
+                    } catch(_) {}
+                } catch(e) {
+                    out.ok = false;
+                    out.error = String(e && e.message || e);
+                }
+                out.finishedAt = new Date().toISOString();
+                return out;
+            };
+
+            window.__runSupabaseReadHealthCheck = async function(options){
+                const out = { startedAt: new Date().toISOString() };
+                const timeoutMs = Math.max(1000, Number(options && options.timeoutMs) || ((window.__BC_CONSTS && window.__BC_CONSTS.LEADERBOARD_ONLINE_TIMEOUT_MS) || 7000));
+                const hasAdapter = !!(window.Leaderboard && typeof window.Leaderboard.load === 'function');
+                const hasConfig = !!(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url && window.SUPABASE_CONFIG.anonKey);
+                out.adapterReady = hasAdapter;
+                out.configReady = hasConfig;
+                out.online = (typeof navigator !== 'undefined') ? !!navigator.onLine : null;
+                if (!hasConfig) {
+                    out.ok = false;
+                    out.error = 'supabase-config-missing';
+                    out.finishedAt = new Date().toISOString();
+                    return out;
+                }
+                if (!hasAdapter) {
+                    try { window.tryInitOnlineLeaderboard && window.tryInitOnlineLeaderboard(); } catch(_) {}
+                }
+                if (!(window.Leaderboard && typeof window.Leaderboard.load === 'function')) {
+                    out.ok = false;
+                    out.error = 'adapter-not-ready';
+                    out.finishedAt = new Date().toISOString();
+                    return out;
+                }
+                const t0 = performance.now();
+                try {
+                    const data = await Promise.race([
+                        Promise.resolve(window.Leaderboard.load()),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('supabase-read-timeout')), timeoutMs))
+                    ]);
+                    const elapsedMs = +(performance.now() - t0).toFixed(1);
+                    out.elapsedMs = elapsedMs;
+                    out.classicCount = (data && data.classic && data.classic.length) ? data.classic.length : 0;
+                    out.survivalCount = (data && data.survival && data.survival.length) ? data.survival.length : 0;
+                    out.ok = true;
+                } catch(e) {
+                    out.ok = false;
+                    out.error = String(e && e.message || e);
+                    out.elapsedMs = +(performance.now() - t0).toFixed(1);
+                }
+                out.finishedAt = new Date().toISOString();
+                return out;
+            };
+
+            window.__runSupabaseWritePathCheck = async function(options){
+                const out = {
+                    startedAt: new Date().toISOString(),
+                    tests: [],
+                    options: {
+                        runLiveWriteProbe: !!(options && options.runLiveWriteProbe),
+                        preserveState: (options && typeof options.preserveState === 'boolean') ? !!options.preserveState : true,
+                        timeoutMs: Math.max(1000, Number(options && options.timeoutMs) || ((window.__BC_CONSTS && window.__BC_CONSTS.LEADERBOARD_ONLINE_TIMEOUT_MS) || 7000)),
+                        requireConfirmToken: true
+                    }
+                };
+
+                const queueApi = window.PendingScoreSync;
+                const canQueue = !!(queueApi && typeof queueApi.enqueue === 'function' && typeof queueApi.load === 'function');
+                const adapterReady = !!(window.Leaderboard && typeof window.Leaderboard.save === 'function');
+                out.adapterReady = adapterReady;
+                out.queueReady = canQueue;
+                out.online = (typeof navigator !== 'undefined') ? !!navigator.onLine : null;
+
+                const cfg = window.__BC_CONSTS || {};
+                const queueKey = cfg.STORAGE_KEY_PENDING_SCORE_QUEUE || 'bibleGamePendingScoreQueue';
+                const failedKey = cfg.STORAGE_KEY_PENDING_SCORE_FAILED || 'bibleGamePendingScoreFailed';
+                const originalQueue = (window.__bcStorage && window.__bcStorage.get(queueKey, [])) || [];
+                const originalFailed = (window.__bcStorage && window.__bcStorage.get(failedKey, [])) || [];
+
+                if (!adapterReady) {
+                    out.ok = false;
+                    out.error = 'adapter-not-ready';
+                    out.finishedAt = new Date().toISOString();
+                    return out;
+                }
+
+                const originalSave = window.Leaderboard.save;
+                const beforeQueueLen = canQueue ? ((queueApi.load() || []).length) : null;
+
+                const makeDiagRecord = (tag) => ({
+                    id: `diag-write-${tag}-${Date.now()}-${Math.floor(Math.random()*1e6)}`,
+                    playerName: `diag-write-${tag}`,
+                    score: -1,
+                    difficulty: 'easy',
+                    date: new Date().toLocaleDateString('zh-TW'),
+                    time: '0:01',
+                    completed: true,
+                    correctAnswers: 0,
+                    totalQuestions: 1,
+                    totalMistakes: 1,
+                    levelResults: {},
+                    range: 'all',
+                    mode: 'diagnostic',
+                    playMode: 'classic',
+                    achievements: [],
+                    isSeed: false
+                });
+
+                const runGuarded = async (record) => {
+                    const task = Promise.resolve(window.Leaderboard.save(record));
+                    return await Promise.race([
+                        task,
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('leaderboard-save-timeout')), out.options.timeoutMs))
+                    ]);
+                };
+
+                try {
+                    // test-1: timeout fallback path (safe simulation)
+                    if (canQueue) {
+                        try { window.Leaderboard.save = () => new Promise(()=>{}); } catch(_) {}
+                        const r1 = makeDiagRecord('timeout');
+                        let timeoutCaught = false;
+                        try {
+                            await runGuarded(r1);
+                        } catch(e) {
+                            timeoutCaught = /timeout/i.test(String(e && e.message || e));
+                            try { queueApi.enqueue(r1); } catch(_) {}
+                        }
+                        const q1 = (queueApi.load && queueApi.load()) || [];
+                        out.tests.push({ path: 'timeout-fallback', queueAfter: q1.length, pass: !!(timeoutCaught && q1.length >= ((beforeQueueLen || 0) + 1)) });
+                    } else {
+                        out.tests.push({ path: 'timeout-fallback', skipped: true, reason: 'queue-not-ready', pass: false });
+                    }
+
+                    // test-2: offline/network-error fallback path (safe simulation)
+                    if (canQueue) {
+                        try { window.Leaderboard.save = async () => { throw new Error('network-offline-diag'); }; } catch(_) {}
+                        const r2 = makeDiagRecord('offline');
+                        let offlineCaught = false;
+                        try {
+                            await runGuarded(r2);
+                        } catch(e) {
+                            offlineCaught = /offline|network/i.test(String(e && e.message || e));
+                            try { queueApi.enqueue(r2); } catch(_) {}
+                        }
+                        const q2 = (queueApi.load && queueApi.load()) || [];
+                        out.tests.push({ path: 'offline-fallback', queueAfter: q2.length, pass: !!(offlineCaught && q2.length >= ((beforeQueueLen || 0) + 1)) });
+                    } else {
+                        out.tests.push({ path: 'offline-fallback', skipped: true, reason: 'queue-not-ready', pass: false });
+                    }
+
+                    // test-3: real Supabase write probe (explicit opt-in + token)
+                    const token = String(options && options.confirmToken || '');
+                    if (out.options.runLiveWriteProbe) {
+                        if (token !== 'I_UNDERSTAND_THIS_WRITES_REMOTE_DATA') {
+                            out.tests.push({
+                                path: 'live-write-probe',
+                                skipped: true,
+                                reason: 'missing-confirm-token',
+                                pass: false
+                            });
+                        } else {
+                            try { window.Leaderboard.save = originalSave; } catch(_) {}
+                            const r3 = makeDiagRecord('live');
+                            const t0 = performance.now();
+                            await runGuarded(r3);
+                            out.tests.push({
+                                path: 'live-write-probe',
+                                elapsedMs: +(performance.now() - t0).toFixed(1),
+                                note: 'Probe record uses score=-1 and mode=diagnostic to minimize leaderboard impact.',
+                                pass: true
+                            });
+                        }
+                    } else {
+                        out.tests.push({ path: 'live-write-probe', skipped: true, reason: 'disabled-by-default', pass: true });
+                    }
+
+                    const afterQueueLen = canQueue ? ((queueApi.load() || []).length) : null;
+                    out.queueDelta = (typeof beforeQueueLen === 'number' && typeof afterQueueLen === 'number')
+                        ? (afterQueueLen - beforeQueueLen)
+                        : null;
+                    out.ok = out.tests.length > 0 && out.tests.every(t => t.pass || t.skipped);
+                } catch(e) {
+                    out.ok = false;
+                    out.error = String(e && e.message || e);
+                } finally {
+                    try { window.Leaderboard.save = originalSave; } catch(_) {}
+                    if (out.options.preserveState) {
+                        try { window.__bcStorage && window.__bcStorage.set(queueKey, originalQueue); } catch(_) {}
+                        try { window.__bcStorage && window.__bcStorage.set(failedKey, originalFailed); } catch(_) {}
+                    }
+                    out.finishedAt = new Date().toISOString();
+                }
+                return out;
+            };
+
+            window.__runAppSanityCheck = async function(){
+                const out = { startedAt: new Date().toISOString() };
+                try {
+                    const logo = document.getElementById('startupLogo');
+                    const word = document.getElementById('startupWord');
+                    const marquee = document.getElementById('verseMarquee');
+                    const lines = marquee ? marquee.querySelectorAll('.verse-text') : [];
+
+                    out.startupAssets = {
+                        logoSrc: logo ? (logo.getAttribute('src') || '') : null,
+                        wordSrc: word ? (word.getAttribute('src') || '') : null,
+                        startupLogoVar: window.__startupLogoSrc || null,
+                        startupWordVar: window.__startupWordSrc || null,
+                        startupBrandVar: window.__startupBrandSrc || null
+                    };
+                    out.marquee = {
+                        initialized: !!window.__marqueeInitialized,
+                        hasContainer: !!marquee,
+                        lineCount: lines ? lines.length : 0,
+                        display: marquee ? getComputedStyle(marquee).display : null
+                    };
+                    out.startFlow = {
+                        active: !!window.__startFlowActive,
+                        hasCountdownInterval: !!window.__startCountdownInterval,
+                        hasWatchdog: !!window.__startFlowWatchdog
+                    };
+                    out.startPerf = {
+                        hasNormalizedDb: !!(Array.isArray(window.__normalizedDB) && window.__normalizedDB.length > 0),
+                        hasRawDb: !!(Array.isArray(window.verseDatabase) && window.verseDatabase.length > 0),
+                        externalLoading: !!window.__externalVersesLoading
+                    };
+                    out.serviceWorker = {
+                        supported: 'serviceWorker' in navigator,
+                        controlled: !!navigator.serviceWorker?.controller
+                    };
+                    if ('serviceWorker' in navigator) {
+                        try {
+                            const reg = await navigator.serviceWorker.getRegistration();
+                            out.serviceWorker.hasRegistration = !!reg;
+                            out.serviceWorker.waiting = !!(reg && reg.waiting);
+                            out.serviceWorker.installing = !!(reg && reg.installing);
+                            out.serviceWorker.active = !!(reg && reg.active);
+                        } catch(_) {}
+                    }
+                    out.ok = !!(
+                        out.startupAssets.startupLogoVar &&
+                        out.startupAssets.startupWordVar &&
+                        out.marquee.hasContainer
+                    );
+                } catch(e) {
+                    out.ok = false;
+                    out.error = String(e && e.message || e);
+                }
+                out.finishedAt = new Date().toISOString();
+                return out;
+            };
+
+            window.__diagExternalVerseState = function(){
+                try {
+                    const db = Array.isArray(window.verseDatabase) ? window.verseDatabase : [];
+                    const norm = Array.isArray(window.__normalizedDB) ? window.__normalizedDB : [];
+                    return {
+                        hasRawDb: db.length > 0,
+                        rawCount: db.length,
+                        hasNormalizedDb: norm.length > 0,
+                        normalizedCount: norm.length,
+                        scope: window.__verseDatabaseScope || null,
+                        externalReady: !!window.__externalVersesReady,
+                        externalFullReady: !!window.__externalFullVersesReady,
+                        externalLoading: !!window.__externalVersesLoading,
+                        usingShardBeforeFullReady: !!window.__usingShardBeforeFullReady,
+                        loadError: window.externalVersesLoadError || null
+                    };
+                } catch(e) {
+                    return { error: String(e && e.message || e) };
+                }
             };
         } catch(e){ console.warn('[coreHelpers] expose failed', e); }
     })();
@@ -576,95 +1666,3 @@
         window.addEventListener('mousemove', onceUserActive, { passive:true, once:true });
         window.addEventListener('keydown', onceUserActive, { passive:true, once:true });
     })();
-    // 裝備課程：改為外部 JSON 載入（equip-course-growth.json）並建立多格式引用對照
-    ;(function(){
-        const abbrev = {
-            '創世記':'GEN','出埃及記':'EXO','利未記':'LEV','民數記':'NUM','申命記':'DEU','約書亞記':'JOS','士師記':'JDG','路得記':'RUT','撒母耳記上':'1SA','撒母耳記下':'2SA',
-            '列王紀上':'1KI','列王紀下':'2KI','歷代志上':'1CH','歷代志下':'2CH','以斯拉記':'EZR','尼希米記':'NEH','以斯帖記':'EST','約伯記':'JOB','詩篇':'PSA','箴言':'PRO','傳道書':'ECC','雅歌':'SNG','以賽亞書':'ISA','耶利米書':'JER','耶利米哀歌':'LAM','以西結書':'EZK','但以理書':'DAN','何西阿書':'HOS','約珥書':'JOL','阿摩司書':'AMO','俄巴底亞書':'OBA','約拿書':'JON','彌迦書':'MIC','那鴻書':'NAM','哈巴谷書':'HAB','西番雅書':'ZEP','哈該書':'HAG','撒迦利亞書':'ZEC','瑪拉基書':'MAL',
-            '馬太福音':'MAT','馬可福音':'MRK','路加福音':'LUK','約翰福音':'JHN','使徒行傳':'ACT','羅馬書':'ROM','哥林多前書':'1CO','哥林多後書':'2CO','加拉太書':'GAL','以弗所書':'EPH','腓立比書':'PHP','歌羅西書':'COL','帖撒羅尼迦前書':'1TH','帖撒羅尼迦後書':'2TH','提摩太前書':'1TI','提摩太後書':'2TI','提多書':'TIT','腓利門書':'PHM','希伯來書':'HEB','雅各書':'JAM','彼得前書':'1PE','彼得後書':'2PE','約翰一書':'1JN','約翰二書':'2JN','約翰三書':'3JN','猶大書':'JUD','啟示錄':'REV'
-        };
-        function addAlias(base, k, v){ if(!base[k]&&v) base[k]=v; }
-        function buildAliases(base){
-            Object.keys(base).forEach(key=>{
-                const v = base[key];
-                const compact = key.replace(/\s+/g,' ').trim();
-                if (compact!==key) addAlias(base, compact, v);
-                const noSpace = compact.replace(/\s*(\d+:)/,' $1').replace(/\s+/g,'').trim();
-                addAlias(base, noSpace, v);
-                const m = compact.match(/^([^\d]+)\s+(\d+:\d+(?:-\d+)?)$/);
-                if (m){
-                    const zhBook = m[1].trim();
-                    const ref = m[2];
-                    const ab = abbrev[zhBook];
-                    if (ab){
-                        addAlias(base, `${ab} ${ref}`, v);
-                        addAlias(base, `${ab}${ref}`, v);
-                    }
-                }
-            });
-        }
-        async function loadEquipPunct(){
-            try {
-                const res = await fetch('equip-course-growth.json', { cache:'no-store' });
-                if (!res.ok) throw new Error('equip json load failed');
-                const data = await res.json();
-                // 轉換成 key -> 完整標點串
-                // 若 JSON entry 提供 full (含正確標點) 則直接使用；否則回退以 verses 片段用頓號/逗號合併並補句號。
-                const punct = {};
-                ['growth','disciple','leader'].forEach(group=>{
-                    if (!Array.isArray(data[group])) return;
-                    data[group].forEach(entry=>{
-                        if (!entry || !entry.book || !entry.chapter || !Array.isArray(entry.verses)) return;
-                        const key = `${entry.book} ${entry.chapter}`.trim();
-                        // 嘗試從原 verses 判斷是否已含終止符號
-                        const raw = entry.verses.map(s=>s.trim()).filter(Boolean);
-                        let text = (entry.full && entry.full.trim()) || raw.join('，');
-                        if (text && !/[。！？!]$/.test(text)) text += '。';
-                        punct[key] = text;
-                    });
-                });
-                buildAliases(punct);
-                window.__equipPunctMap = punct;
-                // 暴露原始資料供未來功能（例如顯示分段排序題目）直接使用未標點 fragments
-                window.__equipCourseRaw = data;
-                window.__equipBookAbbrevMap = abbrev;
-                window.dispatchEvent(new CustomEvent('equipPunctReady'));
-            } catch(e){
-                console.warn('equip-course json load error', e);
-                window.__equipPunctMap = window.__equipPunctMap || {}; // 保留為空避免崩潰
-            }
-        }
-        loadEquipPunct();
-    })();
-        // Pre-pick and preload startup images as early as possible to avoid late appearance on slow networks.
-        (function(){
-            try {
-                var pick = Math.ceil(Math.random() * 4); // 1..4
-                window.__startupPick = pick;
-                // Decide theme and image set up-front so overlay can swap instantly later
-                var isDark = (pick === 1 || pick === 2); // 1,2 -> dark backdrop; 3,4 -> light backdrop
-                window.__startupIsDark = isDark;
-                // Map to available assets in /logo (avoid non-existent logo0-*.png)
-                var logo = isDark
-                    ? (pick === 1 ? 'logo/logo1-light.webp' : 'logo/logo2-light.webp')
-                    : (pick === 3 ? 'logo/logo1-dark.webp'  : 'logo/logo2-dark.webp');
-                var word = isDark
-                    ? (pick === 1 ? 'logo/word1-light.webp' : 'logo/word2-light.webp')
-                    : (pick === 3 ? 'logo/word1-dark.webp'  : 'logo/word2-dark.webp');
-                // Use single brand mark for both themes (existing file)
-                // Brand corner: use theme-inverted logo0 to ensure contrast
-                var brand = isDark ? 'logo/logo0-light.webp' : 'logo/logo0-dark.webp';
-                window.__startupLogoSrc = logo;
-                window.__startupWordSrc = word;
-                window.__startupBrandSrc = brand;
-                // Preload a few likely startup images to reduce initial flicker
-                try {
-                    var preloads = [logo, word, brand];
-                    preloads.forEach(function(href){
-                        var l = document.createElement('link');
-                        l.rel = 'preload'; l.as = 'image'; l.href = href;
-                        if (document.head) document.head.appendChild(l);
-                    });
-                } catch (e) { /* no-op */ }
-            } catch (e) { /* no-op */ }
-        })();

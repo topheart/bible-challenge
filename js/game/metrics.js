@@ -3,6 +3,28 @@
 // Extracted from engine.js to separate concerns
 
 (function() {
+    function normalizeQuestionKey(raw) {
+        if (raw == null) return '';
+        return String(raw).replace(/\|/g, ':').trim();
+    }
+
+    function isHintedQuestionKey(key) {
+        try {
+            const gs = window.gameState;
+            if (!gs || !gs.usedHints) return false;
+            const normalized = normalizeQuestionKey(key);
+            if (!normalized) return false;
+            if (typeof gs.usedHints.has === 'function') {
+                if (gs.usedHints.has(normalized)) return true;
+                if (gs.usedHints.has(normalized.replace(/:/g, '|'))) return true;
+            }
+            const list = Array.isArray(gs.usedHints) ? gs.usedHints : Array.from(gs.usedHints || []);
+            return list.some(v => normalizeQuestionKey(v) === normalized);
+        } catch (_) {
+            return false;
+        }
+    }
+
     // Initialize default metrics object
     function createEmptyMetrics() {
         return {
@@ -28,6 +50,9 @@
             avgAnswerMs: 0,
             perQuestionTimes: [], // Array of { isCorrect, ms, ts }
             timeSamples: [],      // Detailed timing log
+            firstTryCorrectCount: 0,
+            firstTryAnswerTimes: [],
+            _questionAttempts: Object.create(null),
             
             // Special Chains
             ultraFastCorrectChain: 0, // e.g. under 1.5s
@@ -59,7 +84,11 @@
     window.resetGameMetrics = function(mode) {
         window.gameMetrics = createEmptyMetrics();
         window.gameMetrics.mode = mode || 'classic';
-        console.log('[Metrics] Reset for mode:', mode);
+        try {
+            if (window.__debugPerf || window.__BC_DEBUG_ENABLED) {
+                console.log('[Metrics] Reset for mode:', mode);
+            }
+        } catch(_) {}
     };
 
     /**
@@ -67,10 +96,17 @@
      * @param {boolean} isCorrect 
      * @param {number} ms Duration in milliseconds
      */
-    window.recordAnswer = function(isCorrect, ms) {
+    window.recordAnswer = function(isCorrect, ms, questionKey) {
         if (!window.gameMetrics) window.gameMetrics = createEmptyMetrics();
         const m = window.gameMetrics;
         const now = Date.now();
+        const key = (questionKey == null || questionKey === '') ? null : normalizeQuestionKey(questionKey);
+        const hinted = key ? isHintedQuestionKey(key) : false;
+
+        if (key) {
+            if (!m._questionAttempts || typeof m._questionAttempts !== 'object') m._questionAttempts = Object.create(null);
+            m._questionAttempts[key] = (m._questionAttempts[key] || 0) + 1;
+        }
 
         m.answeredQuestions++;
         m.totalQuestions++; // Assuming total increments with answers for infinite modes, fixed modes set it upfront usually
@@ -78,18 +114,24 @@
         // Timing stats
         const validMs = Math.max(1, ms);
         m.totalAnswerTimeMs += validMs;
-        m.perQuestionTimes.push({ isCorrect, ms: validMs, ts: now });
+        m.perQuestionTimes.push({ isCorrect, ms: validMs, ts: now, qKey: key, hinted: !!hinted, attemptNo: key ? (m._questionAttempts[key] || 1) : undefined });
         
         if (isCorrect) {
             m.correctCount++;
             m.currentStreak++;
             if (m.currentStreak > m.longestStreak) m.longestStreak = m.currentStreak;
+
+            if (key && m._questionAttempts && m._questionAttempts[key] === 1) {
+                m.firstTryCorrectCount++;
+                if (!Array.isArray(m.firstTryAnswerTimes)) m.firstTryAnswerTimes = [];
+                m.firstTryAnswerTimes.push(validMs);
+            }
             
             if (validMs < m.fastestAnswerMs) m.fastestAnswerMs = validMs;
             if (validMs > m.slowestAnswerMs) m.slowestAnswerMs = validMs;
 
-            // Ultra Fast Chain (e.g. < 2000ms)
-            if (validMs <= 2000) {
+            // Ultra Fast Chain: requires no-hint + <=1200ms
+            if (!hinted && validMs <= 1200) {
                 m.ultraFastCorrectChain++;
                 if (m.ultraFastCorrectChain > m.ultraFastCorrectMax) m.ultraFastCorrectMax = m.ultraFastCorrectChain;
             } else {

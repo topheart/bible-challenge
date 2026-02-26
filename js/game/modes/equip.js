@@ -68,9 +68,9 @@
                         list.forEach((item, idx) => {
                             const wrap = document.createElement('div');
                             wrap.className = 'p-3 md:p-4 rounded-xl bg-white/80 border border-purple-200 shadow-sm mb-3 hover:shadow-md transition';
-                            const book = item.book || '';
-                            const chap = item.chapter || '';
-                            const full = item.full || '';
+                            const book = escapeEquipHtml(item.book || '');
+                            const chap = escapeEquipHtml(item.chapter || '');
+                            const full = escapeEquipHtml(item.full || '');
                             wrap.innerHTML = `<div class="flex items-start justify-between gap-2 mb-2">
                                 <div class="font-bold text-purple-700 text-sm md:text-base">${idx+1}. ${book} <span class="text-purple-500 font-semibold">${chap}</span></div>
                             </div>
@@ -223,9 +223,65 @@
             const badge = document.getElementById('equipStageBadge');
             if (badge) badge.textContent = text || '';
         }
+        function updateEquipPhaseStepper(step) {
+            try {
+                const root = document.getElementById('equipStepProgress');
+                if (!root) return;
+                const activeStep = Math.max(0, Math.min(3, Number(step) || 0));
+                const dots = Array.from(root.querySelectorAll('.equip-step-dot[data-step]'));
+                const lines = Array.from(root.querySelectorAll('.equip-step-line'));
+                dots.forEach((dot, i) => {
+                    const n = i + 1;
+                    dot.classList.remove('is-active', 'is-done');
+                    if (n < activeStep) dot.classList.add('is-done');
+                    else if (n === activeStep) dot.classList.add('is-active');
+                });
+                lines.forEach((line, i) => {
+                    line.classList.toggle('is-done', (i + 1) < activeStep);
+                });
+            } catch(_) {}
+        }
         function updateEquipSubtitle(text) {
             const el = document.getElementById('equipSubtitle');
             if (el) el.textContent = text || '';
+        }
+        function getEquipEffectRect(targetEl) {
+            try {
+                if (!targetEl || typeof targetEl.getBoundingClientRect !== 'function') return null;
+                const rect = targetEl.getBoundingClientRect();
+                if (!rect) return null;
+                const w = Number(rect.width || 0);
+                const h = Number(rect.height || 0);
+                const l = Number(rect.left || 0);
+                const t = Number(rect.top || 0);
+                if (!Number.isFinite(w) || !Number.isFinite(h) || !Number.isFinite(l) || !Number.isFinite(t)) return null;
+                if (w < 6 || h < 6) return null;
+                // 避免偶發 0,0 / 脫離 viewport 的假座標導致特效跑到左上角
+                if (l <= -w || t <= -h || l >= window.innerWidth || t >= window.innerHeight) return null;
+                return rect;
+            } catch(_) { return null; }
+        }
+        function updateEquipStageHeader() {
+            try {
+                const phase = Number(gameState.equipPhase || 0);
+                const entry = gameState.currentEquipEntry || {};
+                const total = Array.isArray(entry.verses) ? entry.verses.length : 0;
+                const picked = Math.max(0, Math.min(total, Number(gameState.equipExpectedIndex || 0)));
+                let text = '📘 裝備課程';
+                if (phase === 1) text = '🎲 階段 1 · 抽卷';
+                else if (phase === 2) text = '🧭 階段 2 · 選章';
+                else if (phase === 3) text = `✨ 階段 3 · 排序 ${picked}/${total || '—'}`;
+                updateEquipStageBadge(text);
+            } catch(_) {}
+        }
+        function escapeEquipHtml(value) {
+            const s = value == null ? '' : String(value);
+            return s
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
         function setEquipContent(html) {
             const wrap = document.getElementById('equipContent');
@@ -259,7 +315,8 @@
         function equipUpdateProgressUI() {
             try {
                 // Reuse existing ovals, driven by gameState.currentLevel and getLevelCount()
-                updateLevelOvals();
+                if (typeof scheduleProgressUIUpdate === 'function') scheduleProgressUIUpdate({ level: true });
+                else updateLevelOvals();
             } catch(_) {}
         }
 
@@ -339,6 +396,7 @@
             renderMiniLevelPlaceholders();
             // Mode label
             try { const modeEl = document.getElementById('gameModeDisplay'); if (modeEl) modeEl.textContent = '裝備課程'; } catch(_) {}
+            try { updateEquipPhaseStepper(0); } catch(_) {}
             // Disable survival UI
             try { const card = document.getElementById('survivalTimerCard'); if (card) card.classList.add('hidden'); stopSurvivalTimer(); } catch(_) {}
             // Ensure hint/back proxies are wired
@@ -489,23 +547,35 @@
             gameState.levelPerfect = true;
             gameState.equipLevelMistakes = 0;
             gameState.equipExpectedIndex = 0;
+            gameState.equipBookRevealed = false;
+            gameState.equipChapterRevealed = false;
             // Ensure hint count reset per level like normal
             const hintCounts = { easy: 3, normal: 3, hard: 3 };
             gameState.hintsRemaining = hintCounts[gameState.difficulty] ?? 3;
             try { updateHintButton(); } catch(_) {}
             // Phase 1: 書卷抽選 slot-machine 動畫
             gameState.equipPhase = 1;
-            updateEquipStageBadge('階段 1/3');
+            updateEquipStageHeader();
+            updateEquipPhaseStepper(1);
             updateEquipSubtitle('書卷抽選中…');
-            try { updateAdaptiveStatus(); } catch(_) {}
+            try {
+                if (typeof scheduleProgressUIUpdate === 'function') scheduleProgressUIUpdate({ adaptive: true });
+                else updateAdaptiveStatus();
+            } catch(_) {}
             const idx = Math.max(0, (gameState.currentLevel|0) - 1);
             let entry = gameState.currentEquipEntry || gameState.equipRemaining[idx];
             // 若上一關的書卷相同，嘗試換一題（避免連續抽到同卷造成重複）
             try {
                 if (entry && gameState.equipLastBook && entry.book === gameState.equipLastBook) {
-                    // 找到下一個不同書卷的關卡
-                    const alt = (gameState.equipRemaining || []).find(e => e && e.book !== gameState.equipLastBook);
-                    if (alt) entry = alt;
+                    // 找到下一個不同書卷的關卡，並與目前 index 交換，避免後續關卡重複使用
+                    const list = Array.isArray(gameState.equipRemaining) ? gameState.equipRemaining : [];
+                    const altIndex = list.findIndex((e, i) => i !== idx && e && e.book !== gameState.equipLastBook);
+                    if (altIndex >= 0) {
+                        const alt = list[altIndex];
+                        list[altIndex] = list[idx];
+                        list[idx] = alt;
+                        entry = alt;
+                    }
                 }
             } catch(_) {}
             gameState.currentEquipEntry = entry || null;
@@ -546,7 +616,11 @@
                     if (idx < 0) idx = Math.max(0, Math.floor(sequence.length / 2));
                     const targetEl = reel.children[idx];
                     // Fallback: if target element missing, abort animation gracefully
-                    if (!targetEl) { renderEquipPhase2(); return; }
+                    if (!targetEl) {
+                        gameState.equipBookRevealed = true;
+                        renderEquipPhase2();
+                        return;
+                    }
                     // Compute precise offset so target's center = wrap center
                     const calcOffset = () => {
                         const w = wrapWidth();
@@ -572,8 +646,10 @@
                         }, 80);
                         // 顯示停留時間，讓玩家更容易看到抽中的書卷名稱
                         try {
+                            gameState.equipBookRevealed = true;
                             updateEquipSubtitle(`抽中：${target}`);
-                            updateAdaptiveStatus();
+                            if (typeof scheduleProgressUIUpdate === 'function') scheduleProgressUIUpdate({ adaptive: true });
+                            else updateAdaptiveStatus();
                         } catch(_) {}
                         // 記錄本關書卷，避免下一關重複
                         try { gameState.equipLastBook = target || null; } catch(_) {}
@@ -589,9 +665,13 @@
         // Phase 2: 章節五選一（1 正確 + 4 同班級干擾）
         function renderEquipPhase2() {
             gameState.equipPhase = 2;
-            updateEquipStageBadge('階段 2/3');
+            updateEquipStageHeader();
+            updateEquipPhaseStepper(2);
             updateEquipSubtitle('選擇章節');
-            try { updateAdaptiveStatus(); } catch(_) {}
+            try {
+                if (typeof scheduleProgressUIUpdate === 'function') scheduleProgressUIUpdate({ adaptive: true });
+                else updateAdaptiveStatus();
+            } catch(_) {}
             const entry = gameState.currentEquipEntry;
             if (!entry) { return completeEquipOrNext(); }
             // Build candidates: correct + 4 others from same tier but different (book,chapter)
@@ -601,7 +681,7 @@
             const options = [...shuffled, entry].sort(() => Math.random() - 0.5);
             gameState.equipPhase2Attempts = 3; // cap attempts for chapter selection
             const html = options.map((opt, idx) => {
-                const label = `${opt.chapter}`; // 只顯示章節，不顯示書卷
+                const label = escapeEquipHtml(`${opt.chapter}`); // 只顯示章節，不顯示書卷
                 // 增加 data-enter-* 以套用進場動畫（沿用 card-enter 樣式）
                 const dx = Math.round((Math.random()*120)+60);
                 const dy = Math.round((Math.random()*16)-8);
@@ -623,7 +703,11 @@
             if (correct) {
                 try { SFX.play('correct'); } catch(_) {}
                 // 粒子特效（正向）
-                try { const r = btn.getBoundingClientRect(); triggerEquipCorrectBurst(r); spawnScoreParticles(80, r, { colors:['#EDE9FE','#DDD6FE','#C4B5FD','#A78BFA','#FBCFE8','#F5D0FE'], count:10, distanceMin:40, distanceMax:120, durationMs:1400 }); } catch(_) {}
+                try {
+                    const r = getEquipEffectRect(btn);
+                    if (r) triggerEquipCorrectBurst(r);
+                    spawnScoreParticles(80, r, { colors:['#EDE9FE','#DDD6FE','#C4B5FD','#A78BFA','#FBCFE8','#F5D0FE'], count:10, distanceMin:40, distanceMax:120, durationMs:1400 });
+                } catch(_) {}
                 // Base scoring + time reward using same rules as handleChapterClick
                 const mistakeCount = gameState.equipLevelMistakes | 0;
                 const inPractice = !!gameState.range;
@@ -658,6 +742,7 @@
                 // reset timer for next phase
                 try { gameState.levelStartTime = Date.now(); gameState.__comboDroppedForTimeout = false; } catch(_) {}
                 try { equipProgressPulse(true); } catch(_) {}
+                try { gameState.equipChapterRevealed = true; } catch(_) {}
                 // proceed to phase 3
                 gameState.__equipHandoffLocked = true;
                 try { setEquipInteractionLock(true); } catch(_) {}
@@ -665,7 +750,10 @@
             } else {
                 try { SFX.play('wrong'); } catch(_) {}
                 // 粒子特效（負向小爆）
-                try { const r = btn.getBoundingClientRect(); spawnScoreParticles(-30, r, { colors:['#FECACA','#FCA5A5','#F87171','#EF4444'], count:6, distanceMin:24, distanceMax:90, durationMs:900 }); } catch(_) {}
+                try {
+                    const r = getEquipEffectRect(btn);
+                    spawnScoreParticles(-30, r, { colors:['#FECACA','#FCA5A5','#F87171','#EF4444'], count:6, distanceMin:24, distanceMax:90, durationMs:900 });
+                } catch(_) {}
                 gameState.equipLevelMistakes++;
                 gameState.levelPerfect = false;
                 gameState.totalMistakes++;
@@ -700,9 +788,13 @@
         // Phase 3: 排序經文（單一五按鈕區；每步最多展示 5 個片段，其中 1..5 個是正確序列的下一段或往後的段落，其餘同階級干擾）
         function renderEquipPhase3() {
             gameState.equipPhase = 3;
-            updateEquipStageBadge('階段 3/3');
+            updateEquipStageHeader();
+            updateEquipPhaseStepper(3);
             updateEquipSubtitle('排序經文');
-            try { updateAdaptiveStatus(); } catch(_) {}
+            try {
+                if (typeof scheduleProgressUIUpdate === 'function') scheduleProgressUIUpdate({ adaptive: true });
+                else updateAdaptiveStatus();
+            } catch(_) {}
             // Reset per-step attempts
             gameState.equipStepAttempts = 3;
             // Build initial five buttons
@@ -733,7 +825,7 @@
                 const dy = Math.round((Math.random()*14)-7);
                 const delay = Math.round(i * 36 + Math.random()*50);
                 const dur = Math.round(400 + Math.random()*240);
-                return `<button class="cute-button w-full bg-white border-2 border-indigo-200 text-indigo-800 py-3 rounded-xl sorter-option card-enter" style="--enterX:${dx}px; --enterY:${dy}px; --enterDelay:${delay}ms; --enterDur:${dur}ms; --enterR:0deg" data-correct="${opt.correct?'1':'0'}" data-idx="${opt.idx!=null?opt.idx:''}">${opt.t}</button>`;
+                return `<button class="cute-button w-full bg-white border-2 border-indigo-200 text-indigo-800 py-3 rounded-xl sorter-option card-enter" style="--enterX:${dx}px; --enterY:${dy}px; --enterDelay:${delay}ms; --enterDur:${dur}ms; --enterR:0deg" data-correct="${opt.correct?'1':'0'}" data-idx="${opt.idx!=null?opt.idx:''}">${escapeEquipHtml(opt.t)}</button>`;
             }).join('');
             setEquipContent(`<div class="space-y-2">${html}</div>`);
             document.querySelectorAll('.sorter-option').forEach(btn => {
@@ -750,7 +842,11 @@
             const __ansStart = gameState.currentQuestionStartTime || gameState.levelStartTime || Date.now();
             if (isCorrect) {
                 try { SFX.play('correct'); } catch(_) {}
-                try { const r = btn.getBoundingClientRect(); triggerEquipCorrectBurst(r); spawnScoreParticles(70, r, { colors:['#DBEAFE','#BFDBFE','#93C5FD','#60A5FA','#A5B4FC','#C7D2FE'], count:9, distanceMin:36, distanceMax:120, durationMs:1300 }); } catch(_) {}
+                try {
+                    const r = getEquipEffectRect(btn);
+                    if (r) triggerEquipCorrectBurst(r);
+                    spawnScoreParticles(70, r, { colors:['#DBEAFE','#BFDBFE','#93C5FD','#60A5FA','#A5B4FC','#C7D2FE'], count:9, distanceMin:36, distanceMax:120, durationMs:1300 });
+                } catch(_) {}
                 // Score like a normal question (base 100 minus 50 per mistake this step; combo applies on base only; time reward adds)
                 const mistakeCount = (3 - Math.max(0, gameState.equipStepAttempts)) | 0;
                 const inPractice = !!gameState.range;
@@ -769,18 +865,23 @@
                 gameState.totalQuestions = (gameState.totalQuestions|0) + 1;
                 addComboOnCorrect();
                 showScoreAnimation(`+${totalScore}分`, false, btn);
-                // 高亮保留 + 星標
-                btn.classList.add('equip-correct-hold','bg-green-100','border-green-300');
+                // 高亮保留 + 星標 + 明確答對命中效果（與錯誤效果做區隔）
+                btn.classList.add('equip-correct-hold','bg-green-100','border-green-300','equip-sorter-correct-hit');
+                try { setTimeout(()=>btn.classList.remove('equip-sorter-correct-hit'), 780); } catch(_) {}
                 try { setTimeout(()=>btn.classList.remove('equip-correct-hold'), 1500); } catch(_) {}
                 // 其他尚未選取的 sorter-option 半透明處理（不禁用，保持互動僅限下一輪重新渲染）
                 try { document.querySelectorAll('.sorter-option').forEach(b=>{ if (b!==btn) { b.style.transition='opacity 300ms ease, filter 300ms ease'; b.style.opacity='0.35'; b.style.filter='grayscale(70%)'; } }); } catch(_) {}
                 // Advance expected index
                 gameState.equipExpectedIndex++;
+                updateEquipStageHeader();
                 gameState.equipStepAttempts = 3; // reset attempts for next pick
                 // reset timer like normal after a correct selection
                 try { gameState.levelStartTime = Date.now(); gameState.__comboDroppedForTimeout = false; } catch(_) {}
                 try { equipProgressPulse(true); } catch(_) {}
-                try { updateAdaptiveStatus(); } catch(_) {}
+                try {
+                    if (typeof scheduleProgressUIUpdate === 'function') scheduleProgressUIUpdate({ adaptive: true });
+                    else updateAdaptiveStatus();
+                } catch(_) {}
                 // Completed all fragments? finish this level
                 const entry = gameState.currentEquipEntry;
                 if (entry && gameState.equipExpectedIndex >= entry.verses.length) {
@@ -797,22 +898,32 @@
                     gameState.__equipHandoffLocked = true;
                     try { setEquipInteractionLock(true); } catch(_) {}
                     const proceed = () => completeEquipOrNext();
+                    const completeHoldMs = 900;
                     // If this is the last level, wait for overlayDone before proceeding to ensure display-before-settlement
                     try {
                         const isLast = (gameState.currentLevel >= getLevelCount());
                         if (isLast && overlayDone && typeof overlayDone.then === 'function') {
-                            overlayDone.finally(() => setTimeout(proceed, 100));
+                            overlayDone.finally(() => setTimeout(proceed, completeHoldMs));
                         } else {
-                            setTimeout(proceed, 400);
+                            setTimeout(proceed, completeHoldMs);
                         }
-                    } catch(_) { setTimeout(proceed, 400); }
+                    } catch(_) { setTimeout(proceed, completeHoldMs); }
                 } else {
-                    // redraw next set limited to 5 buttons
-                    drawEquipSorterButtons();
+                    // 每一步答對先保留命中特效，再進下一輪（避免看不出答對差異）
+                    gameState.__equipHandoffLocked = true;
+                    try { setEquipInteractionLock(true); } catch(_) {}
+                    setTimeout(() => {
+                        try { setEquipInteractionLock(false); } catch(_) {}
+                        delete gameState.__equipHandoffLocked;
+                        drawEquipSorterButtons();
+                    }, 320);
                 }
             } else {
                 try { SFX.play('wrong'); } catch(_) {}
-                try { const r = btn.getBoundingClientRect(); spawnScoreParticles(-20, r, { colors:['#FECACA','#FCA5A5','#F87171'], count:5, distanceMin:20, distanceMax:70, durationMs:820 }); } catch(_) {}
+                try {
+                    const r = getEquipEffectRect(btn);
+                    spawnScoreParticles(-20, r, { colors:['#FECACA','#FCA5A5','#F87171'], count:5, distanceMin:20, distanceMax:70, durationMs:820 });
+                } catch(_) {}
                 gameState.equipStepAttempts = Math.max(0, (gameState.equipStepAttempts|0) - 1);
                 gameState.totalMistakes++;
                 gameState.levelPerfect = false;
@@ -839,7 +950,10 @@
                 btn.classList.remove('shake-error'); void btn.offsetWidth; btn.classList.add('equip-wrong-pulse'); setTimeout(()=>btn.classList.remove('equip-wrong-pulse'), 700);
                 try { btn.classList.add('bg-red-50','border-red-300'); setTimeout(()=>btn.classList.remove('bg-red-50'), 1000); } catch(_) {}
                 try { equipProgressPulse(false); } catch(_) {}
-                try { updateAdaptiveStatus(); } catch(_) {}
+                try {
+                    if (typeof scheduleProgressUIUpdate === 'function') scheduleProgressUIUpdate({ adaptive: true });
+                    else updateAdaptiveStatus();
+                } catch(_) {}
                 // redraw options for the same expected index
                 drawEquipSorterButtons();
             }
@@ -984,7 +1098,7 @@
                 setTimeout(()=>{ el.remove(); }, 500);
             }
             function formatRef(book, chapter){
-                return `<span style="font-weight:600;letter-spacing:.5px;">${book} ${chapter}</span>`;
+                return `<span style="font-weight:600;letter-spacing:.5px;">${escapeEquipHtml(book)} ${escapeEquipHtml(chapter)}</span>`;
             }
             window.showEquipAssembledVerse = function(entry, ok = true){
                 try {
@@ -1000,7 +1114,8 @@
                         full = frags.join('，');
                         if(full && !/[。！？!]$/.test(full)) full+='。';
                     }
-                    const html = `<div style="font-size:.78rem;opacity:.9;margin-bottom:4px;">${ref}</div><div>${full}</div>`;
+                    const safeFull = escapeEquipHtml(full || '');
+                    const html = `<div style="font-size:.78rem;opacity:.9;margin-bottom:4px;">${ref}</div><div>${safeFull}</div>`;
                     const host = ensureHost();
                     const toast = buildToast(html, ok, key);
                     host.appendChild(toast);

@@ -194,6 +194,44 @@
             };
             // 提供給審核工具使用（唯讀暴露）
             try { window.__iconMap = iconMap; } catch(_) {}
+            let achievementSpriteLoadPromise = null;
+            function ensureAchievementSpriteLoaded(){
+                try {
+                    if (document.getElementById('__achvSpriteHost')) return Promise.resolve(true);
+                    if (achievementSpriteLoadPromise) return achievementSpriteLoadPromise;
+                    const spriteUrl = (window && window.__ACHV_SPRITE_URL) ? String(window.__ACHV_SPRITE_URL) : './data/achievement-sprite.svg';
+                    achievementSpriteLoadPromise = fetch(spriteUrl, { cache: 'force-cache' })
+                        .then(res => {
+                            if (!res || !res.ok) throw new Error('sprite fetch failed');
+                            return res.text();
+                        })
+                        .then(svgText => {
+                            if (!svgText || svgText.indexOf('<svg') === -1) throw new Error('invalid sprite payload');
+                            if (document.getElementById('__achvSpriteHost')) return true;
+                            const host = document.createElement('div');
+                            host.id = '__achvSpriteHost';
+                            host.setAttribute('aria-hidden', 'true');
+                            host.style.position = 'absolute';
+                            host.style.width = '0';
+                            host.style.height = '0';
+                            host.style.overflow = 'hidden';
+                            host.innerHTML = svgText;
+                            const parent = document.body || document.documentElement;
+                            if (parent) parent.prepend(host);
+                            return true;
+                        })
+                        .catch(() => false);
+                    return achievementSpriteLoadPromise;
+                } catch(_) {
+                    return Promise.resolve(false);
+                }
+            }
+            try { window.ensureAchievementSpriteLoaded = ensureAchievementSpriteLoaded; } catch(_) {}
+            if (document.readyState === 'loading') {
+                try { document.addEventListener('DOMContentLoaded', () => { try { ensureAchievementSpriteLoaded(); } catch(_) {} }, { once: true }); } catch(_) {}
+            } else {
+                try { ensureAchievementSpriteLoaded(); } catch(_) {}
+            }
             function getAchievementIcon(a){
                 const sym = iconMap[a.id];
                 if(!sym) return '★';
@@ -678,10 +716,14 @@
                 condition:{ type:'metric', field:'timeInBand60to90', op:'>=', value:125 } });
 
             // T1 特別成就（單一高難度 / 複合條件）
-            D({ id:'t1_truth_and_love', mode:'any', name:'真理與慈愛', desc:'全程完美答題', displayTier:1, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.answeredQuestions||0)>0 && (m.noHintCorrectCount||0) === (m.answeredQuestions||0) } });
-            D({ id:'t1_rock_solid', mode:'any', name:'聖靈寶劍', desc:'完美答題≥40 + 最快≤1.5秒', displayTier:1, realtime:false,
-                condition:{ type:'custom', fn:m=> (m.noHintCorrectCount||0) >= 40 && (m.fastestPerfectAnswerMs||9999) <= 1500 } });
+            D({ id:'t1_truth_and_love', mode:'any', name:'真理與慈愛', desc:'全題完美答題', displayTier:1, realtime:false,
+                condition:{ type:'custom', fn:m=> {
+                    const total = Math.max(0, Number(m.totalQuestions||0));
+                    if (total <= 0) return false;
+                    return (m.firstTryCorrectCount||0) >= total;
+                } } });
+            D({ id:'t1_rock_solid', mode:'any', name:'聖靈寶劍', desc:'完美答題≥40題 + 最快≤1.5秒', displayTier:1, realtime:false,
+                condition:{ type:'custom', fn:m=> (m.firstTryCorrectCount||0) >= 40 && (m.fastestFirstTryAnswerMs||9999) <= 1500 } });
             D({ id:'t1_deer_for_streams', mode:'any', name:'如鹿切慕溪水', desc:'最大連擊≥15，且其中≥5題≤2秒', displayTier:1, realtime:false,
                 condition:{ type:'custom', fn:m=> {
                     // 1) 必須達到畫面最大連擊（combo 峰值）≥ 15
@@ -1029,15 +1071,29 @@
                     };
                     // Optionally attach a score_id if provided
                     if (options && options.linkToScoreId) row.score_id = options.linkToScoreId;
-                    await client.from(table).insert(row).throwOnError();
+                    const { data } = await client.from(table).insert(row).select('id, created_at').single().throwOnError();
+                    try {
+                        const runId = data && data.id ? String(data.id) : null;
+                        if (runId) {
+                            window.__lastAchvRunId = runId;
+                            window.__lastAchvRunTs = Date.now();
+                        }
+                    } catch(_) {}
+                    return data || null;
                 }catch(_){ /* ignore */ }
             }
 
             // After a score is saved, link latest queued telemetry row to that score_id (best-effort)
-            window.linkLatestAchievementRunToScore = async function(scoreId){
+            window.linkLatestAchievementRunToScore = async function(scoreId, runId){
                 try{
                     const client = getClient(); if(!client) return;
                     const table = getRunsTable(); if (!scoreId) return;
+                    if (runId) {
+                        try {
+                            await client.from(table).update({ score_id: scoreId }).eq('id', runId);
+                            return;
+                        } catch(_) {}
+                    }
                     // Find most recent achv_runs without score_id for this project_tag and attach it
                     const tag = (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.projectTag)||'bible-challenge-prod';
                     const { data:list } = await client.from(table)
@@ -1067,6 +1123,312 @@
             }
         })();
         // #endregion
+
+        // ====== 指標封存（結算時）與生存補充紀錄 ======
+        ;(function finalizeAndSurvivalHelpers(){
+            function ensureMetrics(){
+                if (!window.gameMetrics || typeof window.gameMetrics !== 'object') {
+                    window.gameMetrics = {
+                        mode: 'classic',
+                        answeredQuestions: 0,
+                        totalQuestions: 0,
+                        correctCount: 0,
+                        wrongCount: 0,
+                        hintsUsed: 0,
+                        totalAnswerTimeMs: 0,
+                        avgAnswerMs: 0,
+                        fastestAnswerMs: 999999,
+                        longestStreak: 0,
+                        maxConsecutivePerfect: 0,
+                        levelPerfectFlags: [],
+                        levelsPerfectCount: 0,
+                        timeSamples: [],
+                        perQuestionTimes: []
+                    };
+                }
+                return window.gameMetrics;
+            }
+
+            function calcStd(values){
+                try {
+                    const arr = (Array.isArray(values) ? values : []).filter(v => Number.isFinite(v));
+                    if (!arr.length) return 0;
+                    const mean = arr.reduce((a,b)=>a+b,0) / arr.length;
+                    const variance = arr.reduce((a,b)=>a + Math.pow(b - mean, 2), 0) / arr.length;
+                    return Math.sqrt(variance);
+                } catch(_) { return 0; }
+            }
+
+            window.recordSurvivalTick = function(seconds){
+                try {
+                    const m = ensureMetrics();
+                    m.mode = 'survival';
+                    const sec = Math.max(0, Number(seconds) || 0);
+                    const now = Date.now();
+
+                    if (!m._survivalStartTs) m._survivalStartTs = now;
+                    m.survivalDuration = Math.max(0, Math.floor((now - m._survivalStartTs) / 1000));
+
+                    m.maxTime = Math.max(Number(m.maxTime || 0), sec);
+                    if (Number.isFinite(m.maxTimeVirtual)) {
+                        m.maxTime = Math.max(m.maxTime, Number(m.maxTimeVirtual || 0));
+                    }
+
+                    if (!Array.isArray(m._survivalSamples)) m._survivalSamples = [];
+                    m._survivalSamples.push(sec);
+                    if (m._survivalSamples.length > 1200) m._survivalSamples.shift();
+
+                    const secBucket = Math.floor(now / 1000);
+                    if (m._survivalLastBucket !== secBucket) {
+                        m._survivalLastBucket = secBucket;
+                        if (sec >= 60 && sec <= 90) m.timeInBand60to90 = (m.timeInBand60to90 || 0) + 1;
+                        if (sec >= 0 && sec <= 30) m.timeInBand0to30 = (m.timeInBand0to30 || 0) + 1;
+                    }
+
+                    if (sec <= 15) {
+                        m.nearDeathActive = true;
+                    } else if (m.nearDeathActive && sec >= 25) {
+                        m.nearDeathRecoveries = (m.nearDeathRecoveries || 0) + 1;
+                        m.nearDeathActive = false;
+                    }
+                } catch(_) { /* ignore */ }
+            };
+
+            window.recordRescue = function(){
+                try {
+                    const m = ensureMetrics();
+                    m.rescueUsed = true;
+                } catch(_) { /* ignore */ }
+            };
+
+            window.finalizeMetrics = function(){
+                const m = ensureMetrics();
+                const gs = (typeof window.gameState === 'object' && window.gameState) ? window.gameState : {};
+                const normalizeQKey = (raw)=> String(raw == null ? '' : raw).replace(/\|/g, ':').trim();
+
+                const answered = Math.max(0, Number(m.answeredQuestions || (m.correctCount || 0) + (m.wrongCount || 0) || 0));
+                const totalQuestions = Math.max(answered, Number(gs.totalQuestions || m.totalQuestions || answered));
+                const correctCount = Math.max(0, Number(m.correctCount || 0));
+                const wrongCount = Math.max(0, Number(m.wrongCount || 0));
+                const hintsUsed = Math.max(0, Number(m.hintsUsed || 0));
+                const accuracy = answered > 0 ? (correctCount / answered) : 0;
+
+                const events = Array.isArray(m.perQuestionTimes) ? m.perQuestionTimes : [];
+                const perQuestionTimesAll = events.map(e => Math.max(1, Number(e && e.ms) || 0));
+                const perQuestionCorrectFlags = events.map(e => !!(e && e.isCorrect));
+                const perQuestionValidFlags = events.map(() => true);
+
+                const hintedKeySet = (()=>{
+                    try {
+                        const src = gs && gs.usedHints;
+                        if (!src) return new Set();
+                        const rawList = Array.isArray(src) ? src : Array.from(src);
+                        return new Set(rawList.map(normalizeQKey).filter(Boolean));
+                    } catch(_) { return new Set(); }
+                })();
+
+                const byQuestion = new Map();
+                for (const e of events) {
+                    if (!e) continue;
+                    const qKey = normalizeQKey(e.qKey || '');
+                    if (!qKey) continue;
+                    if (!byQuestion.has(qKey)) {
+                        byQuestion.set(qKey, {
+                            attempts: 0,
+                            wrongs: 0,
+                            correct: false,
+                            firstCorrectMs: 0,
+                            hinted: hintedKeySet.has(qKey) || !!e.hinted
+                        });
+                    }
+                    const item = byQuestion.get(qKey);
+                    item.attempts++;
+                    item.hinted = item.hinted || hintedKeySet.has(qKey) || !!e.hinted;
+                    if (e.isCorrect) {
+                        if (!item.correct) {
+                            item.correct = true;
+                            item.firstCorrectMs = Math.max(1, Number(e.ms) || 0);
+                        }
+                    } else {
+                        item.wrongs++;
+                    }
+                }
+
+                const qValues = Array.from(byQuestion.values());
+                const noHintQuestions = qValues.filter(q => !q.hinted);
+                const noHintAnsweredCount = noHintQuestions.length;
+                const noHintCorrectQuestions = noHintQuestions.filter(q => q.correct);
+                const noHintCorrectCount = noHintCorrectQuestions.length;
+                const accuracyNoHint = noHintAnsweredCount > 0 ? (noHintCorrectCount / noHintAnsweredCount) : 0;
+                const perfectTimes = noHintCorrectQuestions
+                    .map(q => Math.max(1, Number(q.firstCorrectMs) || 0));
+                const avgPerfectAnswerMs = perfectTimes.length
+                    ? (perfectTimes.reduce((a,b)=>a+b,0) / perfectTimes.length)
+                    : 0;
+                const fastestPerfectAnswerMs = perfectTimes.length
+                    ? Math.min(...perfectTimes)
+                    : Math.max(1, Number(m.fastestAnswerMs || 999999));
+
+                let firstTryCorrectCount = 0;
+                let firstTryTimes = [];
+                const computedFirstTry = qValues.filter(q => q.correct && q.wrongs === 0);
+                if (computedFirstTry.length > 0) {
+                    firstTryCorrectCount = computedFirstTry.length;
+                    firstTryTimes = computedFirstTry
+                        .map(q => Math.max(1, Number(q.firstCorrectMs) || 0));
+                } else if (typeof m.firstTryCorrectCount === 'number' && Number.isFinite(m.firstTryCorrectCount)) {
+                    firstTryCorrectCount = Math.max(0, Number(m.firstTryCorrectCount || 0));
+                    firstTryTimes = Array.isArray(m.firstTryAnswerTimes)
+                        ? m.firstTryAnswerTimes.filter(v => Number.isFinite(v)).map(v => Math.max(1, Number(v)))
+                        : [];
+                } else {
+                    for (let i = 0; i < events.length; i++) {
+                        const cur = events[i];
+                        if (!cur || !cur.isCorrect) continue;
+                        const prev = events[i - 1];
+                        const likelyRetry = !!(prev && prev.isCorrect === false);
+                        if (!likelyRetry) {
+                            firstTryCorrectCount++;
+                            firstTryTimes.push(Math.max(1, Number(cur.ms) || 0));
+                        }
+                    }
+                }
+                const firstTryAvgAnswerMs = firstTryTimes.length
+                    ? (firstTryTimes.reduce((a,b)=>a+b,0) / firstTryTimes.length)
+                    : 0;
+                const fastestFirstTryAnswerMs = firstTryTimes.length ? Math.min(...firstTryTimes) : 999999;
+
+                const levelStatsByKey = new Map();
+                if (byQuestion.size > 0) {
+                    for (const [qKey, q] of byQuestion.entries()) {
+                        const [lvRaw, idxRaw] = qKey.split(':');
+                        const lv = Number(lvRaw);
+                        const idx = Number(idxRaw);
+                        if (!Number.isFinite(lv)) continue;
+                        const levelKey = String(lv);
+                        if (!levelStatsByKey.has(levelKey)) {
+                            levelStatsByKey.set(levelKey, { mistakes: 0, entries: [] });
+                        }
+                        const bucket = levelStatsByKey.get(levelKey);
+                        bucket.mistakes += Math.max(0, Number(q.wrongs || 0));
+                        bucket.entries.push({
+                            index: Number.isFinite(idx) ? idx : 9999,
+                            correct: !!q.correct,
+                            firstTry: !!q.correct && (q.wrongs === 0),
+                            firstCorrectMs: Math.max(1, Number(q.firstCorrectMs || 0))
+                        });
+                    }
+                }
+
+                const sortedLevelKeys = Array.from(levelStatsByKey.keys()).sort((a,b)=> Number(a)-Number(b));
+                const levelMistakesList = sortedLevelKeys.map(k => levelStatsByKey.get(k).mistakes);
+                const levelHead3QualifyFlags = sortedLevelKeys.map(k => {
+                    const rows = (levelStatsByKey.get(k).entries || [])
+                        .filter(r => r && r.correct)
+                        .sort((a,b)=> a.index - b.index);
+                    if (rows.length < 3) return false;
+                    const top3 = rows.slice(0,3);
+                    return top3.every(r => r.firstTry && r.firstCorrectMs > 0 && r.firstCorrectMs <= 3000);
+                });
+                const levelHead5QualifyFlags = sortedLevelKeys.map(k => {
+                    const rows = (levelStatsByKey.get(k).entries || [])
+                        .filter(r => r && r.correct)
+                        .sort((a,b)=> a.index - b.index);
+                    if (rows.length < 5) return false;
+                    const top5 = rows.slice(0,5);
+                    return top5.every(r => r.firstTry && r.firstCorrectMs > 0 && r.firstCorrectMs <= 5000);
+                });
+
+                let levelPerfectFlags = Array.isArray(m.levelPerfectFlags) ? [...m.levelPerfectFlags] : [];
+                if (!levelPerfectFlags.length && gs.levelResults && typeof gs.levelResults === 'object') {
+                    const keys = Object.keys(gs.levelResults)
+                        .map(k => Number(k))
+                        .filter(Number.isFinite)
+                        .sort((a,b)=>a-b);
+                    levelPerfectFlags = keys.map(k => gs.levelResults[k] === 'perfect');
+                }
+                const levelsPerfectCount = levelPerfectFlags.reduce((acc, v) => acc + (v ? 1 : 0), 0);
+
+                let maxConsecutivePerfect = 0;
+                let streak = 0;
+                for (const flag of levelPerfectFlags) {
+                    if (flag) {
+                        streak++;
+                        if (streak > maxConsecutivePerfect) maxConsecutivePerfect = streak;
+                    } else {
+                        streak = 0;
+                    }
+                }
+
+                const completedLevels = (() => {
+                    if (String(gs.playMode || '') === 'survival') return Math.max(0, (Number(gs.currentLevel || 1) - 1));
+                    if (gs.levelResults && typeof gs.levelResults === 'object') return Object.keys(gs.levelResults).length;
+                    return Math.max(0, Number(gs.currentLevel || 1) - 1);
+                })();
+
+                const totalMistakes = Math.max(0, Number(gs.totalMistakes || wrongCount));
+                const avgMistakesPerLevel = completedLevels > 0 ? (totalMistakes / completedLevels) : totalMistakes;
+
+                const isSurvival = String(gs.playMode || m.mode || 'classic') === 'survival';
+                const survivalDuration = isSurvival
+                    ? Math.max(0,
+                        Number(m.survivalDuration || 0),
+                        gs.gameStartTime ? Math.floor(((gs.gameEndTime || Date.now()) - gs.gameStartTime) / 1000) : 0
+                    )
+                    : 0;
+
+                const timeStdDev = calcStd(m._survivalSamples || []);
+                const survivalCompletedWaves = isSurvival ? Math.max(0, Number(gs.currentLevel || 1) - 1) : 0;
+                const maxComboReached = Math.max(
+                    Number(m.maxComboReached || 0),
+                    Number(gs.comboPeak || 0),
+                    Number((window.gameState && window.gameState.finalMetrics && window.gameState.finalMetrics.maxComboReached) || 0)
+                );
+
+                const result = {
+                    ...m,
+                    mode: isSurvival ? 'survival' : 'classic',
+                    answeredQuestions: answered,
+                    totalQuestions,
+                    correctCount,
+                    wrongCount,
+                    hintsUsed,
+                    accuracy,
+                    avgAnswerMs: answered > 0 ? (Number(m.totalAnswerTimeMs || 0) / answered) : Number(m.avgAnswerMs || 0),
+                    noHintAnsweredCount,
+                    noHintCorrectCount,
+                    accuracyNoHint,
+                    avgPerfectAnswerMs,
+                    fastestPerfectAnswerMs,
+                    firstTryCorrectCount,
+                    firstTryAvgAnswerMs,
+                    fastestFirstTryAnswerMs,
+                    levelPerfectFlags,
+                    levelsPerfectCount,
+                    maxConsecutivePerfect,
+                    levelHead3QualifyFlags,
+                    levelHead5QualifyFlags,
+                    levelMistakesList,
+                    avgMistakesPerLevel,
+                    perQuestionTimesAll,
+                    perQuestionCorrectFlags,
+                    perQuestionValidFlags,
+                    survivalDuration,
+                    survivalCompletedWaves,
+                    timeInBand60to90: Number(m.timeInBand60to90 || 0),
+                    timeInBand0to30: Number(m.timeInBand0to30 || 0),
+                    nearDeathRecoveries: Number(m.nearDeathRecoveries || 0),
+                    rescueUsed: !!m.rescueUsed,
+                    maxTime: Math.max(Number(m.maxTime || 0), Number(m.maxTimeVirtual || 0)),
+                    maxComboReached,
+                    timeStdDev
+                };
+
+                try { window.gameMetrics = result; } catch(_) {}
+                try { if (window.gameState) window.gameState.finalMetrics = result; } catch(_) {}
+                return result;
+            };
+        })();
 
         // 之後：在遊戲各處呼叫 recordAnswer / recordHint / recordSurvivalTick / recordRescue / recordLevelResult
         // 結束時計算： finalizeMetrics() + AchievementManager.evaluateAll

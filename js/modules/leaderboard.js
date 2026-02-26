@@ -2,6 +2,24 @@
 // leaderboard.js
 // Leaderboard Logic & Online Adapter
 
+function escapeHtml(value) {
+        const str = value == null ? '' : String(value);
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+function withTimeout(promise, timeoutMs, timeoutMessage) {
+        const ms = Math.max(1000, Number(timeoutMs) || 7000);
+        return Promise.race([
+            promise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error(timeoutMessage || `timeout:${ms}`)), ms))
+        ]);
+    }
+
 function loadLeaderboard() {
         // If online leaderboard is configured, prefer a short-lived in-memory cache
         // to avoid blocking UI on repeated loads (tabs, record view).
@@ -17,7 +35,9 @@ function loadLeaderboard() {
             try {
                 const p = window.Leaderboard.load();
                 if (p && typeof p.then === 'function') {
-                    return p.then(d => { try { window.__lbLatestData = d; window.__lbLatestTs = Date.now(); } catch(_) {}; return d; })
+                    const timeoutMs = (window.__BC_CONSTS && window.__BC_CONSTS.LEADERBOARD_ONLINE_TIMEOUT_MS) || 7000;
+                    return withTimeout(p, timeoutMs, 'leaderboard-load-timeout')
+                            .then(d => { try { window.__lbLatestData = d; window.__lbLatestTs = Date.now(); } catch(_) {}; return d; })
                             .catch(err => { console.warn('[LEADERBOARD] online load failed, using local fallback', err); const key=(window.__BC_CONSTS&&window.__BC_CONSTS.STORAGE_KEY_LEADERBOARD)||'bibleGameLeaderboard'; try { return (window.__bcStorage&&window.__bcStorage.get(key,{classic:[],survival:[]})) || JSON.parse(localStorage.getItem(key)||'{}') || {classic:[],survival:[]}; } catch(_) { return { classic:[], survival:[] }; } });
                 } else {
                     dataFromOnline = p;
@@ -170,6 +190,7 @@ async function updateLeaderboardDisplay(selectedMode = 'classic', options = {}) 
                                 if (record) {
                                     const rankNumber = i+1;
                                     const playerName = record.playerName || '匿名';
+                                    const safePlayerName = escapeHtml(playerName);
                                     const rankClass = (function(r){
                                         if (r>=1 && r<=10) return 'rank-'+r; return 'rank-default';
                                     })(rankNumber);
@@ -178,16 +199,18 @@ async function updateLeaderboardDisplay(selectedMode = 'classic', options = {}) 
                                     card.setAttribute('role','button');
                                     const dateText = record.date || '';
                                     const elapsedText = record.elapsed || record.time || '';
+                                    const safeDateText = escapeHtml(dateText);
+                                    const safeElapsedText = escapeHtml(elapsedText);
                                     card.innerHTML = `
                                         <div class="fl-rank">${rankNumber}</div>
                                         <div class="fl-body">
                                             <div class="fl-row1">
                                                 <div class="fl-score">${record.score}<span class="unit">分</span></div>
-                                                <div class="fl-name" title="${playerName}">${playerName}</div>
+                                                <div class="fl-name" title="${safePlayerName}">${safePlayerName}</div>
                                             </div>
                                             <div class="fl-meta">
-                                                <span class="fl-date">${dateText}</span>
-                                                ${elapsedText ? `<span class=\"fl-elapsed\">${elapsedText}</span>` : ''}
+                                                <span class="fl-date">${safeDateText}</span>
+                                                ${safeElapsedText ? `<span class=\"fl-elapsed\">${safeElapsedText}</span>` : ''}
                                             </div>
                                         </div>`;
                                     card.addEventListener('click', () => { openLeaderboardRecordById(record.id, record.playMode || mode || 'classic'); });
@@ -326,21 +349,25 @@ async function updateLeaderboardDisplay(selectedMode = 'classic', options = {}) 
                     const record = difficultyLeaderboard[i];
                     const rankNumber = i + 1;
                     const playerName = record.playerName || '匿名';
+                    const safePlayerName = escapeHtml(playerName);
                     const rarity = record.rarity || null;
                     const rarityLabelMap = { common: '常見經文', rare: '冷門經文', all: '全部經文' };
                     const rarityLabel = rarity ? (rarityLabelMap[rarity] || '未知') : null;
                     const rankClass = (function(r){ if (r>=1 && r<=10) return 'rank-'+r; return 'rank-default'; })(rankNumber);
-                    const aria = `第${rankNumber}名，${playerName}，${record.score}分`;
+                    const aria = escapeHtml(`第${rankNumber}名，${playerName}，${record.score}分`);
+                    const safeDateText = escapeHtml(record.date || '');
+                    const safeElapsedText = escapeHtml(record.elapsed || record.time || '');
+                    const safeRarityLabel = escapeHtml(rarityLabel || '');
                     column.innerHTML = `
-                        <div class="leaderboard-card ${rankClass}" data-record-id="${record.id}" title="${playerName}" role="button" aria-label="${aria}">
+                        <div class="leaderboard-card ${rankClass}" data-record-id="${record.id}" title="${safePlayerName}" role="button" aria-label="${aria}">
                             <div class="lb-rank-ribbon"><span>${rankNumber}</span></div>
                             <div class="lb-card-body text-left">
                                 <div class="lb-top-row">
                                     <div class="lb-score">${record.score}<span class="unit">分</span></div>
-                                    <div class="lb-name flex-1 min-w-0"><span class="truncate" title="${playerName}">${playerName}</span></div>
+                                    <div class="lb-name flex-1 min-w-0"><span class="truncate" title="${safePlayerName}">${safePlayerName}</span></div>
                                 </div>
-                                <div class="lb-meta">${record.date || ''}${(record.elapsed||record.time) ? ' · ' + (record.elapsed || record.time) : ''}</div>
-                                ${rarityLabel ? `<div class=\"mt-1\">\n                                        <span class=\"lb-pill ${rarity === 'all' ? 'rarity-all' : rarity === 'rare' ? 'rarity-rare' : 'rarity-common'}\">${rarityLabel}</span>\n                                    </div>` : ''}
+                                <div class="lb-meta">${safeDateText}${safeElapsedText ? ' · ' + safeElapsedText : ''}</div>
+                                ${safeRarityLabel ? `<div class=\"mt-1\">\n                                        <span class=\"lb-pill ${rarity === 'all' ? 'rarity-all' : rarity === 'rare' ? 'rarity-rare' : 'rarity-common'}\">${safeRarityLabel}</span>\n                                    </div>` : ''}
                             </div>
                         </div>
                     `;
@@ -439,15 +466,17 @@ async function updateLeaderboardDisplay(selectedMode = 'classic', options = {}) 
                                 if (rank > 5) {
                                     const row = document.createElement('div');
                                     row.className = 'col-span-full mt-2';
+                                    const safePlayerName = escapeHtml(playerName);
+                                    const safeSelectedMode = escapeHtml(selectedMode);
                                     row.innerHTML = `
                                         <div class="leaderboard-card rank-default" aria-live="polite">
                                             <div class="lb-rank-ribbon"><span>${rank}</span></div>
                                             <div class="lb-card-body text-left">
                                                 <div class="lb-top-row">
                                                     <div class="lb-score">個人名次<span class="unit"></span></div>
-                                                    <div class="lb-name flex-1 min-w-0"><span class="truncate" title="${playerName}">${playerName}</span></div>
+                                                    <div class="lb-name flex-1 min-w-0"><span class="truncate" title="${safePlayerName}">${safePlayerName}</span></div>
                                                 </div>
-                                                <div class="lb-meta">目前於「${selectedMode}」模式的估計名次</div>
+                                                <div class="lb-meta">目前於「${safeSelectedMode}」模式的估計名次</div>
                                             </div>
                                         </div>
                                     `;
@@ -590,6 +619,12 @@ function initializeVerseMarquee() {
         try {
             mobileLite = !!(window.matchMedia && window.matchMedia('(max-width: 640px)').matches);
         } catch (_) { mobileLite = (window.innerWidth <= 640); }
+        let lowEndDevice = false;
+        try {
+            const cores = Number(navigator.hardwareConcurrency || 0);
+            const mem = Number(navigator.deviceMemory || 0);
+            lowEndDevice = (cores > 0 && cores <= 4) || (mem > 0 && mem <= 4);
+        } catch(_) { lowEndDevice = false; }
         if (window.__marqueeInitialized) return; // 防止重複初始化
 
         // 構建期間暫時隱藏，避免首度渲染閃爍
@@ -597,17 +632,30 @@ function initializeVerseMarquee() {
         marqueeContainer.style.visibility = 'hidden';
         marqueeContainer.innerHTML = '';
 
-        // 行數：桌面 34，手機精簡到 10 行
-        const totalLines = mobileLite ? 10 : 34;
+        // 行數：桌面 34，手機 10；低階裝置再降載
+        const totalLines = mobileLite ? (lowEndDevice ? 8 : 10) : (lowEndDevice ? 22 : 34);
         const __activeDB = getActiveVerseDB();
         const __commonPool = Array.isArray(__activeDB) ? __activeDB.filter(v => v && v.rarity === 'common') : [];
-        // 跑馬燈一律使用常見經文；若暫無常見經文則暫不渲染，等待資料到齊再刷新
-        if (!__commonPool || __commonPool.length === 0) {
-            marqueeContainer.style.visibility = prevVisibility || '';
-            return;
-        }
-        const shuffledVerses = [...__commonPool].sort(() => Math.random() - 0.5);
-        const selectedVerses = shuffledVerses.slice(0, totalLines).map(v => v.verse);
+        const fallbackVersePool = [
+            '耶和華是我的牧者，我必不致缺乏。',
+            '我靠著那加給我力量的，凡事都能做。',
+            '你要專心仰賴耶和華，不可倚靠自己的聰明。',
+            '你們要靠主常常喜樂。',
+            '你的話是我腳前的燈，是我路上的光。',
+            '神愛世人，甚至將他的獨生子賜給他們。',
+            '你當剛強壯膽，不要懼怕。',
+            '願主耶穌基督的恩常與你們同在。'
+        ];
+        const sourcePool = (__commonPool && __commonPool.length > 0)
+            ? __commonPool
+            : fallbackVersePool.map(t => ({ verse: t, rarity: 'common' }));
+        try { window.__marqueeUsingFallback = !(__commonPool && __commonPool.length > 0); } catch(_) {}
+
+        const shuffledVerses = [...sourcePool].sort(() => Math.random() - 0.5);
+        const selectedVerses = shuffledVerses
+            .slice(0, totalLines)
+            .map(v => (typeof v === 'string' ? v : (v && v.verse ? v.verse : '')))
+            .filter(Boolean);
 
         // 若使用者偏好減少動態，直接渲染靜態多行文字並退出
         if (getReducedMotion && getReducedMotion()) {
@@ -649,8 +697,10 @@ function initializeVerseMarquee() {
             return (newMin + t * (newMax - newMin));
         });
 
-        // 速度群組（秒）：手機整體加快以縮短佔用，並降低透明度
-        const speedGroups = mobileLite ? [12, 18, 26] : [18, 30, 45];
+        // 速度群組（秒）：低階裝置降低總動畫壓力
+        const speedGroups = mobileLite
+            ? (lowEndDevice ? [16, 24, 34] : [12, 18, 26])
+            : (lowEndDevice ? [22, 34, 52] : [18, 30, 45]);
         const maxDuration = Math.max(...speedGroups);
 
         // richer color pool (主色 + glow)，循環使用
@@ -668,17 +718,22 @@ function initializeVerseMarquee() {
         ];
 
         const frag = document.createDocumentFragment();
+        const sharedPool = sourcePool;
+        const sharedPoolLen = sharedPool.length;
+        const pickVerse = () => {
+            if (sharedPoolLen <= 0) return '';
+            const v = sharedPool[Math.floor(Math.random() * sharedPoolLen)];
+            return (typeof v === 'string') ? v : (v ? (v.verse || '') : '');
+        };
         for (let i = 0; i < totalLines; i++) {
             const verseElement = document.createElement('div');
             verseElement.className = 'verse-text';
 
             // For each line, pick 3 random verses to rotate through on each full marquee cycle
             const picks = [];
-            const activeDB = getActiveVerseDB();
-            const pool = Array.isArray(activeDB) ? activeDB.filter(v => v && v.rarity === 'common') : [];
             for (let p = 0; p < 3; p++) {
-                const v = pool[Math.floor(Math.random() * pool.length)];
-                picks.push(v ? (v.verse || '') : '');
+                const text = pickVerse();
+                if (text) picks.push(text);
             }
             // ensure we have at least one fallback
             if (picks.length === 0) picks.push(selectedVerses[i] || '');
@@ -765,13 +820,29 @@ const marqueeContainer = document.getElementById('verseMarquee');
 const activeDB = getActiveVerseDB();
 const pool = Array.isArray(activeDB) ? activeDB.filter(v => v && v.rarity === 'common') : [];
 if (!marqueeContainer || !Array.isArray(pool) || pool.length === 0) return;
+            // 若先前因資料未就緒而未完成初始化，資料到齊後在此補做一次初始化
+            if (!window.__marqueeInitialized && typeof initializeVerseMarquee === 'function') {
+                initializeVerseMarquee();
+                return;
+            }
             const lines = marqueeContainer.querySelectorAll('.verse-text');
+            if (!lines || lines.length === 0) {
+                try { initializeVerseMarquee(); } catch(_) {}
+                return;
+            }
+            const poolLen = pool.length;
+            const pickVerse = () => {
+                if (poolLen <= 0) return '';
+                const item = pool[Math.floor(Math.random() * poolLen)];
+                return item ? (item.verse || '') : '';
+            };
             lines.forEach(line => {
                 const picks = [];
                 for (let p = 0; p < 3; p++) {
-        const v = pool[Math.floor(Math.random() * pool.length)];
-                    picks.push(v ? (v.verse || '') : '');
+                    const text = pickVerse();
+                    if (text) picks.push(text);
                 }
+                if (picks.length === 0) picks.push(line.textContent || '');
                 line.__marqueeList = picks;
                 // reduced-motion 靜態模式：即時更新顯示文字
                 if (getReducedMotion && getReducedMotion()) {
@@ -855,7 +926,48 @@ if (!marqueeContainer || !Array.isArray(pool) || pool.length === 0) return;
                         return Object.keys(fm).length ? fm : undefined;
                     })(),
                     achievements: row.achievements ?? row.achievement_list ?? []
+                    ,isSeed: row.is_seed ?? row.isSeed ?? false
                 };
+            }
+
+            async function hydrateAchievementsFromRuns(records){
+                try {
+                    if (!Array.isArray(records) || records.length === 0) return records;
+                    const missing = records.filter(r => r && (!Array.isArray(r.achievements) || r.achievements.length === 0) && r.id);
+                    if (!missing.length) return records;
+
+                    const ids = missing.map(r => String(r.id));
+                    const achvTable = (cfg && cfg.achvRunsTable) || 'achv_runs';
+                    const { data, error } = await client
+                        .from(achvTable)
+                        .select('score_id, achievements, created_at')
+                        .in('score_id', ids)
+                        .order('created_at', { ascending: false });
+                    if (error || !Array.isArray(data) || data.length === 0) return records;
+
+                    const byScore = new Map();
+                    for (const row of data) {
+                        const scoreId = row && row.score_id ? String(row.score_id) : null;
+                        if (!scoreId || byScore.has(scoreId)) continue;
+                        const achv = row.achievements;
+                        // achv_runs.achievements 可能是陣列，或 { ids: [] } 物件
+                        const normalized = Array.isArray(achv)
+                            ? achv
+                            : (achv && Array.isArray(achv.ids) ? achv.ids.map(id => ({ id })) : []);
+                        byScore.set(scoreId, normalized);
+                    }
+
+                    records.forEach(r => {
+                        const k = r && r.id ? String(r.id) : null;
+                        if (!k) return;
+                        if (Array.isArray(r.achievements) && r.achievements.length > 0) return;
+                        const fallback = byScore.get(k);
+                        if (Array.isArray(fallback) && fallback.length > 0) {
+                            r.achievements = fallback;
+                        }
+                    });
+                } catch(_) {}
+                return records;
             }
 
             async function load(){
@@ -908,7 +1020,8 @@ if (!marqueeContainer || !Array.isArray(pool) || pool.length === 0) return;
                             throw err;
                         }
                     }
-                    return (data||[]).map(toPublicRecord);
+                    const mapped = (data||[]).map(toPublicRecord);
+                    return await hydrateAchievementsFromRuns(mapped);
                 };
                 try {
                     const results = await Promise.all(modes.map(m=>fetchMode(m)));
@@ -922,9 +1035,17 @@ if (!marqueeContainer || !Array.isArray(pool) || pool.length === 0) return;
 
             async function save(record){
                 try {
+                    const markPendingSynced = (remoteId) => {
+                        try {
+                            if (window.PendingScoreSync && typeof window.PendingScoreSync.markSynced === 'function') {
+                                window.PendingScoreSync.markSynced(record, remoteId || null);
+                            }
+                        } catch(_) {}
+                    };
                     // Persist minimal fields + useful metadata. Avoid overly large questionSnapshot by default; keep if config allows.
                     const keepSnapshot = !!cfg.storeSnapshot;
                     const row = {
+                        client_record_id: (record && record.id != null) ? String(record.id) : null,
                         player_name: record.playerName || '匿名',
                         score: record.score || 0,
                         difficulty: record.difficulty || 'easy',
@@ -960,8 +1081,53 @@ if (!marqueeContainer || !Array.isArray(pool) || pool.length === 0) return;
                         max_combo_reached: (typeof record.maxComboReached === 'number') ? record.maxComboReached : null,
                         combo_total_bonus: (typeof record.comboTotalBonus === 'number') ? Math.round(record.comboTotalBonus) : null,
                         achievements: Array.isArray(record.achievements) ? record.achievements : [],
+                        is_seed: record.isSeed === true,
                         project_tag: cfg.projectTag || null
                     };
+
+                    // Primary dedupe: deterministic client_record_id (if DB column exists)
+                    try {
+                        if (row.client_record_id) {
+                            let q = client
+                                .from(table)
+                                .select('id, created_at')
+                                .eq('client_record_id', row.client_record_id)
+                                .order('created_at', { ascending: false })
+                                .limit(1);
+                            if (cfg.projectTag) q = q.or(`project_tag.eq.${cfg.projectTag},project_tag.is.null`);
+                            const { data: sameRows, error: sameErr } = await q;
+                            if (!sameErr && Array.isArray(sameRows) && sameRows.length > 0) {
+                                const same = sameRows[0];
+                                markPendingSynced(same && same.id ? same.id : null);
+                                return;
+                            }
+                        }
+                    } catch(_) {}
+
+                    // Best-effort dedupe: skip inserting near-identical row in a short time window
+                    try {
+                        let q = client
+                            .from(table)
+                            .select('id, created_at')
+                            .eq('player_name', row.player_name)
+                            .eq('score', row.score)
+                            .eq('play_mode', row.play_mode || 'classic')
+                            .eq('time', row.time || '')
+                            .order('created_at', { ascending: false })
+                            .limit(1);
+                        if (cfg.projectTag) q = q.or(`project_tag.eq.${cfg.projectTag},project_tag.is.null`);
+                        const { data: dupRows, error: dupErr } = await q;
+                        if (!dupErr && Array.isArray(dupRows) && dupRows.length > 0) {
+                            const recent = dupRows[0];
+                            const recentTs = recent && recent.created_at ? new Date(recent.created_at).getTime() : 0;
+                            if (recentTs > 0 && (Date.now() - recentTs) < 15000) {
+                                console.warn('[LEADERBOARD] dedupe skipped remote insert', { existingId: recent.id, deltaMs: Date.now() - recentTs });
+                                markPendingSynced(recent && recent.id ? recent.id : null);
+                                return;
+                            }
+                        }
+                    } catch(_) {}
+
                     // Attempt insert with progressive fallbacks for missing columns
                     let data = null; let err = null;
                     const tryInsert = async (r) => {
@@ -990,6 +1156,7 @@ if (!marqueeContainer || !Array.isArray(pool) || pool.length === 0) return;
                                         // Third fallback: drop other optional large/rare columns if still failing
                                         if (code3 === '42703' || /column .*question_snapshot|achievements|closing_verse|closing_verse_ref|used_hints_count|show_time_reward|time_reward|hints_remaining|total_hints|avg_answer_ms|avg_perfect_answer_ms|perfect_answer_count|max_combo_reached|combo_total_bonus/i.test(msg3)){
                                             const r3 = { ...r2 };
+                                            delete r3.client_record_id;
                                             delete r3.question_snapshot; delete r3.achievements; delete r3.closing_verse; delete r3.closing_verse_ref;
                                             delete r3.used_hints_count; delete r3.show_time_reward; delete r3.time_reward;
                                             delete r3.avg_answer_ms; delete r3.avg_perfect_answer_ms; delete r3.perfect_answer_count; delete r3.max_combo_reached; delete r3.combo_total_bonus;
@@ -1004,8 +1171,19 @@ if (!marqueeContainer || !Array.isArray(pool) || pool.length === 0) return;
                     }
                     if (err) throw err;
                     if (!data) throw new Error('insert failed');
+                    markPendingSynced(data.id);
                     // Link achv_runs -> score_id best-effort
-                    try { if (data && data.id && typeof window.linkLatestAchievementRunToScore==='function') window.linkLatestAchievementRunToScore(data.id); } catch(_) {}
+                    try {
+                        if (data && data.id && typeof window.linkLatestAchievementRunToScore==='function') {
+                            window.linkLatestAchievementRunToScore(data.id);
+                            try {
+                                if (window.PendingAchvLinkSync && typeof window.PendingAchvLinkSync.markLinked === 'function') {
+                                    const latestRunId = (window.__lastAchvRunId != null) ? String(window.__lastAchvRunId) : null;
+                                    window.PendingAchvLinkSync.markLinked({ scoreId: data.id, runId: latestRunId });
+                                }
+                            } catch(_) {}
+                        }
+                    } catch(_) {}
                     // Link telemetry to this score if pending
                     try {
                         const pending = window.__pendingAchvTelemetry;
@@ -1014,9 +1192,22 @@ if (!marqueeContainer || !Array.isArray(pool) || pool.length === 0) return;
                             window.__pendingAchvTelemetry = null;
                         } else if (data && data.id && typeof window.linkLatestAchievementRunToScore==='function') {
                             // If telemetry was already inserted earlier, attempt to attach it
-                            await window.linkLatestAchievementRunToScore(data.id);
+                            const latestRunId = (window.__lastAchvRunId != null) ? String(window.__lastAchvRunId) : null;
+                            await window.linkLatestAchievementRunToScore(data.id, latestRunId);
+                            try {
+                                if (window.PendingAchvLinkSync && typeof window.PendingAchvLinkSync.markLinked === 'function') {
+                                    window.PendingAchvLinkSync.markLinked({ scoreId: data.id, runId: latestRunId });
+                                }
+                            } catch(_) {}
                         }
-                    } catch(_) {}
+                    } catch(_) {
+                        try {
+                            if (data && data.id && window.PendingAchvLinkSync && typeof window.PendingAchvLinkSync.enqueue === 'function') {
+                                const latestRunId = (window.__lastAchvRunId != null) ? String(window.__lastAchvRunId) : null;
+                                window.PendingAchvLinkSync.enqueue({ scoreId: data.id, runId: latestRunId });
+                            }
+                        } catch(_) {}
+                    }
                     // Optimistic cache update: merge into __lbLatestData if within top 20 of its mode
                     try {
                         if (data) {

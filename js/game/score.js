@@ -262,35 +262,62 @@
          * Start continuous star rain (Perfect Level)
          */
         startStarRain: () => {
-             if (window.__starRainInterval) return;
-             window.__starRainInterval = setInterval(() => {
-                 const x = Math.random() * window.innerWidth;
-                 const rect = { left: x, top: -20, width: 0, height: 0 };
-                 ScoreManager.spawnScoreParticles(0, rect, {
-                     glyph: '⭐',
-                     colors: ['#FFD700', '#FFFACD', '#F0E68C', '#FFFFFF'],
-                     count: 1,
-                     durationMs: 2500,
-                     zIndex: 10004,
-                     sizeMin: 14,
-                     sizeMax: 24,
-                     distanceMin: 100, // fall down
-                     distanceMax: 100 // unused if gravity handled by CSS, but here we reuse particle logic
-                 });
-                 // Force downward drift hack for reusing spawnScoreParticles
-                 // Ideally we should have dedicated logic, but reusing particle spawner is safer
-                 // Let's rely on standard particle scattering for now
-             }, 200);
+             try {
+                 // desktop only
+                 if ((window.matchMedia && window.matchMedia('(max-width: 640px)').matches) || window.innerWidth <= 640) return;
+                 if (window.__starRainRunning) return;
+                 window.__starRainRunning = true;
+
+                 const loop = () => {
+                     if (!window.__starRainRunning) return;
+                     try {
+                         const active = document.querySelectorAll('.gold-glitter').length;
+                         const budget = active > 300 ? 0 : (active > 200 ? 1 : (active > 120 ? 2 : 3));
+                         for (let i = 0; i < budget; i++) {
+                             const glitter = document.createElement('div');
+                             glitter.className = 'gold-glitter';
+                             glitter.textContent = '✦';
+
+                             const left = Math.max(6, Math.min(window.innerWidth - 6, Math.floor(Math.random() * window.innerWidth)));
+                             const top = -40 + Math.floor(Math.random() * 20);
+                             glitter.style.left = left + 'px';
+                             glitter.style.top = top + 'px';
+
+                             const dur = 1400 + Math.floor(Math.random() * 1800);
+                             glitter.style.animationDuration = dur + 'ms';
+                             const dx = Math.round((Math.random() * 220) - 110);
+                             const rot = Math.round((Math.random() * 60) - 30);
+                             glitter.style.transform = `translateX(${dx}px) rotate(${rot}deg)`;
+                             glitter.style.opacity = '0.98';
+
+                             document.body.appendChild(glitter);
+                             setTimeout(() => {
+                                 try { if (glitter.parentElement) glitter.parentElement.removeChild(glitter); } catch (_) {}
+                             }, dur + 400);
+                         }
+                     } catch (_) {}
+
+                     window.__starRainTimer = setTimeout(loop, 240 + Math.floor(Math.random() * 220));
+                 };
+
+                 loop();
+             } catch (_) { /* ignore */ }
         },
 
         /**
          * Stop star rain
          */
         stopStarRain: () => {
-             if (window.__starRainInterval) {
-                 clearInterval(window.__starRainInterval);
-                 window.__starRainInterval = null;
-             }
+             try {
+                 window.__starRainRunning = false;
+                 if (window.__starRainTimer) {
+                     clearTimeout(window.__starRainTimer);
+                     window.__starRainTimer = null;
+                 }
+                 document.querySelectorAll('.gold-glitter').forEach(el => {
+                     try { if (el.parentElement) el.parentElement.removeChild(el); } catch (_) {}
+                 });
+             } catch (_) { /* ignore */ }
         },
 
         /**
@@ -608,11 +635,34 @@
                  // ... Simplified placement logic similar to engine.js ...
                  // For now, attach near target or centerScore
                  if (targetElement) {
-                    floatingScore.style.left = '50%';
-                    floatingScore.style.top = '-10px';
-                    floatingScore.style.transform = 'translate(-50%, -100%)';
-                    targetElement.style.position = 'relative';
-                    targetElement.appendChild(floatingScore);
+                    let anchored = false;
+                    try {
+                        if (targetElement.isConnected) {
+                            const rect = targetElement.getBoundingClientRect();
+                            if (rect && Number.isFinite(rect.left) && Number.isFinite(rect.top) && rect.width > 0 && rect.height > 0) {
+                                floatingScore.style.position = 'fixed';
+                                floatingScore.style.left = `${Math.round(rect.left + rect.width / 2)}px`;
+                                floatingScore.style.top = `${Math.round(rect.top - 10)}px`;
+                                floatingScore.style.transform = 'translate(-50%, -100%)';
+                                document.body.appendChild(floatingScore);
+                                anchored = true;
+                            }
+                        }
+                    } catch(_) {}
+                    if (!anchored) {
+                        floatingScore.style.right = '-20px';
+                        floatingScore.style.top = '50%';
+                        floatingScore.style.transform = 'translateY(-50%)';
+                        if (scoreElement && scoreElement.parentElement) {
+                            scoreElement.parentElement.style.position = 'relative';
+                            scoreElement.parentElement.appendChild(floatingScore);
+                        } else {
+                            document.body.appendChild(floatingScore);
+                            floatingScore.style.position = 'fixed';
+                            floatingScore.style.top = '50%';
+                            floatingScore.style.left = '50%';
+                        }
+                    }
                  } else {
                      floatingScore.style.right = '-20px';
                      floatingScore.style.top = '50%';

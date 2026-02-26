@@ -2,40 +2,299 @@
     // 是否啟用外部經文載入（關閉則完全不嘗試抓取 external-verses.json）
     // Enable/disable external verses loading (skip fetching when disabled)
     const ENABLE_EXTERNAL_VERSES = true;
+    // 啟動時延後載入大型題庫，改為使用時觸發
+    const DEFER_EXTERNAL_VERSES_BOOT = true;
+    const ENABLE_VERSE_SHARDS = true;
+    const EXTERNAL_FETCH_TIMEOUT_MS = 4500;
+    const EXTERNAL_FETCH_TIMEOUT_URGENT_MS = 2600;
+    const EXTERNAL_VERSE_FULL_PATH = 'external-verses.json';
+    const EXTERNAL_VERSE_SHARDS = {
+        old: 'data/external-verses-old.json',
+        new: 'data/external-verses-new.json'
+    };
+    const NEW_TESTAMENT_BOOKS = new Set([
+        '馬太福音','馬可福音','路加福音','約翰福音','使徒行傳','羅馬書',
+        '哥林多前書','哥林多後書','加拉太書','以弗所書','腓立比書','歌羅西書',
+        '帖撒羅尼迦前書','帖撒羅尼迦後書','提摩太前書','提摩太後書','提多書',
+        '腓利門書','希伯來書','雅各書','彼得前書','彼得後書','約翰一書',
+        '約翰二書','約翰三書','猶大書','啟示錄'
+    ]);
 
     // IndexedDB Helper 已移至 js/utils/idb-helper.js
     // IDBHelper logic moved to external script
+
+    function scheduleIdleTask(fn, timeout = 1200) {
+        try {
+            if (window.requestIdleCallback) {
+                return window.requestIdleCallback(() => { try { fn(); } catch(_) {} }, { timeout });
+            }
+        } catch(_) {}
+        return setTimeout(() => { try { fn(); } catch(_) {} }, 0);
+    }
+
+    async function normalizeVerseDatabaseChunked(db, chunkSize = 320) {
+        const out = [];
+        const seen = new Set();
+        const defaultVersion = '新標點和合本 神版';
+        if (!Array.isArray(db)) return out;
+
+        for (let i = 0; i < db.length; i++) {
+            const raw = db[i];
+            const v = raw || {};
+
+            try { v.book = normalizeBookName(v.book); } catch (_) {}
+            try { if (typeof v.chapter === 'number') v.chapter = String(v.chapter); } catch(_){}
+            try { if (typeof v.verse === 'string') v.verse = sanitizeVerseText(v.verse); } catch(_){}
+            if (!isValidVerseRecord(v)) continue;
+            try { if (isWeakTopicalVerse(v.verse)) continue; } catch(_) {}
+
+            const key = `${v.book}|${v.chapter}|${v.verse}|${v.version||''}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+
+            try { if (!v.version) v.version = defaultVersion; } catch(_) {}
+            try {
+                const rawR = (v && v.rarity != null) ? String(v.rarity).trim().toLowerCase() : '';
+                if (rawR) {
+                    const map = {
+                        '常見': 'common', '中等': 'common', '少見': 'uncommon', '冷門': 'rare', '全部': 'all',
+                        'common': 'common', 'medium': 'common', 'uncommon': 'uncommon', 'rare': 'rare', 'all': 'all'
+                    };
+                    v.rarity = map[rawR] || classifyRarity(v);
+                } else {
+                    v.rarity = classifyRarity(v);
+                }
+            } catch(_) {}
+
+            out.push(v);
+
+            if ((i + 1) % chunkSize === 0) {
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+        }
+        return out;
+    }
+
+    function warmNormalizeAndIndex(rawData) {
+        try {
+            if (!Array.isArray(rawData) || rawData.length === 0) return;
+            if (window.__normalizedWarmupRunning) return;
+            window.__normalizedWarmupRunning = true;
+            scheduleIdleTask(async () => {
+                try {
+                    const norm = await normalizeVerseDatabaseChunked(rawData);
+                    window.__normalizedDB = norm;
+                    try { buildVerseIndex(norm); } catch(_) {}
+                    try {
+                        window.dispatchEvent(new CustomEvent('externalVersesIndexed', { detail: { count: norm.length } }));
+                    } catch(_) {}
+                } catch(_) {
+                    // fallback: keep sync path in getActiveVerseDB
+                } finally {
+                    window.__normalizedWarmupRunning = false;
+                }
+            }, 1500);
+        } catch(_) {}
+    }
+
+    let __externalLoadPromise = null;
+    let __externalBootLoadScheduled = false;
+    let __lastUrgentLoadTs = 0;
+    let __lastUrgentForceFull = false;
+
+    function requestUrgentVerseLoad(forceFull = false) {
+        try {
+            const now = Date.now();
+            const recentlyTriggered = (now - __lastUrgentLoadTs) < 450;
+            if (recentlyTriggered && (!forceFull || __lastUrgentForceFull)) return;
+            __lastUrgentLoadTs = now;
+            __lastUrgentForceFull = !!forceFull;
+            attemptLoadExternalVerses({ urgent: true, forceFull: !!forceFull });
+        } catch(_) {}
+    }
+
+    function pickPreferredVerseScope() {
+        if (!ENABLE_VERSE_SHARDS) return null;
+        try {
+            const gs = (typeof window.gameState === 'object' && window.gameState) ? window.gameState : {};
+            if (gs && gs.range === 'testament' && (gs.testament === 'old' || gs.testament === 'new')) {
+                return gs.testament;
+            }
+            if (gs && gs.range === 'custom' && Array.isArray(gs.customBooks) && gs.customBooks.length > 0) {
+                let hasOld = false;
+                let hasNew = false;
+                for (const book of gs.customBooks) {
+                    if (NEW_TESTAMENT_BOOKS.has(String(book || ''))) hasNew = true;
+                    else hasOld = true;
+                    if (hasOld && hasNew) break;
+                }
+                if (hasOld && !hasNew) return 'old';
+                if (hasNew && !hasOld) return 'new';
+            }
+            if (gs && (gs.testament === 'old' || gs.testament === 'new')) return gs.testament;
+        } catch(_) {}
+        return null;
+    }
+
+    function getDesiredVerseScope() {
+        if (!ENABLE_VERSE_SHARDS) return 'full';
+        const preferred = pickPreferredVerseScope();
+        return preferred || 'full';
+    }
+
+    async function fetchVerseJson(path, options = {}) {
+        try {
+            const timeoutMs = Math.max(800, Number(options.timeoutMs) || EXTERNAL_FETCH_TIMEOUT_MS);
+            const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+            const timer = setTimeout(() => { try { ctrl && ctrl.abort(); } catch(_) {} }, timeoutMs);
+            const res = await fetch(path, {
+                signal: ctrl ? ctrl.signal : undefined,
+                cache: options.cache || 'default'
+            });
+            clearTimeout(timer);
+            if (!res || !res.ok) return null;
+            const json = await res.json();
+            return Array.isArray(json) ? json : null;
+        } catch(_) {
+            return null;
+        }
+    }
+
+    function scheduleDeferredExternalLoad() {
+        try {
+            if (__externalBootLoadScheduled) return;
+            if (Array.isArray(window.verseDatabase) && window.verseDatabase.length > 0) return;
+            __externalBootLoadScheduled = true;
+            scheduleIdleTask(() => {
+                try { requestUrgentVerseLoad(false); } catch(_) {}
+            }, 900);
+        } catch(_) {}
+    }
 
     // 嘗試載入外部經文資料（非同步、可快取），失敗則保留內建資料
     // Load external verses asynchronously with IndexedDB cache; fallback gracefully on errors
     // 嘗試載入外部題庫 JSON，正規化後放入全域 verseDatabase
     // Attempt to load external verse JSON, normalize, and set window.verseDatabase
-    async function attemptLoadExternalVerses() {
+    async function attemptLoadExternalVerses(options = {}) {
             // 若不啟用外部載入，直接返回
             if (!ENABLE_EXTERNAL_VERSES) return;
+            const urgent = !!options.urgent;
+            const forceFull = !!options.forceFull;
+
+            // 非急迫情境下採延遲載入，降低首屏負擔
+            if (!urgent && DEFER_EXTERNAL_VERSES_BOOT) {
+                scheduleDeferredExternalLoad();
+                return;
+            }
+
+            if (__externalLoadPromise) return __externalLoadPromise;
+
+            __externalLoadPromise = (async () => {
             try {
+                window.__externalVersesLoading = true;
+                const loadingEvt = new CustomEvent('externalVersesLoading', { detail: { loading: true, urgent, forceFull } });
+                window.dispatchEvent(loadingEvt);
+            } catch(_) {}
+            try {
+                const preferredScope = (!forceFull && ENABLE_VERSE_SHARDS) ? pickPreferredVerseScope() : null;
+                const idbCandidates = preferredScope ? [`externalVerses:${preferredScope}`, 'externalVerses'] : ['externalVerses'];
                 // 1. 嘗試從 IndexedDB 讀取
                 // 1. Try reading from IndexedDB
                 let data = [];
+                let scope = 'full';
                 try {
-                    const cached = await IDBHelper.get('externalVerses');
-                    if (Array.isArray(cached) && cached.length > 0) {
-                        data = cached;
+                    for (const key of idbCandidates) {
+                        const cached = await IDBHelper.get(key);
+                        if (Array.isArray(cached) && cached.length > 0) {
+                            data = cached;
+                            scope = key === 'externalVerses' ? 'full' : String(key).split(':')[1] || 'full';
+                            break;
+                        }
                     }
                 } catch (e) { console.warn('IDB read failed', e); }
 
                 // 2. 若 IDB 無資料，則從網路抓取
                 // 2. If IDB empty, fetch from network
                 if (data.length === 0) {
-                    const res = await fetch('external-verses.json');
-                    if (res.ok) {
-                        try { 
-                            data = await res.json(); 
-                            // 抓取成功後寫入 IDB
-                            if (Array.isArray(data) && data.length > 0) {
-                                IDBHelper.set('externalVerses', data).catch(e => console.warn('IDB write failed', e));
-                            }
-                        } catch(_) { data = []; }
+                    const timeoutMs = urgent ? EXTERNAL_FETCH_TIMEOUT_URGENT_MS : EXTERNAL_FETCH_TIMEOUT_MS;
+                    const shardPath = (preferredScope && EXTERNAL_VERSE_SHARDS[preferredScope]) ? EXTERNAL_VERSE_SHARDS[preferredScope] : null;
+                    const fullFetchPromise = fetchVerseJson(EXTERNAL_VERSE_FULL_PATH, { timeoutMs, cache: urgent ? 'no-store' : 'default' });
+
+                    if (shardPath) {
+                        const shardPromise = fetchVerseJson(shardPath, { timeoutMs, cache: urgent ? 'no-store' : 'default' });
+                        // 給分片資料短暫優先時間窗，提升「先有可用資料」機率
+                        const shardHeadStartMs = urgent ? 700 : 1200;
+                        const earlyShard = await Promise.race([
+                            shardPromise,
+                            new Promise(resolve => setTimeout(() => resolve(null), shardHeadStartMs))
+                        ]);
+                        const shardData = (Array.isArray(earlyShard) && earlyShard.length > 0) ? earlyShard : await shardPromise;
+                        if (Array.isArray(shardData) && shardData.length > 0) {
+                            data = shardData;
+                            scope = preferredScope;
+                            try { IDBHelper.set(`externalVerses:${preferredScope}`, data).catch(e => console.warn('IDB write failed', e)); } catch(_) {}
+
+                            // 分片先上線後，背景補抓 full，供跨約切換與後續快速命中
+                            try {
+                                fullFetchPromise.then((fullData) => {
+                                    if (Array.isArray(fullData) && fullData.length > 0) {
+                                        try { IDBHelper.set('externalVerses', fullData).catch(() => {}); } catch(_) {}
+                                        try { if (!window.__externalFullVersesReady) window.__externalFullVersesReady = true; } catch(_) {}
+                                    }
+                                }).catch(() => {});
+                            } catch(_) {}
+                        }
+                    } else if (ENABLE_VERSE_SHARDS && !forceFull) {
+                        // 未指定約別時，允許先拿到任一分片快速啟動，再背景補齊 full
+                        const oldPromise = fetchVerseJson(EXTERNAL_VERSE_SHARDS.old, { timeoutMs, cache: urgent ? 'no-store' : 'default' });
+                        const newPromise = fetchVerseJson(EXTERNAL_VERSE_SHARDS.new, { timeoutMs, cache: urgent ? 'no-store' : 'default' });
+                        const tag = (name, p) => p.then(v => ({ name, v })).catch(() => ({ name, v: null }));
+                        const firstShardHeadStartMs = urgent ? 650 : 1100;
+                        const first = await Promise.race([
+                            tag('old', oldPromise),
+                            tag('new', newPromise),
+                            new Promise(resolve => setTimeout(() => resolve({ name: null, v: null }), firstShardHeadStartMs))
+                        ]);
+
+                        if (first && Array.isArray(first.v) && first.v.length > 0 && (first.name === 'old' || first.name === 'new')) {
+                            data = first.v;
+                            scope = first.name;
+                            try { IDBHelper.set(`externalVerses:${scope}`, data).catch(()=>{}); } catch(_) {}
+                        }
+
+                        // 背景整併 old/new，補 full 快取（可供後續跨約與完整模式即時命中）
+                        try {
+                            Promise.all([oldPromise, newPromise]).then(([oldData, newData]) => {
+                                if (Array.isArray(oldData) && Array.isArray(newData) && (oldData.length || newData.length)) {
+                                    const merged = oldData.concat(newData);
+                                    try { IDBHelper.set('externalVerses', merged).catch(() => {}); } catch(_) {}
+                                    try { window.__externalFullVersesReady = true; } catch(_) {}
+                                }
+                            }).catch(() => {});
+                        } catch(_) {}
+                    }
+
+                    if (data.length === 0) {
+                        const fullData = await fullFetchPromise;
+                        if (Array.isArray(fullData) && fullData.length > 0) {
+                            data = fullData;
+                            scope = 'full';
+                            try { IDBHelper.set('externalVerses', data).catch(e => console.warn('IDB write failed', e)); } catch(_) {}
+                        }
+                    }
+
+                    // full 檔案不可用時，回退為 old/new 分檔合併
+                    if (data.length === 0 && forceFull && ENABLE_VERSE_SHARDS) {
+                        const timeoutMs = urgent ? EXTERNAL_FETCH_TIMEOUT_URGENT_MS : EXTERNAL_FETCH_TIMEOUT_MS;
+                        const [oldData, newData] = await Promise.all([
+                            fetchVerseJson(EXTERNAL_VERSE_SHARDS.old, { timeoutMs, cache: urgent ? 'no-store' : 'default' }),
+                            fetchVerseJson(EXTERNAL_VERSE_SHARDS.new, { timeoutMs, cache: urgent ? 'no-store' : 'default' })
+                        ]);
+                        if (Array.isArray(oldData) && Array.isArray(newData) && (oldData.length || newData.length)) {
+                            data = oldData.concat(newData);
+                            scope = 'full';
+                            try { IDBHelper.set('externalVerses', data).catch(e => console.warn('IDB write failed', e)); } catch(_) {}
+                        }
                     }
                 }
 
@@ -48,35 +307,59 @@
                 if (Array.isArray(data) && data.length > 0) {
                     // 先存原始資料，實際使用時會再經 normalize 與驗證
                     window.verseDatabase = data;
+                    window.__verseDatabaseScope = scope;
+                    try { window.__externalVersesReady = true; } catch(_) {}
+                    try { window.__externalFullVersesReady = scope === 'full'; } catch(_) {}
                     try {
                         const idx = {};
                         data.forEach(v => { if (v.book!=null && v.chapter!=null && v.verse!=null) idx[`${v.book}|${v.chapter}|${v.verse}`] = v; });
                         window.__versesIndex = idx;
                     } catch(_) {}
                     
-                    // 建立正規化資料與索引
-                    try {
-                        const norm = normalizeVerseDatabase(data);
-                        window.__normalizedDB = norm;
-                        buildVerseIndex(norm);
-                    } catch(_) {}
+                    // 正規化與索引改為背景分段處理，降低主執行緒卡頓
+                    try { warmNormalizeAndIndex(data); } catch(_) {}
                     try { updateStartButtonState(); } catch(e) {}
+                    try {
+                        if (!window.__marqueeInitialized && typeof initializeVerseMarquee === 'function') {
+                            initializeVerseMarquee();
+                        }
+                    } catch(_) {}
                     try { refreshVerseMarqueeData(); } catch(e) {}
                     try {
-                        const evt = new CustomEvent('externalVersesLoaded', { detail: { hasData: true, source: 'fetch' } });
+                        const evt = new CustomEvent('externalVersesLoaded', { detail: { hasData: true, source: scope } });
                         window.dispatchEvent(evt);
                     } catch(_) {}
+
+                    // 若先載入分片，背景再補完整題庫，避免後續跨約範圍切換再等待
+                    if (scope !== 'full' && !forceFull) {
+                        scheduleIdleTask(() => {
+                            try {
+                                if (!window.__externalFullVersesReady) attemptLoadExternalVerses({ urgent: true, forceFull: true });
+                            } catch(_) {}
+                        }, urgent ? 900 : 2200);
+                    }
                 }
             } catch (e) {
                 // 記錄失敗，以便 UI 顯示明確提示（例如 file:// 或 CORS/路徑問題）
                 // Record error for UI hints (e.g., file:// access or CORS/path issues)
+                try { window.__externalVersesReady = false; } catch(_) {}
                 try { window.externalVersesLoadError = (e && e.message) ? String(e.message) : 'unknown'; } catch(_) {}
                 try { updateStartButtonState(); } catch(_) {}
                 try {
                     const evt = new CustomEvent('externalVersesLoaded', { detail: { hasData: false, source: 'error', error: (e && e.message) || 'unknown' } });
                     window.dispatchEvent(evt);
                 } catch(_) {}
+            } finally {
+                try {
+                    window.__externalVersesLoading = false;
+                    const loadingEvt = new CustomEvent('externalVersesLoading', { detail: { loading: false, urgent, forceFull } });
+                    window.dispatchEvent(loadingEvt);
+                } catch(_) {}
+                __externalLoadPromise = null;
             }
+            })();
+
+            return __externalLoadPromise;
         }
 
         // 聖經書卷數據
@@ -432,6 +715,18 @@
         function getActiveVerseDB() {
             // 改為只使用外部題庫（external-verses.json）；不再使用內建備援
             try {
+                const desiredScope = getDesiredVerseScope();
+                const currentScope = String(window.__verseDatabaseScope || '');
+
+                // 目標為 full 但目前僅有分片時：先觸發 full 急載入，並允許先用分片開局
+                // 這可避免弱網下首局被「等待完整題庫」卡住。
+                if (desiredScope === 'full' && currentScope && currentScope !== 'full') {
+                    try { requestUrgentVerseLoad(true); } catch(_) {}
+                    try { window.__usingShardBeforeFullReady = true; } catch(_) {}
+                } else {
+                    try { window.__usingShardBeforeFullReady = false; } catch(_) {}
+                }
+
                 // 若已有正規化快取，直接使用
                 if (Array.isArray(window.__normalizedDB) && window.__normalizedDB.length > 0) {
                     if (!window.__verseIndex || !window.__verseIndex.byBook) {
@@ -439,6 +734,14 @@
                     }
                     return window.__normalizedDB;
                 }
+
+                // 尚未載入時立即觸發急迫載入（非阻塞），並回傳空陣列給呼叫端顯示「載入中」狀態
+                if (!Array.isArray(window.verseDatabase) || window.verseDatabase.length === 0) {
+                    // 首次載入優先採 shard-first，提高弱網下「先可開始」成功率
+                    try { requestUrgentVerseLoad(false); } catch(_) {}
+                    return [];
+                }
+
                 const active = (Array.isArray(window.verseDatabase) && window.verseDatabase.length) ? window.verseDatabase : [];
                 const norm = normalizeVerseDatabase(active);
                 window.__normalizedDB = norm;

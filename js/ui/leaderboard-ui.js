@@ -659,12 +659,6 @@
             if (window.__bcOptimInit) return; window.__bcOptimInit = true;
             // 全域 debug 開關（可在 Console 設定 window.__debugPerf = true）
             window.__debugPerf = window.__debugPerf || false;
-            // 追蹤 timeout/interval 以便重開遊戲時集中清除，避免記憶體殘留
-            const timeouts = new Set(); const intervals = new Set();
-            const _setTimeout = window.setTimeout; const _setInterval = window.setInterval;
-            window.setTimeout = function(fn, ms){ const id=_setTimeout(fn, ms); timeouts.add(id); return id; };
-            window.setInterval = function(fn, ms){ const id=_setInterval(fn, ms); intervals.add(id); return id; };
-            window.__clearAllTimers = function(){ timeouts.forEach(id=>clearTimeout(id)); intervals.forEach(id=>clearInterval(id)); timeouts.clear(); intervals.clear(); };
             // Idle 任務佇列：低優先級工作排入 requestIdleCallback (fallback setTimeout)
             const ric = window.requestIdleCallback || function(cb){ return setTimeout(()=>cb({didTimeout:false,timeRemaining:()=>0}), 120); };
             const idleQueue = [];
@@ -682,11 +676,6 @@
             window.addPassiveEvent = function(el, type, handler){
                 try { el.addEventListener(type, handler, { passive:true }); } catch(_) { try { el.addEventListener(type, handler); } catch(__){} }
             };
-            // 遊戲重新開始前自動清除殘留計時器
-            const origStartGame = window.startGame;
-            if (typeof origStartGame === 'function') {
-                window.startGame = function(){ try { window.__clearAllTimers(); } catch(_) {}; return origStartGame.apply(this, arguments); };
-            }
             // 將非關鍵（例如排行榜刷新、成就計數更新）延後至 idle（需相關函式存在時才排入）
             queueIdleTask(()=>{ try { if(typeof updateAchievementTabCounts==='function' && gameState && gameState.unlockedAchievements){ updateAchievementTabCounts(gameState.unlockedAchievements); } } catch(_){} });
             // A11y / UX: ESC 關閉（受保護 modal 除外）
@@ -872,44 +861,6 @@
             } catch (e) { /* ignore */ }
         }
 
-        // Confirm action for end-of-run modal: persist name if needed, then return to start menu safely
-        (function wireConfirmName(){
-            try {
-                const btn = document.getElementById('confirmNameBtn');
-                if (!btn || btn.__wired) return; btn.__wired = true;
-                btn.addEventListener('click', (e)=>{
-                    try {
-                        // lift protection so modal can close
-                        const modal = document.getElementById('playerNameModal');
-                        if (modal) delete modal.dataset.protected;
-                        // persist player name (optional empty permitted)
-                        const input = document.getElementById('playerNameInput');
-                        const name = input ? String(input.value||'') : '';
-                        try { if (typeof setSavedPlayerName === 'function') setSavedPlayerName(name); else localStorage.setItem('bibleGamePlayerName', name); } catch(_) {}
-                        // Close modal explicitly and return to menu
-                        try { window.closeModal && window.closeModal('playerNameModal'); } catch(_) {}
-                        try { returnToStartMenu(); } catch(_) {}
-                    } catch(_) {}
-                });
-            } catch(_) {}
-        })();
-
-        // Minimal helper to return to the start menu safely
-        function returnToStartMenu(){
-            try {
-                // Reset flags that could interfere with intro
-                window.__skipStartMenuIntroOnce = true;
-                // Hide game screen, show start screen
-                const start = document.getElementById('startScreen');
-                const game = document.getElementById('gameScreen');
-                if (game) game.classList.add('hidden');
-                if (start) start.classList.remove('hidden');
-                // Detach hotkeys and unlock scroll
-                try { detachPlayerNameModalEnterHotkey(); } catch(_) {}
-                try { unlockBodyScroll(); } catch(_) {}
-            } catch(_) {}
-        }
-
         // Utility: clear all leaderboard records (online if adapter exists, plus local cache)
         window.clearAllLeaderboardsNow = async function() {
             // 先嘗試確保 Supabase 就緒並建立 Adapter（若有設定）
@@ -1058,16 +1009,17 @@
                     } catch(_) {}
 
                     const parts = [];
-                    // 完美答題數：優先使用來源紀錄欄位，其次使用本局 finalMetrics.noHintCorrectCount；
-                    // 若皆無，為避免舊紀錄空白，回退顯示難度。
+                    // 完美答題數（定義：一次答對題數）
+                    // 優先使用來源紀錄欄位，其次使用 finalMetrics.firstTryCorrectCount；
+                    // 舊紀錄若無此欄位則回退顯示難度，避免誤用其他統計。
                     try {
                         let perfectCount = null;
                         if (isRecord) {
                             if (typeof source.perfectAnswerCount === 'number') perfectCount = source.perfectAnswerCount;
                             else if (typeof source.perfect_count === 'number') perfectCount = source.perfect_count; // legacy/backfill alias
-                            else if (source.finalMetrics && typeof source.finalMetrics.noHintCorrectCount === 'number') perfectCount = source.finalMetrics.noHintCorrectCount;
-                        } else if (gameState && gameState.finalMetrics && typeof gameState.finalMetrics.noHintCorrectCount === 'number') {
-                            perfectCount = gameState.finalMetrics.noHintCorrectCount;
+                            else if (source.finalMetrics && typeof source.finalMetrics.firstTryCorrectCount === 'number') perfectCount = source.finalMetrics.firstTryCorrectCount;
+                        } else if (gameState && gameState.finalMetrics && typeof gameState.finalMetrics.firstTryCorrectCount === 'number') {
+                            perfectCount = gameState.finalMetrics.firstTryCorrectCount;
                         }
                         if (typeof perfectCount === 'number') parts.push(`完美答題數：${perfectCount}`);
                         else if (diffLabel) parts.push(`難度：${diffLabel}`);
@@ -1281,10 +1233,10 @@
                                     let perfectCount = null;
                                     if (source && (source.perfectAnswerCount!=null || source.perfect_count!=null)) {
                                         perfectCount = (typeof source.perfectAnswerCount==='number') ? source.perfectAnswerCount : (typeof source.perfect_count==='number' ? source.perfect_count : null);
-                                    } else if (gameState && gameState.finalMetrics && typeof gameState.finalMetrics.noHintCorrectCount === 'number') {
-                                        perfectCount = gameState.finalMetrics.noHintCorrectCount;
-                                    } else if (source && source.finalMetrics && typeof source.finalMetrics.noHintCorrectCount === 'number') {
-                                        perfectCount = source.finalMetrics.noHintCorrectCount;
+                                    } else if (gameState && gameState.finalMetrics && typeof gameState.finalMetrics.firstTryCorrectCount === 'number') {
+                                        perfectCount = gameState.finalMetrics.firstTryCorrectCount;
+                                    } else if (source && source.finalMetrics && typeof source.finalMetrics.firstTryCorrectCount === 'number') {
+                                        perfectCount = source.finalMetrics.firstTryCorrectCount;
                                     }
                                     if (typeof perfectCount === 'number') parts.push(`完美答題數：${perfectCount}`);
                                     else if (diffLabel) parts.push(`難度：${diffLabel}`);
@@ -1784,6 +1736,19 @@
             
             // 處理玩家名稱，留空則顯示為匿名
             const finalPlayerName = playerName.trim() || '匿名';
+
+            // Anti-spam / anti-duplicate guard (client-side, best effort)
+            try {
+                const nowMs = Date.now();
+                const modeKey = gameState.playMode || 'classic';
+                const dedupeKey = `${finalPlayerName}|${modeKey}|${gameState.score}|${gameState.totalCorrectAnswers}|${gameState.totalQuestions}`;
+                const last = window.__lastLeaderboardSubmit;
+                if (last && last.key === dedupeKey && (nowMs - last.ts) < 8000) {
+                    console.warn('[LEADERBOARD] duplicate submission throttled (client)', { dedupeKey, deltaMs: nowMs - last.ts });
+                    return;
+                }
+                window.__lastLeaderboardSubmit = { key: dedupeKey, ts: nowMs };
+            } catch(_) {}
             
             // 創建遊戲記錄（包含快照）
             const gameRecord = {
@@ -1879,11 +1844,11 @@
             };
             // 回填平均速度與精簡 finalMetrics（與 saveScore 邏輯一致），利於排行榜與重看紀錄顯示
             try {
-                if (gameState.finalMetrics && typeof gameState.finalMetrics.avgAnswerMs === 'number') {
+                    if (gameState.finalMetrics && typeof gameState.finalMetrics.avgAnswerMs === 'number') {
                     gameRecord.avgAnswerMs = gameState.finalMetrics.avgAnswerMs;
                     gameRecord.avgPerfectAnswerMs = gameState.finalMetrics.avgPerfectAnswerMs;
-                    if (typeof gameState.finalMetrics.noHintCorrectCount === 'number') {
-                        gameRecord.perfectAnswerCount = gameState.finalMetrics.noHintCorrectCount;
+                        if (typeof gameState.finalMetrics.firstTryCorrectCount === 'number') {
+                            gameRecord.perfectAnswerCount = gameState.finalMetrics.firstTryCorrectCount;
                     }
                     // 若先前尚未覆蓋最高連擊，沿用 finalizeMetrics 的峰值
                     if (typeof gameState.finalMetrics.maxComboReached === 'number') {
@@ -1896,6 +1861,7 @@
                         maxComboReached: gameState.finalMetrics.maxComboReached,
                         avgAnswerMs: gameState.finalMetrics.avgAnswerMs,
                         avgPerfectAnswerMs: gameState.finalMetrics.avgPerfectAnswerMs,
+                        firstTryCorrectCount: gameState.finalMetrics.firstTryCorrectCount,
                         noHintCorrectCount: gameState.finalMetrics.noHintCorrectCount
                     };
                 }
@@ -1912,29 +1878,44 @@
             // Online or local save
         if (window.Leaderboard && typeof window.Leaderboard.save === 'function') {
                 try {
-            window.Leaderboard.save(gameRecord).then(() => updateLeaderboardDisplay(gameState.playMode || 'classic')).catch(err => {
-                        console.warn('Online leaderboard save failed; falling back to local', err);
+                    const persistLocalFallback = () => {
                         try {
                             const key = (window.__BC_CONSTS && window.__BC_CONSTS.STORAGE_KEY_LEADERBOARD) || 'bibleGameLeaderboard';
                             let fallback = (window.__bcStorage && window.__bcStorage.get(key, {})) || {};
-                if (!fallback.classic) fallback.classic = [];
-                if (!fallback.survival) fallback.survival = [];
-                const bucket = gameState.playMode || 'classic';
-                try {
-                    fallback[bucket].push(gameRecord);
-                    if (window.__normalizeLeaderboard) {
-                        fallback = window.__normalizeLeaderboard(fallback);
-                    } else {
-                        const lim = (window.__BC_CONSTS && window.__BC_CONSTS.LEADERBOARD_LIMIT) || 20;
-                        Object.keys(fallback).forEach(k=>{ if(Array.isArray(fallback[k])){ fallback[k].sort((a,b)=>(b.score||0)-(a.score||0)); fallback[k] = fallback[k].slice(0,lim); }});
-                    }
-                    try { if (window.__bcStorage) window.__bcStorage.set(key, fallback); else localStorage.setItem(key, JSON.stringify(fallback)); } catch(_) {}
-                } catch(_) {}
-                updateLeaderboardDisplay(bucket);
-                        } catch(e) {}
-                    });
+                            if (!fallback.classic) fallback.classic = [];
+                            if (!fallback.survival) fallback.survival = [];
+                            const bucket = gameState.playMode || 'classic';
+                            try {
+                                fallback[bucket].push(gameRecord);
+                                if (window.__normalizeLeaderboard) {
+                                    fallback = window.__normalizeLeaderboard(fallback);
+                                } else {
+                                    const lim = (window.__BC_CONSTS && window.__BC_CONSTS.LEADERBOARD_LIMIT) || 20;
+                                    Object.keys(fallback).forEach(k=>{ if(Array.isArray(fallback[k])){ fallback[k].sort((a,b)=>(b.score||0)-(a.score||0)); fallback[k] = fallback[k].slice(0,lim); }});
+                                }
+                                try { if (window.__bcStorage) window.__bcStorage.set(key, fallback); else localStorage.setItem(key, JSON.stringify(fallback)); } catch(_) {}
+                            } catch(_) {}
+                            updateLeaderboardDisplay(bucket);
+                        } catch(_) {}
+                    };
+
+                    const timeoutMs = (window.__BC_CONSTS && window.__BC_CONSTS.LEADERBOARD_ONLINE_TIMEOUT_MS) || 7000;
+                    const saveTask = window.Leaderboard.save(gameRecord);
+                    const guardedSave = Promise.race([
+                        saveTask,
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('leaderboard-save-timeout')), timeoutMs))
+                    ]);
+
+                    guardedSave
+                        .then(() => updateLeaderboardDisplay(gameState.playMode || 'classic'))
+                        .catch(err => {
+                            console.warn('Online leaderboard save failed/timed out; falling back to local', err);
+                            try { window.PendingScoreSync && window.PendingScoreSync.enqueue && window.PendingScoreSync.enqueue(gameRecord); } catch(_) {}
+                            persistLocalFallback();
+                        });
                 } catch (e) {
                     console.warn('Online leaderboard save threw; fallback to local', e);
+                    try { window.PendingScoreSync && window.PendingScoreSync.enqueue && window.PendingScoreSync.enqueue(gameRecord); } catch(_) {}
                 }
                 return;
             }
@@ -1964,9 +1945,9 @@
             if (difference === 0) return;
             // 先取消先前尚未結束的計數動畫，避免重疊
             try {
-                if (scoreElement && scoreElement.__countingInterval) {
-                    clearInterval(scoreElement.__countingInterval);
-                    scoreElement.__countingInterval = null;
+                if (scoreElement && scoreElement.__countingRafId) {
+                    cancelAnimationFrame(scoreElement.__countingRafId);
+                    scoreElement.__countingRafId = null;
                 }
             } catch (e) {}
 
@@ -1978,46 +1959,43 @@
                 return;
             }
 
-            // 更積極的快速動畫：縮短總時長並限制更新次數以獲得更快響應
-            const totalDurationMs = 900; // 動畫總時長（毫秒）—加倍
-            const maxSteps = 40; // 限制步數以更快完成
+            const totalDurationMs = 900;
+            let rafId = 0;
+            let lastRendered = Number.NaN;
+            let lastPulseTs = 0;
+            const startTs = performance.now();
 
-            let absDiff = Math.abs(difference);
-            let steps = Math.min(absDiff, maxSteps);
-            if (steps <= 0) steps = 1;
+            const tick = (now) => {
+                const elapsed = Math.max(0, now - startTs);
+                const progress = Math.min(1, elapsed / totalDurationMs);
+                const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+                const nextValue = Math.round(fromScore + difference * eased);
 
-            // 每一步的數值變化（向上或向下取整，確保不會無限循環）
-            const rawStep = difference / steps;
-            const stepValue = rawStep > 0 ? Math.ceil(rawStep) : Math.floor(rawStep);
+                if (nextValue !== lastRendered) {
+                    scoreElement.textContent = nextValue;
+                    lastRendered = nextValue;
+                }
 
-            // 更短的單步延遲以達到快速完成
-            const stepDuration = Math.max(8, Math.floor(totalDurationMs / steps));
-
-            let currentValue = fromScore;
-            let stepCount = 0;
-
-            const countingInterval = setInterval(() => {
-                currentValue += stepValue;
-                stepCount++;
-
-                // 防止超越目標：若越界則直接設為目標並結束
-                if ((stepValue > 0 && currentValue >= toScore) || (stepValue < 0 && currentValue <= toScore) || stepCount >= steps) {
-                    clearInterval(countingInterval);
-                    scoreElement.textContent = toScore;
+                if (now - lastPulseTs >= 70) {
                     scoreElement.classList.add('counting-animation');
-                    setTimeout(() => scoreElement.classList.remove('counting-animation'), 60);
+                    setTimeout(() => scoreElement.classList.remove('counting-animation'), 40);
+                    lastPulseTs = now;
+                }
+
+                if (progress < 1) {
+                    rafId = requestAnimationFrame(tick);
+                    try { scoreElement.__countingRafId = rafId; } catch (_) {}
                     return;
                 }
 
-                scoreElement.textContent = currentValue;
+                scoreElement.textContent = toScore;
                 scoreElement.classList.add('counting-animation');
+                setTimeout(() => scoreElement.classList.remove('counting-animation'), 60);
+                try { scoreElement.__countingRafId = null; } catch (_) {}
+            };
 
-                setTimeout(() => {
-                    scoreElement.classList.remove('counting-animation');
-                }, 40);
-            }, stepDuration);
-            // 記錄 interval 以便下一次更新能夠中止
-            try { scoreElement.__countingInterval = countingInterval; } catch (e) {}
+            rafId = requestAnimationFrame(tick);
+            try { scoreElement.__countingRafId = rafId; } catch (_) {}
         }
 
         // spawn lightweight particles near the center score; intensity scales with magnitude
@@ -2239,41 +2217,9 @@
     // Start decorative star rain in the background
     function startStarRain() {
             try {
-                // desktop only
-                if ((window.matchMedia && window.matchMedia('(max-width: 640px)').matches) || window.innerWidth <= 640) return;
-                if (window.__starRainRunning) return;
-                window.__starRainRunning = true;
-
-                const loop = () => {
-                    if (!window.__starRainRunning) return;
-                    try {
-                        // throttle if too many active glitter nodes
-                        const active = document.querySelectorAll('.gold-glitter').length;
-                        const budget = active > 300 ? 0 : (active > 200 ? 1 : (active > 120 ? 2 : 3));
-                        for (let i = 0; i < budget; i++) {
-                            const g = document.createElement('div');
-                            g.className = 'gold-glitter';
-                            g.textContent = '✦';
-                            // random horizontal spawn across viewport
-                            const left = Math.max(6, Math.min(window.innerWidth - 6, Math.floor(Math.random() * window.innerWidth)));
-                            const top = -40 + Math.floor(Math.random() * 20);
-                            g.style.left = left + 'px';
-                            g.style.top = top + 'px';
-                            // vary duration and drift
-                            const dur = 1400 + Math.floor(Math.random() * 1800);
-                            g.style.animationDuration = dur + 'ms';
-                            const dx = Math.round((Math.random() * 220) - 110);
-                            const rot = Math.round((Math.random() * 60) - 30);
-                            g.style.transform = `translateX(${dx}px) rotate(${rot}deg)`;
-                            g.style.opacity = '0.98';
-                            document.body.appendChild(g);
-                            setTimeout(() => { try { if (g.parentElement) g.parentElement.removeChild(g); } catch (_) {} }, dur + 400);
-                        }
-                    } catch (_) {}
-                    // schedule next tick
-                    window.__starRainTimer = setTimeout(loop, 240 + Math.floor(Math.random() * 220));
-                };
-                loop();
+                if (typeof window.startStarRain === 'function') {
+                    return window.startStarRain();
+                }
             } catch (_) { /* ignore */ }
         }
 
@@ -2283,26 +2229,65 @@
     // Stop star rain and clean up nodes
     function stopStarRain(forceClear = true) {
             try {
-                window.__starRainRunning = false;
-                if (window.__starRainTimer) { clearTimeout(window.__starRainTimer); window.__starRainTimer = null; }
-                if (forceClear) {
-                    document.querySelectorAll('.gold-glitter').forEach(el => { try { if (el.parentElement) el.parentElement.removeChild(el); } catch(_) {} });
+                if (typeof window.stopStarRain === 'function') {
+                    return window.stopStarRain(forceClear);
                 }
             } catch (_) { /* ignore */ }
         }
+
+    // 單幀排程進度 UI 更新，避免同幀重複渲染
+    // Coalesce progress UI updates into a single animation frame
+    const __progressUIFrame = { rafId: 0, level: false, question: false, adaptive: false };
+    function scheduleProgressUIUpdate(options = {}) {
+            try {
+                const force = !!options.force;
+                __progressUIFrame.level = __progressUIFrame.level || !!options.level;
+                __progressUIFrame.question = __progressUIFrame.question || !!options.question;
+                __progressUIFrame.adaptive = __progressUIFrame.adaptive || !!options.adaptive;
+
+                if (force) {
+                    if (__progressUIFrame.rafId) {
+                        try { cancelAnimationFrame(__progressUIFrame.rafId); } catch(_) {}
+                        __progressUIFrame.rafId = 0;
+                    }
+                } else if (__progressUIFrame.rafId) {
+                    return;
+                }
+
+                const flush = () => {
+                    const runLevel = __progressUIFrame.level;
+                    const runQuestion = __progressUIFrame.question;
+                    const runAdaptive = __progressUIFrame.adaptive;
+                    __progressUIFrame.rafId = 0;
+                    __progressUIFrame.level = false;
+                    __progressUIFrame.question = false;
+                    __progressUIFrame.adaptive = false;
+                    if (runLevel) { try { updateLevelOvals(); } catch (_) {} }
+                    if (runQuestion) { try { updateQuestionOvals(); } catch (_) {} }
+                    if (runAdaptive) { try { updateAdaptiveStatus(); } catch (_) {} }
+                };
+
+                if (force) {
+                    flush();
+                } else {
+                    __progressUIFrame.rafId = requestAnimationFrame(flush);
+                }
+            } catch(_) {
+                try {
+                    if (options.level) updateLevelOvals();
+                    if (options.question) updateQuestionOvals();
+                    if (options.adaptive) updateAdaptiveStatus();
+                } catch(__) {}
+            }
+        }
+        try { window.scheduleProgressUIUpdate = scheduleProgressUIUpdate; } catch(_) {}
 
 
     // 依目前狀態更新主要 UI（標題、提示、按鈕等）
     // Update main game UI from current state
     function updateGameUI() {
-            // 更新關卡進度橢圓條
-            try { updateLevelOvals(); } catch (e) { /* ignore */ }
-            
-            // 更新題目進度橢圓條
-            try { updateQuestionOvals(); } catch (e) { /* ignore */ }
-            
-            // 更新動態難度現況
-            try { updateAdaptiveStatus(); } catch(e) { /* ignore */ }
+            // 將高頻進度更新收斂到同一幀
+            try { scheduleProgressUIUpdate({ level: true, question: true, adaptive: true }); } catch (e) { /* ignore */ }
 
             // 生存模式：切換顯示計時卡 vs 關卡卡
             try {
@@ -2344,10 +2329,11 @@
     // Update level progress ovals including failed state
     function updateLevelOvals() {
             const container = document.getElementById('levelOvals');
-            if (container) container.innerHTML = '';
             const levelCount = getLevelCount();
+            const survival = isSurvival();
+            const cache = updateLevelOvals.__cache || (updateLevelOvals.__cache = { sig: '', miniSig: '' });
             // Survival: hide level progress (no fixed cap)
-            if (!levelCount || isSurvival()) {
+            if (!levelCount || survival) {
                 try {
                     const card = document.getElementById('levelProgressCard');
                     if (card) card.style.display = 'none';
@@ -2359,77 +2345,107 @@
                 } catch(_) {}
             }
 
+            let levelSig = `c:${levelCount || 0}|s:${survival ? 1 : 0}|cur:${gameState.currentLevel || 0}`;
             for (let i = 1; i <= (levelCount || 0); i++) {
-                const oval = document.createElement('div');
-                // grid item with consistent height for 5-per-line layout
-                oval.className = 'h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-200';
+                levelSig += `|${i}:${(gameState.levelResults && gameState.levelResults[i]) || ''}`;
+            }
 
-                if (i < gameState.currentLevel || (i === gameState.currentLevel && gameState.levelResults[i])) {
-                    // 已完成的關卡（包括剛完成的當前關卡）
-                    const levelResult = gameState.levelResults && gameState.levelResults[i];
-                    if (levelResult === 'perfect') {
-                        // golden feel: white->yellow gradient, warmer border and subtle shadow
-                        oval.className += ' bg-gradient-to-br from-white via-yellow-100 to-yellow-300 text-yellow-900 border-2 border-yellow-400 shadow-md';
-                        oval.innerHTML = '<span class="px-2">完美</span>';
-                    } else if (levelResult === 'complete') {
-                        oval.className += ' bg-emerald-500 text-white border-2 border-yellow-400 shadow-sm';
-                        oval.innerHTML = '<span class="px-2">全對</span>';
-                    } else if (levelResult === 'failed') {
-                        // 全錯：紅底錯誤狀態
-                        oval.className += ' bg-rose-500 text-white border-2 border-rose-700 shadow-sm';
-                        oval.innerHTML = '<span class="px-2">失敗</span>';
-                    } else {
-                        oval.className += ' bg-green-400 text-green-900 border-2';
-                        oval.innerHTML = '<span class="px-2">完成</span>';
+            if (container) {
+                if (!levelCount || survival) {
+                    if (container.childElementCount) container.innerHTML = '';
+                } else if (cache.sig !== levelSig) {
+                    while (container.children.length < levelCount) {
+                        const oval = document.createElement('div');
+                        const label = document.createElement('span');
+                        label.className = 'px-2';
+                        oval.appendChild(label);
+                        container.appendChild(oval);
                     }
-                } else if (i === gameState.currentLevel) {
-                    // 當前關卡（進行中）
-                    oval.className += ' bg-purple-200 text-purple-800 animate-pulse';
-                    oval.innerHTML = `<span class="px-2">🎮${i}</span>`;
-                } else {
-                    // 未開始的關卡
-                    oval.className += ' bg-gray-200 text-gray-500 border-2';
-                    oval.innerHTML = `<span class="px-2">⏳${i}</span>`;
-                }
+                    while (container.children.length > levelCount) {
+                        container.removeChild(container.lastElementChild);
+                    }
 
-                if (container && levelCount) container.appendChild(oval);
+                    for (let i = 1; i <= levelCount; i++) {
+                        const oval = container.children[i - 1];
+                        const label = oval.firstElementChild || oval;
+                        const baseClass = 'h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-200';
+                        const levelResult = gameState.levelResults && gameState.levelResults[i];
+
+                        if (i < gameState.currentLevel || (i === gameState.currentLevel && levelResult)) {
+                            if (levelResult === 'perfect') {
+                                oval.className = `${baseClass} bg-gradient-to-br from-white via-yellow-100 to-yellow-300 text-yellow-900 border-2 border-yellow-400 shadow-md`;
+                                label.textContent = '完美';
+                            } else if (levelResult === 'complete') {
+                                oval.className = `${baseClass} bg-emerald-500 text-white border-2 border-yellow-400 shadow-sm`;
+                                label.textContent = '全對';
+                            } else if (levelResult === 'failed') {
+                                oval.className = `${baseClass} bg-rose-500 text-white border-2 border-rose-700 shadow-sm`;
+                                label.textContent = '失敗';
+                            } else {
+                                oval.className = `${baseClass} bg-green-400 text-green-900 border-2`;
+                                label.textContent = '完成';
+                            }
+                        } else if (i === gameState.currentLevel) {
+                            oval.className = `${baseClass} bg-purple-200 text-purple-800 animate-pulse`;
+                            label.textContent = `🎮${i}`;
+                        } else {
+                            oval.className = `${baseClass} bg-gray-200 text-gray-500 border-2`;
+                            label.textContent = `⏳${i}`;
+                        }
+                    }
+                }
             }
 
             // 同步更新手機版迷你關卡進度（備援顯示）
             try {
                 const mini = document.getElementById('levelProgressMini');
                 if (mini) {
-                    mini.innerHTML = '';
                     const count = levelCount || 0;
-                    if (!count || isSurvival()) {
+                    let miniSig = `c:${count}|s:${survival ? 1 : 0}|cur:${gameState.currentLevel || 0}`;
+                    for (let i = 1; i <= count; i++) {
+                        miniSig += `|${i}:${(gameState.levelResults && gameState.levelResults[i]) || ''}`;
+                    }
+                    if (!count || survival) {
                         mini.classList.add('hidden');
+                        if (mini.childElementCount) mini.innerHTML = '';
                     } else {
                         mini.classList.remove('hidden');
                         setMiniProgressGridColumns(count);
-                    }
-                    for (let i = 1; i <= count; i++) {
-                        const d = document.createElement('div');
-                        d.className = 'mini-dot';
-                        const levelResult = gameState.levelResults && gameState.levelResults[i];
-                        if (i < gameState.currentLevel || (i === gameState.currentLevel && levelResult)) {
-                            if (levelResult === 'perfect') {
-                                d.className += ' bg-gradient-to-br from-white via-yellow-100 to-yellow-300 border-yellow-400';
-                            } else if (levelResult === 'complete') {
-                                d.className += ' bg-emerald-500 border-yellow-400';
-                            } else if (levelResult === 'failed') {
-                                d.className += ' bg-rose-500 border-rose-700';
-                            } else {
-                                d.className += ' bg-green-400 border-green-500';
+                        if (cache.miniSig !== miniSig) {
+                            while (mini.children.length < count) {
+                                const d = document.createElement('div');
+                                mini.appendChild(d);
                             }
-                        } else if (i === gameState.currentLevel) {
-                            d.className += ' bg-purple-200 border-purple-300';
-                        } else {
-                            d.className += ' bg-gray-200 border-gray-300';
+                            while (mini.children.length > count) {
+                                mini.removeChild(mini.lastElementChild);
+                            }
+                            for (let i = 1; i <= count; i++) {
+                                const d = mini.children[i - 1];
+                                let cls = 'mini-dot';
+                                const levelResult = gameState.levelResults && gameState.levelResults[i];
+                                if (i < gameState.currentLevel || (i === gameState.currentLevel && levelResult)) {
+                                    if (levelResult === 'perfect') {
+                                        cls += ' bg-gradient-to-br from-white via-yellow-100 to-yellow-300 border-yellow-400';
+                                    } else if (levelResult === 'complete') {
+                                        cls += ' bg-emerald-500 border-yellow-400';
+                                    } else if (levelResult === 'failed') {
+                                        cls += ' bg-rose-500 border-rose-700';
+                                    } else {
+                                        cls += ' bg-green-400 border-green-500';
+                                    }
+                                } else if (i === gameState.currentLevel) {
+                                    cls += ' bg-purple-200 border-purple-300';
+                                } else {
+                                    cls += ' bg-gray-200 border-gray-300';
+                                }
+                                d.className = cls;
+                            }
+                            cache.miniSig = miniSig;
                         }
-                        if (count) mini.appendChild(d);
                     }
                 }
             } catch (_) {}
+            cache.sig = levelSig;
         }
 
     // 更新本關每題的進度橢圓（對/錯/未答）
@@ -2437,75 +2453,116 @@
     function updateQuestionOvals() {
             const container = document.getElementById('questionOvals');
             if (!container) return;
-            container.innerHTML = '';
+            const cache = updateQuestionOvals.__cache || (updateQuestionOvals.__cache = { sig: '' });
 
-            let correctCount = 0;
             let totalAnswered = 0;
 
             // 確保有題目數據才進行更新
             if (!gameState.questionData || gameState.questionData.length === 0) {
+                if (container.childElementCount) container.innerHTML = '';
                 document.getElementById('currentQuestion').textContent = '0/0';
                 return;
             }
 
-            for (let i = 0; i < gameState.questionData.length; i++) {
-                const oval = document.createElement('div');
-                // shorter ovals to reduce vertical footprint
-                oval.className = 'flex-1 h-5 rounded-full flex items-center justify-center text-[11px] font-semibold transition-all duration-200';
+            const questionCount = gameState.questionData.length;
+            const verseStates = new Array(questionCount).fill('pending');
+            const maxAttempts = { easy: 3, normal: 2, hard: 1 };
+            const originalAttempts = maxAttempts[gameState.difficulty] || 1;
+            const cards = document.querySelectorAll('#gameVerses [data-index]');
+            for (const card of cards) {
+                const idx = Number(card.dataset && card.dataset.index);
+                if (!Number.isFinite(idx) || idx < 0 || idx >= questionCount) continue;
+                if (card.classList.contains('bg-green-100')) verseStates[idx] = 'correct';
+                else if (card.classList.contains('bg-red-100')) verseStates[idx] = 'wrong';
+                else if (card.classList.contains('bg-yellow-100') || card.classList.contains('bg-orange-100')) verseStates[idx] = 'partial';
+            }
 
-                const verseCard = document.querySelector(`[data-index="${i}"]`);
-                const maxAttempts = { easy: 3, normal: 2, hard: 1 };
-                const originalAttempts = maxAttempts[gameState.difficulty];
+            let sig = `q:${questionCount}|d:${gameState.difficulty || ''}|l:${gameState.currentLevel || 0}`;
+            const nextClasses = new Array(questionCount);
+            const nextTexts = new Array(questionCount);
+
+            for (let i = 0; i < questionCount; i++) {
+                const state = verseStates[i];
                 const currentAttempts = gameState.questionAttempts[i] || originalAttempts;
+                let ovalClass = 'flex-1 h-5 rounded-full flex items-center justify-center text-[11px] font-semibold transition-all duration-200';
+                let ovalText = '?';
 
-                if (verseCard && verseCard.classList.contains('bg-green-100')) {
+                if (state === 'correct') {
                     // 答對了，檢查是否無失誤且未使用提示
                     if (currentAttempts === originalAttempts) {
                         const levelHintKey = `${gameState.currentLevel}|${i}`;
                         const hintUsedThisLevel = (gameState.usedHints && (gameState.usedHints.has(levelHintKey) || gameState.usedHints.has(i)));
                         if (!hintUsedThisLevel) {
-                        // 無失誤且無提示完成 - 翠綠色配金邊 (smaller shadow)
-                        oval.className += ' bg-emerald-500 text-white border-2 border-yellow-400 shadow-sm';
-                        oval.innerHTML = '<span>✓</span>';
+                            ovalClass += ' bg-emerald-500 text-white border-2 border-yellow-400 shadow-sm';
+                            ovalText = '✓';
                         } else {
                             // used hint this level: treat as answered-with-hint
-                            oval.className += ' bg-green-400 text-green-900 border-2';
-                            oval.innerHTML = '<span>✓</span>';
+                            ovalClass += ' bg-green-400 text-green-900 border-2';
+                            ovalText = '✓';
                         }
                     } else {
                         // 有失誤 - 普通綠色
-                        oval.className += ' bg-green-400 text-green-900 border-2';
-                        oval.innerHTML = '<span>✓</span>';
+                        ovalClass += ' bg-green-400 text-green-900 border-2';
+                        ovalText = '✓';
                     }
-                    correctCount++;
                     totalAnswered++;
-                } else if (verseCard && verseCard.classList.contains('bg-red-100')) {
+                } else if (state === 'wrong') {
                     // 答錯
-                    oval.className += ' bg-red-400 text-red-900 border-2';
-                    oval.innerHTML = '<span>✗</span>';
+                    ovalClass += ' bg-red-400 text-red-900 border-2';
+                    ovalText = '✗';
                     totalAnswered++;
-                } else if (verseCard && (verseCard.classList.contains('bg-yellow-100') || verseCard.classList.contains('bg-orange-100'))) {
+                } else if (state === 'partial') {
                     // 已經嘗試過但還未完成 - 黃色
-                    oval.className += ' bg-yellow-400 text-yellow-900 border-2';
-                    oval.innerHTML = '<span>!</span>';
+                    ovalClass += ' bg-yellow-400 text-yellow-900 border-2';
+                    ovalText = '!';
                 } else {
                     // 未開始
-                    oval.className += ' bg-gray-200 text-gray-500 border-2';
-                    oval.innerHTML = '<span>?</span>';
+                    ovalClass += ' bg-gray-200 text-gray-500 border-2';
                 }
 
-                container.appendChild(oval);
+                sig += `|${i}:${state}:${currentAttempts}:${ovalText}`;
+                nextClasses[i] = ovalClass;
+                nextTexts[i] = ovalText;
+            }
+
+            if (cache.sig === sig) {
+                const cq = document.getElementById('currentQuestion');
+                if (cq) cq.textContent = `${totalAnswered}/${questionCount}`;
+                return;
+            }
+
+            while (container.children.length < questionCount) {
+                container.appendChild(document.createElement('div'));
+            }
+            while (container.children.length > questionCount) {
+                container.removeChild(container.lastElementChild);
+            }
+            for (let i = 0; i < questionCount; i++) {
+                const oval = container.children[i];
+                oval.className = nextClasses[i];
+                oval.textContent = nextTexts[i];
             }
 
             // 更新數字顯示
             const cq = document.getElementById('currentQuestion');
-            if (cq) cq.textContent = `${totalAnswered}/${gameState.questionData.length}`;
+            if (cq) cq.textContent = `${totalAnswered}/${questionCount}`;
+            cache.sig = sig;
         }
 
     // 動態難度或裝備課程題目進度
         function updateAdaptiveStatus() {
             const el = document.getElementById('adaptiveStatusText');
             if (!el) return;
+            const cache = updateAdaptiveStatus.__cache || (updateAdaptiveStatus.__cache = { html: '', diff: '', title: '', equip: false });
+            const esc = (v) => {
+                const s = v == null ? '' : String(v);
+                return s
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            };
             const diff = String(gameState.difficulty || 'easy');
             const combo = Number(gameState.combo || 0);
             const diffLabel = diff === 'hard' ? '困難' : diff === 'normal' ? '普通' : '簡單';
@@ -2526,48 +2583,71 @@
                 raritySpeedLabel = map[gameState.adaptiveVerseRarity] || '常見';
             } catch(_) { raritySpeedLabel = '常見'; }
 
+            let nextHtml = '';
+            let nextTitle = '';
+            let forceEquipCard = false;
+
             if (gameState.equipRunning) {
                 // 裝備課程：顯示三階段逐步題目進度
-                try { const t = document.getElementById('gameInfoTitle'); if (t) t.textContent = '題目進度'; } catch(_) {}
+                nextTitle = '題目進度';
+                forceEquipCard = true;
                 const entry = gameState.currentEquipEntry || {};
-                const book = entry.book || '';
-                const chapter = entry.chapter || '';
+                const rawBook = esc(entry.book || '');
+                const book = (Number(gameState.equipPhase || 0) === 1 && !gameState.equipBookRevealed) ? '???' : rawBook;
+                const rawChapter = esc(entry.chapter || '');
+                const chapter = (Number(gameState.equipPhase || 0) === 2 && !gameState.equipChapterRevealed) ? '???' : rawChapter;
                 const verses = Array.isArray(entry.verses) ? entry.verses : [];
                 const picked = Math.min(verses.length, Number(gameState.equipExpectedIndex || 0));
-                // 強制在裝備模式顯示進度卡片（即使行動版原本隱藏）
-                try {
-                    const card = document.getElementById('questionProgressCard');
-                    if (card) card.classList.add('equip-force-show');
-                } catch(_) {}
+                const total = verses.length || 0;
+                const phase = Number(gameState.equipPhase || 0);
+                const phaseHint = phase === 1 ? '正在抽選本關書卷…' : phase === 2 ? '請選出正確章節' : phase === 3 ? '依序選出正確片段' : '裝備課程進行中…';
+                const ratio = total > 0 ? Math.max(0, Math.min(100, Math.round((picked / total) * 100))) : 0;
+                const assembledParts = picked > 0 ? verses.slice(0, picked).map(v => esc(v)) : [];
+                const chipsHtml = assembledParts.length
+                    ? assembledParts.map(p => `<span class="equip-frag-chip">${p}</span>`).join('')
+                    : `<span class="equip-frag-empty">尚未開始排序</span>`;
                 if (gameState.equipPhase === 1) {
-                    el.innerHTML = `<div class="equip-wrap-line">書卷抽選中…</div>`;
+                    nextHtml = `
+                        <div class="equip-status-card">
+                            <div class="equip-kv-grid">
+                                <div class="equip-kv"><span>書卷</span><strong>${book}</strong></div>
+                            </div>
+                            <div class="equip-inline-note">${phaseHint}</div>
+                        </div>`;
                 } else if (gameState.equipPhase === 2) {
-                    el.innerHTML = `
-                        <div class="space-y-1 equip-wrap-multi">
-                            <div class="equip-wrap-line"><span class="font-bold">書卷：</span>${book}</div>
-                            <div class="equip-wrap-line">章節選擇中…</div>
+                    nextHtml = `
+                        <div class="equip-status-card">
+                            <div class="equip-kv-grid">
+                                <div class="equip-kv"><span>書卷</span><strong>${book}</strong></div>
+                                <div class="equip-kv"><span>章節</span><strong>${chapter}</strong></div>
+                            </div>
+                            <div class="equip-inline-note">${phaseHint}</div>
                         </div>`;
                 } else if (gameState.equipPhase === 3) {
-                    const assembled = picked > 0 ? verses.slice(0, picked).join(' / ') : '';
-                    const total = verses.length || 0;
-                    const core = `<div class="equip-wrap-line"><span class="font-bold">書卷：</span>${book} <span class="mx-1">·</span> <span class="font-bold">章節：</span>${chapter}</div>
-                    <div class="equip-wrap-line"><span class="font-bold">排序：</span>${picked}/${total}${picked>0?` — ${assembled}${picked<total?' / …':''}`:''}</div>`;
-                    if (window.innerWidth <= 760) {
-                        el.innerHTML = `<div class="space-y-1 equip-wrap-multi">${core}</div>`;
-                    } else {
-                        el.innerHTML = `<div class="space-y-1 equip-wrap-multi">${core}</div>`;
-                    }
+                    nextHtml = `
+                        <div class="equip-status-card">
+                            <div class="equip-kv-grid">
+                                <div class="equip-kv"><span>書卷</span><strong>${book}</strong></div>
+                                <div class="equip-kv"><span>章節</span><strong>${chapter}</strong></div>
+                            </div>
+                            <div class="equip-order-head"><span>排序進度</span><span>${picked}/${total}</span></div>
+                            <div class="equip-order-track"><div class="equip-order-fill equip-order-fill-live" style="width:${ratio}%"></div></div>
+                            <div class="equip-order-text">${chipsHtml}${picked<total && picked>0 ? `<span class="equip-frag-more">…尚有 ${Math.max(0, total - picked)} 段</span>` : ''}</div>
+                        </div>`;
                 } else {
-                    el.innerHTML = `<div class="equip-wrap-line">裝備課程進行中…</div>`;
+                    nextHtml = `
+                        <div class="equip-status-card">
+                            <div class="equip-inline-note">${phaseHint}</div>
+                        </div>`;
                 }
             } else {
                 // 闖關/練習/生存：動態難度現況（顯示三軸）
-                try { const t = document.getElementById('gameInfoTitle'); if (t) t.textContent = '遊戲資訊'; } catch(_) {}
+                nextTitle = '遊戲資訊';
                 const replayPill = (gameState && (gameState._replaySequence || gameState.replaySourceRecord)) ? `<div class="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-yellow-200 text-yellow-900 border border-yellow-300">🔁 同題重播 (難度凍結)</div>` : '';
                 const dur = Number(gameState.lastLevelDurationSec||0);
                 const ps = (typeof gameState.lastLevelPerformanceScore === 'number') ? gameState.lastLevelPerformanceScore : null;
                 const metaLine = (dur>0 || ps!==null) ? `<div class="text-[11px] opacity-80 flex flex-wrap gap-x-4 gap-y-0.5">${dur>0?`<span>上關 ${dur.toFixed(1)}s</span>`:''}${ps!==null?`<span>PS ${ps.toFixed(2)}</span>`:''}</div>` : '';
-                el.innerHTML = `
+                nextHtml = `
                     <div class="space-y-1">
                         ${replayPill}
                         <div class="flex flex-wrap gap-x-6 gap-y-1"><span class="whitespace-nowrap">配對模式：${diffLabel}</span><span class="whitespace-nowrap">型態：${pairText}</span></div>
@@ -2577,14 +2657,34 @@
                         </div>
                         ${metaLine}
                     </div>`;
-                                try { const card = document.getElementById('questionProgressCard'); if (card && !gameState.equipRunning) card.classList.remove('equip-force-show'); } catch(_) {}
             }
+
+            try {
+                const t = document.getElementById('gameInfoTitle');
+                if (t && cache.title !== nextTitle) {
+                    t.textContent = nextTitle;
+                    cache.title = nextTitle;
+                }
+            } catch(_) {}
+
+            if (cache.html !== nextHtml) {
+                el.innerHTML = nextHtml;
+                cache.html = nextHtml;
+            }
+
+            try {
+                const card = document.getElementById('questionProgressCard');
+                if (card) card.classList.toggle('equip-force-show', !!forceEquipCard);
+            } catch(_) {}
 
             // Apply difficulty-based theme on the game-info card (desktop) and global tint
             try {
                 const card = document.getElementById('questionProgressCard');
                 const title = document.getElementById('gameInfoTitle');
                 if (card && title) {
+                    const diffChanged = cache.diff !== diff;
+                    const equipChanged = cache.equip !== !!gameState.equipRunning;
+                    if (!diffChanged && !equipChanged) return;
                     const cls = card.classList;
                     const tcls = title.classList;
                     // Reset previous color classes
@@ -2610,36 +2710,44 @@
                     }
 
                     // Pulse the card to emphasize change
-                    try {
-                        card.classList.remove('difficulty-pulse');
-                        // force reflow to restart animation
-                        void card.offsetWidth;
-                        card.classList.add('difficulty-pulse');
-                    } catch(_) {}
+                    if (diffChanged) {
+                        try {
+                            card.classList.remove('difficulty-pulse');
+                            // force reflow to restart animation
+                            void card.offsetWidth;
+                            card.classList.add('difficulty-pulse');
+                        } catch(_) {}
+                    }
 
                     // Show a temporary tint overlay during difficulty change
-                    try {
-                        const overlay = document.getElementById('difficultyTintOverlay');
-                        if (overlay) {
-                            overlay.classList.remove('easy','normal','hard','show');
-                            // force reflow to reset transition
-                            void overlay.offsetWidth;
-                            overlay.classList.add(diff === 'hard' ? 'hard' : (diff === 'normal' ? 'normal' : 'easy'));
-                            overlay.classList.add('show');
-                            // auto fade-out after 700ms
-                            setTimeout(() => { try { overlay.classList.remove('show'); } catch(_) {} }, 700);
-                        }
-                    } catch(_) {}
+                    if (diffChanged) {
+                        try {
+                            const overlay = document.getElementById('difficultyTintOverlay');
+                            if (overlay) {
+                                overlay.classList.remove('easy','normal','hard','show');
+                                // force reflow to reset transition
+                                void overlay.offsetWidth;
+                                overlay.classList.add(diff === 'hard' ? 'hard' : (diff === 'normal' ? 'normal' : 'easy'));
+                                overlay.classList.add('show');
+                                // auto fade-out after 700ms
+                                setTimeout(() => { try { overlay.classList.remove('show'); } catch(_) {} }, 700);
+                            }
+                        } catch(_) {}
+                    }
 
                     // Also pulse the mobile mini timer if present
-                    try {
-                        const mini = document.getElementById('survivalTimerMini');
-                        if (mini) {
-                            mini.classList.remove('difficulty-pulse');
-                            void mini.offsetWidth;
-                            mini.classList.add('difficulty-pulse');
-                        }
-                    } catch(_) {}
+                    if (diffChanged) {
+                        try {
+                            const mini = document.getElementById('survivalTimerMini');
+                            if (mini) {
+                                mini.classList.remove('difficulty-pulse');
+                                void mini.offsetWidth;
+                                mini.classList.add('difficulty-pulse');
+                            }
+                        } catch(_) {}
+                    }
+                    cache.diff = diff;
+                    cache.equip = !!gameState.equipRunning;
                 }
             } catch(_) { /* non-fatal */ }
         }

@@ -1,5 +1,5 @@
-﻿// Service Worker: Safe Mode (v44)
-const VERSION = 'wave2-v44-cache-restored';
+﻿// Service Worker: Safe Mode (v45)
+const VERSION = 'wave2-v45-cache-restored';
 const CACHE_NAME = `bc-safe-$VERSION`;
 
 const LOCAL_ASSETS = [
@@ -99,6 +99,12 @@ self.addEventListener('fetch', (event) => {
 
       return fetch(req).then((netRes) => {
         if (!netRes || netRes.status !== 200 || netRes.type !== 'basic') return netRes;
+        
+        // 🚨 不快取超過 1MB 的超大 JSON (例如 external-verses.json)，避免 LINE/iOS WebView 寫入快取時爆記憶體閃退
+        if (url.pathname.includes('external-verses.json')) {
+            return netRes;
+        }
+
         const resClone = netRes.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
         return netRes;

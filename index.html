@@ -3,6 +3,25 @@
 <html lang="zh-TW">
 
 <head>
+    <!-- Anti-Refresh-Loop: 阻止舊版 SW/快取腳本造成的 PWA 重新整理迴圈 -->
+    <script>
+      (function(){
+        try {
+          var originalReload = window.location.reload;
+          window.location.reload = function(forced) {
+            var ts = parseInt(sessionStorage.getItem('bc_last_reload') || '0', 10);
+            var now = Date.now();
+            if (now - ts < 10000) {
+              console.warn('[SW] Blocked rapid location.reload() to prevent infinite loop.');
+              return; // 10秒內連續reload，強制阻擋
+            }
+            sessionStorage.setItem('bc_last_reload', String(now));
+            return originalReload.call(window.location, forced);
+          };
+        } catch(e) {}
+      })();
+    </script>
+
 
         <!-- =============================================================
 

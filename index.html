@@ -1,903 +1,1808 @@
 ﻿<!DOCTYPE html>
+
 <html lang="zh-TW">
+
 <head>
+
         <!-- =============================================================
+
                  名詞對照 / Terminology Mapping (2025-09)
+
                  classic 內部代碼鍵值 -> 對外顯示「闖關挑戰」或精簡「闖關」
+
                  survival -> 生存 / 生存計時
+
                  equip    -> 裝備 (裝備課程) 模式
+
                  practice/custom range -> 練習模式
+
                  說明：原本 UI 『經典挑戰』已全面改為『闖關挑戰』；註解亦同步更新。
+
                  若將來需要再次改名，只需：
+
                      1) 調整集中顯示文字（搜尋 闖關挑戰 ）
+
                      2) 保留 data-mode="classic" 以免破壞既有儲存資料格式
+
                  ============================================================= -->
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>經夠盃挑戰｜聖經經文記憶遊戲</title>
+
     <link rel="canonical" href="https://topheart.github.io/bible-challenge/">
+
     <!-- Primary description (keep <= 160 chars; synced with index.html) -->
+
     <meta name="description" content="挑戰你的聖經記憶！包含闖關挑戰、生存計時與裝備課程三大模式。具備自適應難度、線上排行榜與離線遊玩功能。立即開始你的經文冒險！">
+
     <meta name="theme-color" content="#6366f1">
+
     <link rel="manifest" href="./manifest.webmanifest">
+
     <link rel="icon" type="image/png" href="logo/logo1-light.png">
+
     <link rel="apple-touch-icon" href="logo/logo1-light.png">
+
     <!-- Open Graph / Twitter -->
+
     <meta property="og:type" content="website">
+
     <meta property="og:locale" content="zh_TW">
+
     <meta property="og:site_name" content="經夠盃挑戰">
+
     <meta property="og:url" content="https://topheart.github.io/bible-challenge/">
+
     <meta property="og:title" content="經夠盃挑戰｜聖經經文記憶遊戲">
+
     <meta property="og:description" content="聖經經文記憶與反應挑戰！體驗「闖關挑戰」累積實力、「生存計時」極限衝刺，或透過「裝備課程」與「自訂練習」深化經文記憶。支援離線遊玩與線上排行。">
+
     <meta property="og:image" content="https://topheart.github.io/bible-challenge/logo/logo1-dark.png">
+
     <meta property="og:image:alt" content="經夠盃挑戰遊戲縮圖">
+
     <meta name="twitter:card" content="summary_large_image">
+
     <meta name="twitter:title" content="經夠盃挑戰｜聖經經文記憶遊戲">
+
     <meta name="twitter:description" content="聖經經文記憶與反應挑戰！體驗「闖關挑戰」累積實力、「生存計時」極限衝刺，或透過「裝備課程」與「自訂練習」深化經文記憶。支援離線遊玩與線上排行。">
+
     <meta name="keywords" content="聖經,經文,問答遊戲,聖經遊戲,Bible quiz,教育遊戲,背經,Trivia,闖關,生存,裝備課程" />
+
     <meta name="format-detection" content="telephone=no,email=no,address=no" />
+
     <!-- PWA generic capability (Chrome 等) -->
+
     <meta name="mobile-web-app-capable" content="yes" />
+
     <meta name="apple-mobile-web-app-capable" content="yes" />
+
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
     <meta name="twitter:site" content="@" />
+
     <meta name="twitter:creator" content="@" />
+
     <!-- Critical CSS to prevent FOUC / Naked Layout -->
+
     <style>
+
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+
         .hidden { display: none; }
+
         body { font-family: 'Noto Sans TC', system-ui, sans-serif; background-color: #f8fafc; }
+
         button { cursor: pointer; }
+
     </style>
+
     <!-- JSON-LD Game structured data -->
+
     <script type="application/ld+json">
+
     {"@context":"https://schema.org","@type":"Game","name":"經夠盃挑戰","alternateName":"Bible Challenge","description":"聖經經文快問快答：Classic / Survival / 裝備成長模式，自適應難度 + 經文罕見度配重、Combo 分數、離線可玩、線上/本機排行榜、零廣告快速載入。","applicationCategory":"EducationalGame","operatingSystem":"Any","inLanguage":"zh-TW","genre":["Education","Trivia"],"playMode":"SinglePlayer","url":"https://topheart.github.io/bible-challenge/index.html","image":"https://topheart.github.io/bible-challenge/logo/logo1-dark.png"}
+
     </script>
+
     <meta name="twitter:image" content="https://topheart.github.io/bible-challenge/logo/logo1-dark.png">
+
     <link rel="stylesheet" href="css/main.css?v=2">
+
     <link rel="stylesheet" href="css/themes.css?v=2">
+
     <script src="https://cdn.tailwindcss.com" defer></script>
+
     <!-- Supabase client (UMD) deferred: 將於實際需要時 (首次打開排行榜 / 結算需要上傳) 才載入
+
         若要回退 eager，可解除下行註解並刪除 lazy loader 區塊。
+
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
+
     -->
+
     <!-- Leaderboard configuration (project URL/anonKey/table) -->
+
     <script src="leaderboard-config.js" defer></script>
+
     <!-- Preconnects for faster third-party fetches -->
+
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+
     <link rel="preconnect" href="https://kkbwoahtwfdirqsgyqda.supabase.co" crossorigin>
+
     <!-- Speed up Google Fonts fetch to reduce FOIT/FOUT -->
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
+
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
     <!-- Achievement SVG Sprite is loaded from data/achievement-sprite.svg -->
+
     <!-- Startup images are preloaded dynamically below based on a quick pick; remove static duplicates to save bandwidth. -->
+
     <script src="js/core/bootstrap.js" defer></script>
+    <script src="js/core/events.js" defer></script>
+
+<script>window.onerror = function(m, s, l, c, e) { alert(m + ' at ' + s + ':' + l); }; window.addEventListener('unhandledrejection', function(e) { alert('Unhandled promise rejection: ' + e.reason); });</script>
 </head>
+
 <body class="bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100 min-h-screen">
+
     <a href="#mainContent" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[10000] bg-indigo-600 text-white px-4 py-2 rounded shadow">跳到主要內容</a>
+
     <!-- Startup overlay: 可變主題（亮/暗），中間 LOGO、左下 wordmark、底部 Loading 與右下版本 -->
+
     <div id="startupOverlay" class="fixed inset-0 z-[9999] flex items-center justify-center select-none theme-light"
+
          style="transition: opacity 1s ease;">
+
         <div class="absolute inset-0" aria-hidden="true" style="
+
             background:
+
                 radial-gradient(1000px 600px at 15% 25%, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.18) 40%, transparent 55%),
+
                 radial-gradient(900px 540px at 85% 20%, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.16) 38%, transparent 52%),
+
                 radial-gradient(1100px 660px at 60% 80%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.14) 36%, transparent 50%);
+
         "></div>
+
         <div class="relative flex flex-col items-center">
+
             <img id="startupLogo" class="sync-item" style="opacity:0;" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='240'%3E%3C/svg%3E" alt="App logo" decoding="async" fetchpriority="high" />
+
         </div>
+
             <!-- 螢幕閱讀器動態訊息區 -->
+
             <div id="ariaAnnouncements" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
         <img id="startupWord" class="sync-item" style="opacity:0;" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='120'%3E%3C/svg%3E" alt="Wordmark" decoding="async" fetchpriority="high" />
+
     <img id="startupBrand" class="sync-item" style="opacity:0;" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='48'%3E%3C/svg%3E" alt="Brand" decoding="async" fetchpriority="low" />
+
         <div id="startupLoadingText" class="sync-item text-base md:text-lg font-black tracking-widest loading-shimmer" style="opacity:0;">Loading...</div>
+
         <div id="startupVersion" class="sync-item absolute bottom-3 right-4 text-white/90 text-sm md:text-base font-semibold select-none" style="opacity:0;">
+
             <!-- set dynamically -->
+
         </div>
+
     </div>
+
     <!-- 背景經文跑馬燈 -->
+
     <div class="verse-marquee" id="verseMarquee">
+
         <!-- 跑馬燈經文將在這裡生成 -->
+
     </div>
+
+
 
     <!-- 全局可愛語氣提示條（置於最外層，避免被任何畫面容器 hidden 影響） -->
+
     <div id="cuteHintBar" class="cute-hint" role="status" aria-live="polite" aria-atomic="true">
+
         <span class="cute-hint-icon" aria-hidden="true">✨</span>
+
         <span class="cute-hint-text">提示文字</span>
+
     </div>
 
+
+
     <!-- 開始畫面 -->
+
     <div id="startScreen" class="min-h-screen p-4" aria-label="遊戲開始與模式設定">
+
         <div id="mainContent" role="main" class="contents"></div>
+
         <div class="max-w-6xl mx-auto">
+
             <!-- 標題 -->
+
             <div class="text-center mb-4">
+
                 <div id="titleCard" class="title-container start-intro-card bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 p-6 text-center border-2 border-slate-600 shadow-2xl relative overflow-hidden inline-block rounded-3xl">
+
                     <!-- 標題背景裝飾 -->
+
                     <div class="absolute inset-0 bg-gradient-to-br from-slate-700/40 to-slate-800/40 rounded-3xl"></div>
+
                     <div class="relative z-10">
+
                         <h1 class="text-4xl font-black bg-gradient-to-r from-gray-200 via-yellow-200 to-gray-200 bg-clip-text text-transparent mb-2 drop-shadow-lg" style="letter-spacing: 0.3em; text-shadow: 0 0 20px rgba(255, 255, 255, 0.6), 0 0 40px rgba(255, 255, 255, 0.4);">
+
                             <span id="titleLeftIcon" class="mr-4" aria-hidden="true">📖</span>
+
                             <span id="mainTitle" class="mx-2" style="cursor:pointer;">經夠盃挑戰</span>
+
                             <span id="titleRightIcon" class="ml-4" aria-hidden="true">📖</span>
+
                         </h1>
+
                     </div>
+
                 </div>
+
             </div>
+
             <div id="mainMenuGrid" class="grid lg:grid-cols-3 gap-4">
+
                 <!-- 左：Step 1 模式選擇（單一入口） -->
+
                 <div id="modeCard" class="cute-card bg-white p-4 start-intro-card lg:col-span-2">
+
                     <div class="mb-3">
+
                         <h2 class="text-2xl font-bold text-gray-800 text-center">Step 1｜選擇模式</h2>
+
                     </div>
+
                     <div class="home-mode-grid grid grid-cols-1 md:grid-cols-2 gap-3">
+
                         <button id="modeClassicBtn" class="mode-card-interactive w-full text-left p-5 rounded-2xl border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-pink-50 shadow-sm hover:shadow-md transition">
+
                             <div class="flex items-start justify-between">
+
                                 <div>
+
                                     <div class="mode-title-with-icon home-mode-title text-xl font-extrabold text-rose-700 tracking-wide"><span class="mode-title-icon" aria-hidden="true">🏁</span><span>闖關挑戰</span></div>
+
                                     <div class="mt-1 text-sm text-rose-700/80">10 關 × 每關 5 題，節奏漸進、扎實累積熟練度</div>
+
                                 </div>
+
                                 <div class="ml-3 shrink-0"><span class="mode-kind-badge inline-block text-xs font-bold text-rose-700 bg-rose-100 border border-rose-300 rounded-full px-2 py-1">回合制</span></div>
+
                             </div>
+
                         </button>
+
                         <button id="modeSurvivalBtn" class="mode-card-interactive w-full text-left p-5 rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 shadow-sm hover:shadow-md transition">
+
                             <div class="flex items-start justify-between">
+
                                 <div>
+
                                     <div class="mode-title-with-icon home-mode-title text-xl font-extrabold text-emerald-700 tracking-wide"><span class="mode-title-icon" aria-hidden="true">⏱️</span><span>生存計時</span></div>
+
                                     <div class="mt-1 text-sm text-emerald-700/80">90 秒倒數，答對補秒、失誤扣秒，衝刺極限反應！</div>
+
                                 </div>
+
                                 <div class="ml-3 shrink-0"><span class="mode-kind-badge inline-block text-xs font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 rounded-full px-2 py-1">計時制</span></div>
+
                             </div>
+
                         </button>
+
                         <!-- 裝備課程 -->
+
                         <div id="equipCourseCard" role="button" tabindex="0" aria-pressed="false" class="mode-card-interactive p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 cursor-pointer transition">
+
                             <div class="flex items-center justify-between mb-2">
+
                                 <div class="flex items-center">
+
                                     <span class="heading-icon mr-1">📚</span>
+
                                     <h3 class="home-mode-title text-base md:text-xl font-bold text-purple-700"><span class="heading-label">裝備課程</span></h3>
+
                                 </div>
+
                                 <div id="equipHeadingSub" class="heading-sub text-purple-500 opacity-80 text-xs md:text-sm font-semibold">經文題庫</div>
+
                             </div>
+
                             <div class="flex flex-col gap-2">
+
                                 <div class="flex items-stretch gap-2">
+
                                     <button id="equipTierGrowth" class="flex-1 cute-button bg-white border border-purple-300 text-purple-700 py-2 rounded-xl text-sm font-bold transition text-center px-3">成長班｜基礎紮根</button>
+
                                     <button type="button" data-equip-info="growth" class="equip-info-btn cute-button bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold text-sm px-3 rounded-xl" aria-label="查看成長班題庫 (📗)">📗</button>
+
                                 </div>
+
                                 <div class="flex items-stretch gap-2">
+
                                     <button id="equipTierDisciple" class="flex-1 cute-button bg-white border border-purple-300 text-purple-700 py-2 rounded-xl text-sm font-bold transition text-center px-3">門徒班｜進階操練</button>
+
                                     <button type="button" data-equip-info="disciple" class="equip-info-btn cute-button bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold text-sm px-3 rounded-xl" aria-label="查看門徒班題庫 (📕)">📕</button>
+
                                 </div>
+
                                 <div class="flex items-stretch gap-2">
+
                                     <button id="equipTierLeader" class="flex-1 cute-button bg-white border border-purple-300 text-purple-700 py-2 rounded-xl text-sm font-bold transition text-center px-3">領袖班｜深度裝備</button>
+
                                     <button type="button" data-equip-info="leader" class="equip-info-btn cute-button bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold text-sm px-3 rounded-xl" aria-label="查看領袖班題庫 (📘)">📘</button>
+
                                 </div>
+
                             </div>
+
                             <div class="equip-mode-detail mt-3 text-[12px] leading-relaxed text-purple-700/90 font-medium bg-white/60 rounded-lg p-3 border border-purple-200">
+
                                 分為三階段訓練：<span class="font-semibold">抽卷→選章→排序經文</span>。<br class="hidden sm:block"/>採卓越行道會裝備課程所用的背誦經文。
+
                             </div>
+
                         </div>
 
+
+
                         <!-- 自訂專區（固定顯示） -->
+
                         <div id="customAreaCard" role="button" tabindex="0" aria-pressed="false" class="mode-card-interactive p-4 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 cursor-pointer transition">
+
                             <div class="flex items-center justify-between mb-2">
+
                                 <div class="flex items-center">
+
                                     <span class="heading-icon mr-1">🧩</span>
+
                                     <h3 class="home-mode-title text-base md:text-xl font-bold text-blue-700"><span class="heading-label">自訂專區</span></h3>
+
                                 </div>
+
                                 <div class="heading-sub text-blue-500 opacity-80 text-xs md:text-sm font-semibold">不列入排行</div>
+
                             </div>
 
+
+
                             <div class="custom-mode-summary text-[12px] leading-relaxed text-blue-700/90 font-medium bg-white/60 rounded-lg p-3 border border-blue-200 mb-2">
+
                                 選取後可快速勾選書卷，建立你的自訂題庫。
+
                             </div>
+
+
 
                             <div class="custom-settings-content">
 
+
+
                             <!-- 快速選擇 -->
+
                             <!-- 新版快速勾選：兩行九分類 -->
+
                             <div class="mb-2 grid grid-cols-5 gap-2">
+
                                 <button id="qsOld" class="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded">舊約</button>
+
                                 <button id="qsLaw" class="text-xs bg-lime-100 hover:bg-lime-200 text-lime-700 px-2 py-1 rounded">律法</button>
+
                                 <button id="qsHistory" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 px-2 py-1 rounded">歷史</button>
+
                                 <button id="qsPoetry" class="text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 px-2 py-1 rounded">詩歌</button>
+
                                 <button id="qsProphets" class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded">先知</button>
+
                             </div>
+
                             <div class="mb-3 grid grid-cols-4 gap-2">
+
                                 <button id="qsNew" class="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded">新約</button>
+
                                 <button id="qsGospels" class="text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-2 py-1 rounded">福音</button>
+
                                 <button id="qsPaul" class="text-xs bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2 py-1 rounded text-center">保羅書信</button>
+
                                 <button id="qsGeneral" class="text-xs bg-cyan-100 hover:bg-cyan-200 text-cyan-700 px-2 py-1 rounded text-center">普通書信</button>
+
                             </div>
+
+
 
                             <!-- 自訂書卷面板（預設隱藏，選擇自訂時顯示） -->
+
                             <div id="customBooksExpandCard" class="cute-card bg-white p-3 mt-2 hidden">
+
                                 <div class="flex justify-between items-center mb-2">
+
                                     <h3 class="text-sm font-bold text-orange-700">🎯 選擇書卷</h3>
+
                                     <div class="flex items-center gap-2">
+
                                         <button id="selectAllBooksExpand" class="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded">全選</button>
+
                                         <button id="clearAllBooksExpand" class="text-xs bg-red-400 hover:bg-red-500 text-white px-2 py-1 rounded">取消勾選</button>
+
                                     </div>
+
                                 </div>
+
+
 
                                 <div class="mb-2">
+
                                     <input type="text" id="bookSearchExpand" placeholder="搜尋書卷..." class="w-full p-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-400">
+
                                 </div>
+
+
 
                                 <div id="customBooksExpand" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-32 overflow-y-auto" style="grid-auto-rows: minmax(44px, auto);">
+
                                     <!-- 書卷選項將在這裡生成 -->
+
                                 </div>
+
                             </div>
+
+
 
                             <div id="rangeWarning" class="text-red-500 text-center text-sm hidden mt-4">
+
                                 ⚠️ 選擇的書卷過少，無法開始遊戲！
+
                             </div>
+
                             </div>
+
                         </div>
+
                     </div>
+
                 </div>
+
+
 
                 <!-- 中：Step 2 模式設定與開始 -->
+
                 <div id="rangeCard" class="cute-card bg-white p-4 start-intro-card">
+
                     <h2 class="text-2xl font-bold text-gray-800 mb-3 text-center">Step 2｜確認並開始</h2>
 
+
+
                     <div class="text-center mb-4">
+
                         <button id="startGameBtn" class="cute-button bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 px-8 text-2xl font-bold hover:from-purple-600 hover:to-pink-600 shadow-xl w-full" style="letter-spacing: 0.3em;">
+
                             開始遊戲
+
                         </button>
+
                         <div id="gameStartHint" class="text-sm text-gray-500 mt-2 opacity-0 transition-opacity duration-300"></div>
+
                     </div>
+
+
 
                     <div class="pt-3 border-t border-gray-200">
+
                         <div class="menu-action-list grid grid-cols-1 gap-2">
+
                             <button id="openScoreGuideFromMenu" data-open-modal="scoreGuideModal" class="menu-action-btn menu-action-score cute-button w-full bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 text-white px-4 py-2 font-bold text-sm shadow"><span class="menu-action-inner"><span class="menu-action-icon" aria-hidden="true">📊</span><span class="menu-action-label">計分說明</span></span></button>
+
                             <button id="openAchievementsFromMenu" data-open-modal="achievementsModal" class="menu-action-btn menu-action-achv cute-button w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-4 py-2 font-bold text-sm shadow"><span class="menu-action-inner"><span class="menu-action-icon" aria-hidden="true">🏅</span><span class="menu-action-label">勳章一覽</span></span></button>
+
                             <button id="openSettingsFromMenu" class="menu-action-btn menu-action-settings cute-button w-full bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white px-4 py-2 font-bold text-sm shadow"><span class="menu-action-inner"><span class="menu-action-icon" aria-hidden="true">⚙️</span><span class="menu-action-label">設定</span></span></button>
+
                         </div>
+
                     </div>
+
+                </div>
+
+
+
+                
+
+            </div>
+
+            
+
+            <!-- 排行榜區 -->
+
+            <div id="leaderboardSection" class="cute-card bg-white p-6 mt-6 start-intro-card">
+
+                <!-- 標題與模式標籤同行 -->
+
+                <div class="flex justify-between items-center mb-4">
+
+                    <h2 class="text-2xl font-bold text-gray-800">🏆 排行榜</h2>
+
+                    <div class="flex items-center space-x-3">
+
+                        <button id="viewAllLeaderboard" data-open-modal="fullLeaderboardModal" class="leaderboard-tab px-4 py-2 rounded-full text-sm font-bold" data-mode="all">全部檢視</button>
+
+                        <div class="bg-gray-100 rounded-full p-1 flex">
+
+                            <button class="leaderboard-tab px-4 py-2 rounded-full text-sm font-bold" data-mode="classic">闖關</button>
+
+                            <button class="leaderboard-tab px-4 py-2 rounded-full text-sm font-bold" data-mode="survival">生存</button>
+
+                        </div>
+
+                    </div>
+
                 </div>
 
                 
-            </div>
-            
-            <!-- 排行榜區 -->
-            <div id="leaderboardSection" class="cute-card bg-white p-6 mt-6 start-intro-card">
-                <!-- 標題與難度選擇標籤同行 -->
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold text-gray-800">🏆 排行榜</h2>
-                    <div class="flex items-center space-x-3">
-                        <button id="viewAllLeaderboard" data-open-modal="fullLeaderboardModal" class="leaderboard-tab px-4 py-2 rounded-full text-sm font-bold" data-mode="all">全部檢視</button>
-                        <div class="bg-gray-100 rounded-full p-1 flex">
-                            <button class="leaderboard-tab px-4 py-2 rounded-full text-sm font-bold" data-mode="classic">闖關</button>
-                            <button class="leaderboard-tab px-4 py-2 rounded-full text-sm font-bold" data-mode="survival">生存</button>
-                        </div>
-                    </div>
-                </div>
-                
+
                 <div id="leaderboardList" class="relative" aria-live="polite">
+
                     <div class="lb-slide lb-slide-static grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4" data-lb-pane="current">
+
                         <!-- 排行榜項目將在這裡生成 -->
+
                     </div>
+
                 </div>
+
                 <div id="leaderboardOnlineNote" class="text-xs text-gray-500 mt-2"></div>
 
+
+
                 <!-- (Modals moved outside to avoid transform containment issues) -->
+
             </div>
+
             
 
+
+
         </div>
+
     </div>
+
     <!-- 主選單固定品牌角標（不影響排版；只在 startScreen 顯示時可見） -->
+
     <a href="#mainContent" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:bg-white focus:text-blue-600 focus:p-2 focus:rounded focus:shadow-lg z-[100000]">跳至主要內容</a>
+
     <img id="menuBrandCorner" src="logo/logo0-light.png" alt="brand" aria-hidden="true"
+
          style="position: fixed; right: 10px; bottom: 10px; width: 96px; height: auto; opacity: .9; pointer-events: none; z-index: 50;" />
 
+
+
     <!-- 計分說明視窗 -->
+
     <div id="scoreGuideModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="scoreGuideTitle" tabindex="-1">
+
         <div class="cute-card bg-white p-6 max-w-2xl mx-4 w-full text-left rounded-2xl border-2 border-sky-200 shadow-2xl modal-shell">
+
             <div class="flex items-center justify-between mb-3">
+
                 <h3 id="scoreGuideTitle" class="text-xl font-bold text-gray-800">📊 計分說明</h3>
+
                 <button data-close-modal="scoreGuideModal" class="cute-button bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 font-bold rounded" aria-label="關閉計分說明視窗 (Esc)">✖</button>
+
             </div>
+
             <div class="space-y-1 text-sm text-gray-700 scoring-remarks">
+
                 <div class="flex justify-between items-center">
+
                     <span class="font-medium text-gray-800">• 基礎分數：</span>
+
                     <span id="baseScoreRuleValue" class="font-bold text-purple-600">+100分/題</span>
+
                 </div>
+
                 <div class="flex justify-between items-center">
+
                     <span class="font-medium text-gray-800">• 連擊加成：</span>
+
                     <span class="font-bold text-indigo-600">+25%/題</span>
+
                 </div>
+
                 <div id="timeRewardRule" class="flex justify-between items-center">
+
                     <span class="font-medium text-gray-800">• 時間獎勵：</span>
+
                     <span class="font-bold text-blue-600">+50~0分/題</span>
+
                 </div>
+
                 <div class="flex justify-between items-center">
+
                     <span class="font-medium text-gray-800">• 全對關卡：</span>
+
                     <span class="font-bold text-green-600">+100分/關</span>
+
                 </div>
+
                 <div class="flex justify-between items-center">
+
                     <span class="font-medium text-gray-800">• 完美關卡：</span>
+
                     <span class="font-bold text-yellow-600">+300分/關</span>
+
                 </div>
+
                 <div class="flex justify-between items-center">
+
                     <span class="font-medium text-gray-800">• 剩餘提示：</span>
+
                     <span class="font-bold text-orange-600">+100分/次</span>
+
                 </div>
+
                 <div class="flex justify-between items-center">
+
                     <span class="font-medium text-gray-800">• 失誤扣分：</span>
+
                     <span class="font-bold text-red-600">-50分/次</span>
+
                 </div>
+
             </div>
+
             <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+
                 <div class="text-xs text-gray-600 scoring-remarks">
+
                     <div>※ 失誤扣分：每失誤 1 次，該題分數減 50。</div>
+
                     <div>※ 完美關卡：該關無失誤無提示。</div>
+
                     <div id="timeRewardNote">※ 時間獎勵：3 秒內 +50；至 15 秒降為 +0（每題）</div>
+
                     <div id="adaptiveNote" class="space-y-1">
+
                         <div>※ 動態難度：三軸協同調整</div>
+
                         <ul class="list-disc pl-5 space-y-1">
+
                             <li><span class="font-medium">配對模式：</span> 連擊 < 8 → 簡單；≥8 → 普通；≥16 → 困難；改變配對型態與色彩。</li>
+
                             <li><span class="font-medium">題型變化：</span> 單局時間 0–139 / 140–279 / 280s+ 三階段調整書卷分布與混淆度（不受連擊回落）。</li>
+
                             <li><span class="font-medium">經文罕見度：</span> 逐關依上一關完成時間漸進：常見 → 一般 → 冷門（或反向逐步下降）。</li>
+
                         </ul>
+
                     </div>
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
+
+
 
     <!-- 自訂書卷選擇視窗 -->
+
     <div id="customBooksModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-labelledby="customBooksTitle" aria-describedby="customBooksDesc" tabindex="-1">
+
         <div class="cute-card bg-white/95 backdrop-blur-sm p-6 max-w-3xl w-full mx-4 max-h-[84vh] overflow-hidden shadow-[0_12px_42px_-10px_rgba(0,0,0,0.35)] border border-green-100/60 rounded-2xl relative">
+
             <div class="absolute inset-0 pointer-events-none opacity-[0.08] select-none">
+
                 <div class="absolute -top-24 -left-20 w-72 h-72 bg-gradient-to-br from-emerald-200 via-green-200 to-teal-200 rounded-full blur-3xl"></div>
+
                 <div class="absolute -bottom-28 -right-16 w-[22rem] h-[22rem] bg-gradient-to-tr from-teal-200 via-lime-200 to-emerald-100 rounded-full blur-3xl"></div>
+
             </div>
+
             <div class="flex justify-between items-start mb-5 relative z-10">
+
                 <div>
+
                     <h3 id="customBooksTitle" class="text-xl md:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 text-transparent bg-clip-text flex items-center gap-2">🎯 選擇書卷</h3>
+
                     <p class="text-xs mt-1 text-emerald-700/70 hidden md:block">建立你的客製題庫，可快速選擇舊約/新約或使用搜尋。</p>
+
                 </div>
+
                 <button id="closeCustomModal" data-close-modal="customBooksModal" class="group relative text-gray-400 hover:text-emerald-600 transition-colors" aria-label="關閉自訂書卷視窗 (Esc)">
+
                     <span class="block text-2xl leading-none">&times;</span>
+
                     <span class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-medium text-gray-400 group-hover:text-emerald-600">Esc</span>
+
                 </button>
+
             </div>
+
             <p id="customBooksDesc" class="sr-only">勾選欲納入題庫的書卷，可使用搜尋、快速選擇或全部清除，確認後套用自訂題庫設定。</p>
 
+
+
             <div class="relative mb-4 z-10">
+
                 <input type="text" id="bookSearch" data-autofocus placeholder="🔍 搜尋書卷（支援部份關鍵字）..." class="peer w-full px-3 py-2.5 text-sm rounded-xl border border-emerald-200/70 bg-white/70 focus:bg-white focus:ring-4 focus:ring-emerald-300/40 focus:outline-none focus:border-emerald-400 transition shadow-inner placeholder:text-gray-400" />
+
                 <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-emerald-500/60 peer-focus:text-emerald-600 transition">
+
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+
                 </div>
+
             </div>
+
+
 
             <div class="flex flex-wrap gap-2 items-center justify-between mb-4 relative z-10">
+
                 <div class="flex flex-wrap gap-2 order-2 md:order-1">
+
                     <button id="selectAllBooks" class="cbk-action">全選</button>
+
                     <button id="selectOldTestament" class="cbk-action variant-blue">舊約</button>
+
                     <button id="selectNewTestament" class="cbk-action variant-purple">新約</button>
+
                     <button id="clearAllBooks" class="cbk-action variant-danger">清除</button>
+
                 </div>
+
                 <span id="selectedCount" class="order-1 md:order-2 text-xs md:text-sm font-semibold tracking-wide text-emerald-700 bg-emerald-50/80 border border-emerald-200 px-2.5 py-1 rounded-full shadow-sm">已選: 0本</span>
+
             </div>
+
+
 
             <div class="rounded-xl border border-emerald-100/60 bg-white/65 backdrop-blur-sm p-3 mb-5 shadow-inner relative z-10 overflow-hidden">
+
                 <div id="customBooks" class="book-grid grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-64 overflow-y-auto pr-1" style="grid-auto-rows: minmax(54px, auto);">
+
                     <!-- 書卷選項生成區 -->
+
                 </div>
+
             </div>
 
+
+
             <div class="flex justify-end gap-3 pt-2 border-t border-emerald-100/60 relative z-10">
+
                 <button id="cancelCustomSelection" data-close-modal="customBooksModal" class="cbk-secondary">取消</button>
+
                 <button id="confirmCustomSelection" class="cbk-primary" data-autofocus>確認選擇</button>
+
             </div>
+
         </div>
+
     </div>
+
+
+
+
 
 
 
         <!-- ===== Relocated Global Modals (moved out of #leaderboardSection to restore centering) ===== -->
+
         <!-- 全部排行榜 Modal (單一模式切換版) -->
+
     <div id="fullLeaderboardModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center lg:py-0 py-6" style="z-index:180;" role="dialog" aria-modal="true" aria-labelledby="fullLeaderboardHeading" aria-describedby="fullLeaderboardDesc" tabindex="-1">
+
             <div class="relative cute-card bg-white/95 rounded-2xl max-w-6xl w-full mx-4 p-6 flex flex-col shadow-[0_12px_46px_-12px_rgba(0,0,0,0.38)] border border-indigo-100/70 overflow-hidden full-lb-shell" style="max-height:90vh;">
+
                 <div class="absolute inset-0 pointer-events-none select-none opacity-[0.15]">
+
                     <div class="absolute -top-28 -left-24 w-96 h-96 bg-gradient-to-br from-indigo-300 via-purple-300 to-pink-300 rounded-full blur-3xl"></div>
+
                     <div class="absolute -bottom-32 -right-24 w-[30rem] h-[30rem] bg-gradient-to-tr from-pink-300 via-rose-200 to-amber-200 rounded-full blur-3xl"></div>
+
                 </div>
+
                 <div class="fl-toolbar relative z-10 mb-3">
+
                     <div class="flex items-center gap-3 flex-wrap">
+
                         <button class="back-main-btn" id="fullLbBackBtn" data-close-modal="fullLeaderboardModal" type="button" aria-label="返回主排行榜 (Esc)">← 返回</button>
+
                 <p id="fullLeaderboardDesc" class="sr-only">此視窗顯示完整排行榜，含闖關與生存模式，可切換分頁檢視前二十名。</p>
+
                         <h3 id="fullLeaderboardHeading" class="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
+
                             <span class="mode-label">排行榜</span>
+
                             <span class="text-[0.65rem] font-semibold tracking-wide px-2 py-1 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200">TOP 20</span>
+
                         </h3>
+
                     </div>
+
                     <div class="mode-switch" role="tablist" aria-label="排行榜模式切換">
+
                         <button type="button" id="switchClassicFull" class="focus:outline-none" data-mode="classic" role="tab" aria-selected="true" aria-pressed="true">闖關模式</button>
+
                         <button type="button" id="switchSurvivalFull" class="focus:outline-none" data-mode="survival" role="tab" aria-selected="false" aria-pressed="false">生存模式</button>
+
                     </div>
+
                 </div>
+
                 <div class="relative z-10 mt-1 flex flex-col flex-1 full-lb-scroll" style="min-height:0;">
+
                     <div class="flex flex-col flex-1 overflow-y-auto full-lb-inner" style="min-height:0; -webkit-overflow-scrolling:touch; touch-action:pan-y;">
+
                         <div class="flex items-center justify-between mb-3 flex-shrink-0">
+
                             <h4 id="activeModeHeading" class="text-base font-semibold text-indigo-600 tracking-wide flex items-center gap-2">闖關挑戰 <span id="activeCountLabel" class="text-xs text-gray-400"></span></h4>
+
                             <div class="text-[0.6rem] font-medium text-gray-400 tracking-wide" id="lastRefreshedFull"></div>
+
                         </div>
+
                         <div id="singleFullBoard" class="single-board-wrapper flex-1 pb-1" style="min-height:0;"></div>
+
                     </div>
+
                 </div>
+
             </div>
+
         </div>
 
+
+
         <!-- 勳章一覽 Modal -->
+
         <div id="achievementsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center lg:py-0 py-6" style="z-index:180;" role="dialog" aria-modal="true" aria-labelledby="achievementsModalHeading" aria-describedby="achievementsModalDesc" tabindex="-1">
+
             <div class="relative cute-card bg-white/95 rounded-2xl max-w-5xl w-full mx-4 p-6 pt-5 flex flex-col shadow-[0_12px_46px_-12px_rgba(0,0,0,0.38)] border border-indigo-100/70 modal-shell" style="max-height:90vh;">
+
                 <div class="absolute inset-0 pointer-events-none select-none opacity-[0.12]">
+
                     <div class="absolute -top-24 -left-20 w-80 h-80 bg-gradient-to-br from-purple-300 via-pink-300 to-amber-200 rounded-full blur-3xl"></div>
+
                     <div class="absolute -bottom-24 -right-16 w-[22rem] h-[22rem] bg-gradient-to-tr from-amber-200 via-rose-200 to-purple-200 rounded-full blur-3xl"></div>
+
                 </div>
+
                 <div class="flex items-center justify-between mb-4 sticky top-0 z-30 bg-white/90 backdrop-blur-sm pt-2 pb-2">
+
                     <div class="flex items-center gap-3 flex-wrap w-full">
+
                         <button class="back-main-btn" data-close-modal="achievementsModal" type="button" aria-label="返回 (Esc)">← 返回</button>
+
                         <h3 id="achievementsModalHeading" class="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
+
                             <span>勳章一覽</span>
+
                         </h3>
+
                         <!-- 將分類按鈕移到標題旁邊 -->
+
                         <div id="achvCatalogTabs" class="mode-switch inline-flex items-center ml-1" role="tablist" aria-label="勳章分類切換">
+
                             <button type="button" data-achv-cat="all" class="focus:outline-none" role="tab" aria-pressed="true" aria-selected="true">全部 <span class="achv-cat-count" data-role="count"></span></button>
+
                             <button type="button" data-achv-cat="any" class="focus:outline-none" role="tab" aria-pressed="false" aria-selected="false">共通 <span class="achv-cat-count" data-role="count"></span></button>
+
                             <button type="button" data-achv-cat="classic" class="focus:outline-none" role="tab" aria-pressed="false" aria-selected="false">闖關 <span class="achv-cat-count" data-role="count"></span></button>
+
                             <button type="button" data-achv-cat="survival" class="focus:outline-none" role="tab" aria-pressed="false" aria-selected="false">生存 <span class="achv-cat-count" data-role="count"></span></button>
+
                         </div>
+
                         
+
                     </div>
+
                 </div>
+
                 <p id="achievementsModalDesc" class="sr-only">此視窗列出所有成就的名稱與解鎖條件，僅供參考。</p>
+
                 <div class="relative z-10 mt-1 flex-1 flex flex-col min-h-0">
+
                     <!-- 原本的 sticky 分類按鈕已移到標題旁，這裡移除 -->
+
                     <div id="achievementsCatalog" class="space-y-4 px-1 pb-4 overflow-y-auto overflow-x-hidden flex-1" style="min-height:0; -webkit-overflow-scrolling:touch;"></div>
+
                     <div class="sticky bottom-0 z-10 pt-2 bg-gradient-to-t from-white/95 via-white/80 to-transparent backdrop-blur-sm"></div>
+
                 </div>
+
             </div>
+
         </div>
+
     
+
         <!-- 清空排行榜確認 Modal -->
+
     <div id="clearLeaderboardModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[12020]" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="clearLeaderboardTitle" aria-describedby="clearLeaderboardDesc" tabindex="-1">
+
         <div class="cute-card bg-white p-6 rounded-lg max-w-sm mx-4 shadow-xl relative modal-shell">
+
                 <h3 id="clearLeaderboardTitle" class="text-lg font-bold text-gray-800 mb-3">清空排行榜</h3>
+
                 <p class="text-sm text-gray-600 mb-3">此操作將刪除線上及本機所有排行榜紀錄，且無法復原。</p>
+
                 <p class="text-xs text-rose-600 mb-3">安全確認：請輸入 <kbd class="px-1 py-0.5 bg-rose-100 rounded border border-rose-200 text-rose-700">CLEAR</kbd> 以啟用按鈕。</p>
+
                 <input id="clearConfirmInput" type="text" autocomplete="off" class="w-full mb-4 p-2 border border-gray-300 rounded text-sm" placeholder="輸入 CLEAR 以啟用" aria-describedby="clearLeaderboardTitle" />
+
                 <div class="flex justify-end space-x-3">
+
                     <button id="cancelClearLeaderboard" data-close-modal="clearLeaderboardModal" class="cute-button bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded">取消</button>
+
                     <button id="confirmClearLeaderboard" class="cute-button bg-red-400 text-white px-4 py-2 rounded opacity-60 cursor-not-allowed" disabled aria-disabled="true">確定清空</button>
+
                 </div>
+
                 <div class="absolute top-2 right-3">
+
                     <button id="closeClearLeaderboardX" data-close-modal="clearLeaderboardModal" class="text-gray-400 hover:text-gray-600 text-xl leading-none" aria-label="關閉清空排行榜視窗 (Esc)">&times;</button>
+
                 </div>
+
                 <p id="clearLeaderboardDesc" class="sr-only">輸入 CLEAR 後啟用確定清空按鈕，動作不可復原，會刪除所有排行榜記錄。</p>
+
             </div>
+
         </div>
+
         <!-- 開發者指令 Modal -->
+
     <div id="devCommandModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[12010]" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="devCommandTitle" aria-describedby="devCommandDesc" tabindex="-1">
+
         <div class="cute-card bg-white p-6 rounded-lg max-w-sm mx-4 shadow-xl relative modal-shell">
+
                 <h3 id="devCommandTitle" class="text-lg font-bold text-gray-800 mb-4">開發者指令</h3>
+
                 <input id="devCommandInput" data-autofocus type="text" class="w-full mb-4 p-2 border border-gray-300 rounded text-sm" />
+
                 <div class="flex justify-end space-x-3">
+
                     <button id="cancelDevCommand" data-close-modal="devCommandModal" class="cute-button bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded">關閉</button>
+
                     <button id="confirmDevCommand" class="cute-button bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded" disabled aria-disabled="true">執行</button>
+
                 </div>
+
                 <div class="absolute top-2 right-3">
+
                     <button id="closeDevCommandX" data-close-modal="devCommandModal" class="text-gray-400 hover:text-gray-600 text-xl leading-none" aria-label="關閉開發者指令視窗 (Esc)">&times;</button>
+
                 </div>
+
                 <p id="devCommandDesc" class="sr-only">輸入內部開發指令後按執行，常見指令：seed leaderboard, reset settings, dump state。</p>
+
             </div>
+
         </div>
+
+
+
 
 
     <!-- 遊戲畫面 -->
+
     <div id="gameScreen" class="min-h-screen p-4 hidden bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+
         <!-- 重播指示移入遊戲資訊卡，移除舊的獨立角標 -->
+
         <!-- 遊戲背景裝飾 -->
+
     <div id="difficultyTintOverlay" class=""></div>
+
     <div class="fixed inset-0 pointer-events-none z-0 hidden md:block">
+
             <div class="absolute top-10 left-10 text-6xl opacity-10">📖</div>
+
             <div class="absolute top-20 right-20 text-5xl opacity-10">✨</div>
+
             <div class="absolute bottom-20 left-20 text-4xl opacity-10">🙏</div>
+
             <div class="absolute bottom-10 right-10 text-6xl opacity-10">⭐</div>
+
             <div class="absolute top-1/2 left-5 text-3xl opacity-10">🕊️</div>
+
             <div class="absolute top-1/3 right-5 text-4xl opacity-10">💫</div>
+
         </div>
+
         
+
     <!-- 遊戲主要資訊區 -->
+
         <div class="max-w-7xl mx-auto mb-6 relative z-10">
+
             <div id="gameHeaderLayout" class="flex flex-col items-stretch gap-4 md:flex-row md:items-start md:justify-between md:gap-6">
+
                 <!-- 左側：進度條區域 -->
+
                 <div id="levelProgressWrapper" class="flex-1 space-y-4">
+
                     <!-- 關卡進度條 -->
+
                     <div id="levelProgressCard" class="cute-card bg-gradient-to-r from-purple-50 to-indigo-50 p-3 border-2 border-purple-200 shadow-xl">
+
                         <div class="mb-4 flex items-center space-x-2">
+
                             <span class="text-2xl">🎯</span>
+
                             <span class="text-lg font-bold text-purple-700">關卡進度</span>
+
                         </div>
+
                         <div id="levelOvals" class="grid grid-cols-5 gap-2">
+
                             <!-- 橢圓條將在這裡生成 -->
+
                         </div>
+
                     </div>
+
+
 
                     <!-- 生存模式：計時器卡片（在生存模式時取代關卡進度卡） -->
+
                     <div id="survivalTimerCard" class="cute-card bg-gradient-to-r from-rose-50 to-red-50 p-3 border-2 border-rose-200 shadow-xl hidden">
+
                         <div class="mb-3 flex items-center space-x-2">
+
                             <span class="text-2xl">⏳</span>
+
                             <span class="text-lg font-bold text-rose-700">生存計時</span>
+
                         </div>
+
                         <div class="flex items-center justify-between mb-2">
+
                             <div id="survivalTimerDisplay" class="text-2xl font-black text-rose-800">1:30</div>
+
                             <div class="text-sm font-bold text-rose-700">已過關：<span id="levelsPassedCount">0</span></div>
+
                         </div>
+
                         <div class="h-3 bg-white/70 border-2 border-rose-200 rounded-full overflow-hidden">
+
                             <div id="survivalTimerFill" class="h-full bg-gradient-to-r from-rose-400 to-red-500" style="width: 100%"></div>
+
                         </div>
+
                     </div>
+
                     
+
                 </div>
+
+
 
                 <!-- 中間：分數顯示 -->
+
                 <div id="scoreCardWrapper" class="cute-card bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 p-8 text-center min-w-[320px] border-2 border-slate-600 shadow-2xl relative overflow-hidden mx-auto">
+
                     <!-- 分數背景裝飾 -->
+
                     <div class="absolute inset-0 bg-gradient-to-br from-slate-700/40 to-slate-800/40 rounded-3xl"></div>
+
                     <div class="relative z-10">
+
                         <div class="flex items-center justify-center space-x-6 mb-4">
+
                             <!-- Reorder on mobile: show mini level progress above the score -->
+
                             <div class="flex flex-col items-center w-full">
+
                                 <div id="levelProgressMini" class="hidden order-1 w-full"></div>
+
                                 <!-- Mobile-only: Survival mini timer (shown when in Survival mode) -->
+
                                 <div id="survivalTimerMini" class="hidden order-1 w-full"></div>
+
                                 <div class="flex items-center space-x-2 order-2">
+
                                     <span id="centerScore" class="text-7xl font-black bg-gradient-to-r from-white via-yellow-300 to-white bg-clip-text text-transparent drop-shadow-lg" style="text-shadow: 0 0 30px rgba(255, 255, 255, 0.8), 0 0 60px rgba(255, 255, 255, 0.6);">0</span>
+
                                     <span class="text-2xl font-bold bg-gradient-to-r from-white via-yellow-300 to-white bg-clip-text text-transparent" style="text-shadow: 0 0 30px rgba(255, 255, 255, 0.8);">分</span>
+
                                 </div>
+
                             </div>
+
                         </div>
+
                         <!-- ARIA live region for score updates (visually hidden) -->
+
                         <div id="scoreAriaLive" aria-live="polite" class="sr-only" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(1px, 1px, 1px, 1px);">分數 0 分</div>
 
+
+
                         
+
                         <!-- Mobile mini progress moved above via wrapper; keep the dots here for population -->
+
                         <template id="levelProgressMiniTemplate">
+
                             <div class="mini-dot bg-gray-200 border-gray-300"></div>
+
                             <div class="mini-dot bg-gray-200 border-gray-300"></div>
+
                             <div class="mini-dot bg-gray-200 border-gray-300"></div>
+
                             <div class="mini-dot bg-gray-200 border-gray-300"></div>
+
                             <div class="mini-dot bg-gray-200 border-gray-300"></div>
+
                         </template>
 
+
+
                         <!-- 連擊（Combo）槽與標籤 -->
+
                         <div id="comboContainer" class="space-y-1">
+
                             <div id="comboLabel" class="text-center text-amber-300 text-xs">Combo x 0 · 1.00×</div>
+
                             <div id="comboBar" class="bg-slate-200/80 border-2 border-amber-200 rounded-full shadow-inner">
+
                                 <div id="comboSegments"></div>
+
                                 <div class="combo-flash" aria-hidden="true"></div>
+
                             </div>
+
                         </div>
+
+
 
                         <!-- 時間獎勵溫度計 -->
+
                         <div id="timeRewardProgressContainer" class="space-y-2 mb-3"></div>
+
                         <!-- 控制按鈕區已移出以便在隱藏遊戲資訊卡時仍可顯示 (see #gameControlsPinned inserted below) -->
+
                     </div>
+
                 </div>
+
                 
+
                 <!-- 右側：遊戲資訊/題目進度卡片（裝備課程時顯示題目進度） -->
+
                 <div id="questionProgressWrapper" class="flex-1 hidden md:flex md:justify-end">
+
                     <div id="questionProgressCard" class="w-[360px] cute-card bg-gradient-to-r from-blue-50 to-cyan-50 p-3 border-2 border-blue-200 shadow-xl">
+
                         <div class="flex items-start gap-3">
+
                             <div class="flex-1 min-w-0">
+
                                 <div class="flex items-center gap-2 mb-1">
+
                                     <span class="text-2xl info-icon">ℹ️</span>
+
                                     <span id="gameInfoTitle" class="text-lg font-bold text-blue-700">題目進度</span>
+
                                 </div>
+
                                 <div id="adaptiveStatusText" class="text-sm text-blue-800 font-semibold"></div>
+
                             </div>
+
                         </div>
+
                         <div id="questionOvals" class="hidden"></div>
+
                         <!-- Controls moved to bottom for desktop -->
+
                         <div id="adaptiveControls" class="hidden md:flex items-center justify-end gap-2 pt-3 mt-3 border-t border-blue-200">
+
                             <button id="adaptiveHintBtn" class="cute-button bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-600 hover:via-yellow-600 hover:to-amber-700 text-white font-bold text-sm px-3 py-2 shadow border-2 border-yellow-300 hover:border-yellow-400">提示</button>
+
                             <div id="adaptiveHintCount" class="text-sm font-bold text-blue-600 bg-blue-100 px-3 py-2 rounded-full border-2 border-blue-200 shadow">⭐×0</div>
+
                             <button id="adaptiveBackBtn" class="cute-button bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white px-3 py-2 font-bold text-sm shadow">設定</button>
+
                         </div>
+
                     </div>
+
                 </div>
+
             </div>
+
         </div>
+
+
 
         <!-- Pinned controls (hint + back) moved here so they remain visible when the game-info card is hidden on mobile -->
+
                         <div id="gameControlsPinned" class="fixed inset-x-0 bottom-0 z-40 p-3 bg-white/70 backdrop-blur-md border-t border-gray-200 sm:relative sm:bg-white/60 sm:rounded-xl sm:border sm:border-indigo-200 sm:p-3 md:hidden">
+
             <div class="flex items-center justify-between max-w-[520px] mx-auto">
+
                 <!-- 提示功能 -->
+
                 <div class="flex items-center space-x-2">
+
                     <button id="hintBtn" class="cute-button bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-600 hover:via-yellow-600 hover:to-amber-700 text-white font-bold text-sm px-4 py-3 shadow-xl border-2 border-yellow-300 hover:border-yellow-400 transition-all duration-300 transform hover:scale-105">
+
                         <span class="flex items-center justify-center">提示</span>
+
                     </button>
+
                     <div id="hintCount" class="text-sm font-bold text-blue-600 bg-blue-100 px-3 py-2 rounded-full border-2 border-blue-200 shadow-md">
+
                         ⭐×5
+
                     </div>
+
                 </div>
+
+
 
                 <!-- 設定按鈕（取代原返回）-->
+
                 <button id="openSettingsFromGame" class="cute-button bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white px-4 py-3 font-bold text-sm shadow-lg">
+
                     設定
+
                 </button>
+
             </div>
+
         </div>
+
+
 
         <!-- 遊戲內容 -->
+
         <div class="max-w-7xl mx-auto space-y-6 relative z-10">
+
             <!-- Carousel container: two panels (前段經文 / 後段經文) that swipe horizontally on mobile -->
+
             <div id="versesCarousel" class="verses-carousel relative">
+
                 <!-- Panel: 前段經文 -->
+
                 <div class="panel panel-front p-8 relative">
+
                     <div class="absolute bottom-4 left-4 text-5xl opacity-5">✍️</div>
+
                     <div class="mb-8 relative z-10">
+
                         <h3 id="verseTitle" class="panel-title text-3xl font-bold text-gray-700 flex items-center justify-center relative tracking-wider mb-2">經文</h3>
+
                     </div>
+
                     <div id="gameVerses" class="verses-list flex flex-col gap-3 justify-start relative z-10">
+
                         <!-- 經文卡片將在這裡生成 -->
+
                     </div>
+
                 </div>
 
+
+
                 <!-- Panel: 後段經文 (章節/配對選項) -->
+
                 <div class="panel panel-back p-8 relative">
+
                     <div class="absolute bottom-4 right-4 text-5xl opacity-5">🎯</div>
+
                     <div class="mb-8 relative z-10">
+
                         <h3 id="chapterTitle" class="panel-title text-3xl font-bold text-gray-700 flex items-center justify-center relative tracking-wider mb-2">章節</h3>
+
                     </div>
+
                     <div id="gameChapters" class="chapter-list flex flex-col gap-3 justify-start relative z-10">
+
                         <!-- 章節卡片將在這裡生成 -->
+
                     </div>
+
                 </div>
+
             </div>
+
             
+
             <!-- 裝備課程：三階段專用容器（預設隱藏；啟用裝備課程時顯示）。去掉底卡，避免多餘留白。 -->
+
             <div id="equipFlow" class="p-2 md:p-3 hidden">
+
                 <div class="flex items-center justify-between mb-2">
+
                     <div class="flex items-center gap-2 equip-header-block">
+
                         <span class="text-2xl equip-header-icon">🎓</span>
+
                         <h3 id="equipTitle" class="text-xl font-bold text-purple-700 equip-header-text">裝備課程</h3>
+
                     </div>
+
                     <div id="equipStageBadge" class="text-xs font-bold text-purple-800 bg-purple-100 px-3 py-1 rounded-full border-2 border-purple-200 equip-header-stage">準備中</div>
+
                 </div>
+
                 <div id="equipStepProgress" class="equip-stepper mb-2" role="group" aria-label="裝備課程三階段進度">
+
                     <span class="equip-step-dot" data-step="1" title="階段 1：抽卷"></span>
+
                     <span class="equip-step-line" aria-hidden="true"></span>
+
                     <span class="equip-step-dot" data-step="2" title="階段 2：選章"></span>
+
                     <span class="equip-step-line" aria-hidden="true"></span>
+
                     <span class="equip-step-dot" data-step="3" title="階段 3：排序"></span>
+
                 </div>
+
                 <div id="equipSubtitle" class="text-sm text-purple-700 font-semibold mb-3 equip-header-sub"></div>
+
                 <div id="equipContent" class="space-y-3">
+
                     <!-- 三階段內容將由腳本動態渲染：
+
                          1) 書卷抽選（2s 動畫）
+
                          2) 選擇章節（5 選 1）
+
                          3) 排序經文（單一五按鈕區）
+
                     -->
+
                 </div>
+
             </div>
+
         </div>
+
+
+
+
+
+
 
 
 
 
 
         <!-- 確認返回視窗 -->
+
     <div id="confirmBackModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="confirmBackTitle" aria-describedby="confirmBackDesc" tabindex="-1">
+
         <div class="cute-card bg-white p-8 max-w-md mx-4 text-center modal-shell">
+
                 <div class="text-4xl mb-4">⚠️</div>
+
                 <h3 id="confirmBackTitle" class="text-xl font-bold text-gray-800 mb-4">確認返回</h3>
+
                 <p class="text-gray-600 mb-6">確定要中斷遊戲並返回首頁嗎？<br><span class="text-sm text-red-500">（中斷遊戲將不會計入排行榜）</span></p>
+
                 <div class="flex space-x-3">
+
                     <button id="confirmBackBtn" class="cute-button flex-1 bg-red-500 hover:bg-red-600 text-white px-6 py-3 font-bold">
+
                         確認返回
+
                     </button>
+
                     <button id="cancelBackBtn" data-close-modal="confirmBackModal" class="cute-button flex-1 bg-gray-400 hover:bg-gray-500 text-white px-6 py-3 font-bold">
+
                         繼續遊戲
+
                     </button>
+
                 </div>
+
                 <p id="confirmBackDesc" class="sr-only">此操作將中斷目前遊戲進度並返回主選單，結果不會列入排行。</p>
+
             </div>
+
         </div>
+
+
 
         <!-- 設定視窗 -->
+
     <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="settingsTitle" aria-describedby="settingsDesc" tabindex="-1">
+
         <div class="cute-card bg-white p-6 max-w-md mx-4 w-full text-left rounded-2xl border-2 border-gray-200 shadow-2xl modal-shell">
+
                 <div class="flex items-center justify-between mb-3">
+
                     <h3 id="settingsTitle" class="text-xl font-bold text-gray-800">⚙️ 設定</h3>
+
                     <button id="closeSettingsBtn" class="cute-button bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 font-bold rounded" aria-label="關閉設定視窗 (Esc)">✖</button>
+
                 </div>
+
                 <p id="settingsDesc" class="sr-only">調整音量、時間條顯示及是否強制減少動畫，儲存後套用。</p>
+
                 <div class="space-y-4">
+
                     <div>
+
                         <label for="volumeSlider" class="block text-sm font-semibold text-gray-700 mb-1">音量</label>
+
                         <input id="volumeSlider" type="range" min="0" max="1" step="0.01" class="w-full" />
+
                         <div id="volumeValue" class="text-xs text-gray-500 mt-1">0%</div>
+
                     </div>
+
                     <div>
+
                         <label class="inline-flex items-center gap-2">
+
                             <input id="toggleTimeBar" type="checkbox" class="h-4 w-4">
+
                             <span class="text-sm font-semibold text-gray-700">隱藏時間獎勵倒數條</span>
+
                         </label>
+
                         <div class="text-xs text-gray-500 mt-1">勾選後不顯示時間獎勵倒數條（僅介面隱藏）。</div>
+
                     </div>
+
                     <div>
+
                         <label class="inline-flex items-center gap-2">
+
                             <input id="forceReducedMotionToggle" type="checkbox" class="h-4 w-4">
+
                             <span class="text-sm font-semibold text-gray-700">減少動畫效果 <span class="text-xs font-normal text-gray-500">(覆寫系統偏好)</span></span>
+
                         </label>
+
                         <div class="text-xs text-gray-500 mt-1">啟用後將淡化或移除非必要的過場 / 漸層動畫。</div>
+
                     </div>
+
                 </div>
+
                 <div class="mt-5 flex items-center justify-end gap-2 flex-wrap" id="settingsActionButtons">
+
                     <button id="openDevCommands" data-open-modal="devCommandModal" data-visibility="menu-only" class="cute-button bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-4 py-2 font-bold text-sm shadow" type="button">開發者指令</button>
+
                     <button id="settingsBackToMenu" class="cute-button bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white px-4 py-2 font-bold text-sm shadow">返回主選單</button>
+
                     <button id="saveSettingsBtn" class="cute-button bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-4 py-2 font-bold text-sm shadow">儲存</button>
+
                 </div>
+
             </div>
+
         </div>
+
+
 
         <!-- 結算視窗 -->
+
     <div id="playerNameModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[200]" style="z-index:200;" role="dialog" aria-modal="true" aria-labelledby="playerNameModalTitle" aria-describedby="playerNameModalDesc" tabindex="-1">
+
         <div class="cute-card bg-gradient-to-br from-white via-blue-50 to-purple-50 p-6 md:p-8 max-w-2xl mx-4 text-center rounded-3xl border-2 border-purple-200 shadow-2xl max-h-[90vh] modal-shell">
+
                 <div class="modal-body" style="overflow-y:auto; max-height: calc(90vh - 84px); padding-right: 0.25rem;"> 
+
                 <!-- 完成遊戲標題 -->
+
                 <!-- 移除原「分數結算」標題與下方底線 -->
+
                 
+
                 <!-- 分數資訊 -->
+
                 <div class="bg-white/70 rounded-2xl p-6 mb-6 border-2 border-purple-200 shadow-lg" id="finalScorePanel">
+
                     <div class="platinum-card rounded-2xl p-5 md:p-6 mb-4">
+
                         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+
                             <div class="text-center sm:text-left">
+
                                 <div id="finalScore" class="final-score-xl font-black platinum-gold-text final-score-shadow text-on-dark-glow">0</div>
+
                                 <div class="text-xs font-bold on-dark-subtle mt-1">總分數</div>
+
                             </div>
+
                             <div class="hidden sm:block platinum-divider" aria-hidden="true"></div>
+
                             <div class="text-center sm:text-right">
+
                                 <div id="finalAccuracy" class="text-xl font-extrabold on-dark-strong text-on-dark-glow">0%</div>
+
                                 <div id="finalAccuracyRatio" class="text-sm on-dark-medium text-on-dark-glow"><strong>(0/0)</strong></div>
+
                                 <div class="text-xs font-bold on-dark-subtle mt-1">答對率</div>
+
                             </div>
+
                         </div>
+
                         <div id="finalMetaLine" class="mt-3 text-[11px] on-dark-subtle text-center sm:text-right hidden"></div>
+
                     </div>
+
                     
+
                     <!-- 詳細計分數據 -->
+
                     <div id="scoreBreakdown" class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+
                         <h4 class="text-sm font-bold text-gray-700 mb-3">📊 詳細計分</h4>
+
                         <div id="scoreBreakdownContent" class="grid grid-cols-2 gap-2 text-xs">
+
                             <!-- 計分詳情將在這裡生成 -->
+
                         </div>
+
                     </div>
+
                 </div>
+
                 
+
                 <!-- 成就勳章（上移至經文上方） -->
+
                 <div id="achievementBox" class="mb-6 hidden order-[40]">
+
                     <h3 class="text-lg font-extrabold text-gray-800 mb-3 flex items-center gap-2" id="achievementBoxTitle">
+
                         ⭐ 本局勳章
+
                     </h3>
+
                     <div id="achievementGrid" class="grid grid-cols-4 sm:grid-cols-6 gap-2"></div>
+
                     <div id="achievementHintEmpty" class="text-sm text-gray-500 font-semibold hidden">本局尚未解鎖勳章</div>
+
                 </div>
+
+
 
                 <!-- 結語經文 -->
+
                 <div id="closingVerse" class="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-2xl p-4 mb-6 border-2 border-yellow-300 shadow-lg order-[50]">
+
                     <div id="closingVerseText" class="text-lg font-bold text-gray-800 mb-1 closing-verse-clamp"></div>
+
                     <div id="closingVerseRef" class="text-sm text-gray-600 font-semibold" style="margin-top:4px;"></div>
+
                 </div>
+
+
 
                 <!-- 排行榜訊息（整合名次 + 玩家名稱同列置中） -->
+
                 <div id="leaderboardMessage" class="mb-6 order-[60]">
+
                     <div id="leaderboardHeaderLine" class="flex flex-col md:flex-row items-center justify-center gap-2 text-center">
+
                         <h3 id="leaderboardHeader" class="text-xl font-black"></h3>
+
                         <span id="leaderboardPlayerName" class="text-lg font-bold"></span>
+
                     </div>
+
                     <p id="rankMessage" class="text-sm mt-2 font-semibold"></p>
+
                 </div>
+
                 
+
                 <!-- 名稱輸入 -->
+
                 <div id="nameInputSection" class="mb-6 order-[70]">
+
                     <label class="block text-lg font-bold text-gray-700 mb-3" for="playerNameInput">請輸入您的名稱：</label>
+
                     <input type="text" id="playerNameInput" data-autofocus class="w-full p-4 text-lg border-2 border-purple-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-purple-200 focus:border-purple-500 bg-white/80" maxlength="10" placeholder="留空將顯示為匿名" aria-describedby="playerNameHelp">
+
                     <div id="playerNameHelp" class="text-gray-500 text-sm mt-1">可留空，或輸入2-10個中英文字元</div>
+
                     <div id="nameError" class="text-red-500 text-sm mt-2 hidden font-bold"></div>
+
                 </div>
+
                 <!-- 移除原單獨重玩區塊：改為 footer 兩側排列 -->
 
+
+
                 </div>
+
                 <!-- Sticky footer so confirm button is always reachable on small viewports -->
+
                 <div class="modal-footer pt-2 pb-2" style="position:sticky; bottom:0; background:transparent; z-index:40;">
+
                     <div class="flex items-stretch justify-between gap-3 w-full flex-row">
+
                         <button id="replaySameQuestionsBtn" class="cute-button flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow relative overflow-hidden text-sm leading-tight">
+
                             <span class="text-lg">🎯</span>
+
                             <span class="leading-tight">同題重玩<div class="text-[10px] font-normal opacity-90">不列入排行榜</div></span>
+
                         </button>
+
                         <button id="confirmNameBtn" class="cute-button flex-1 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white px-3 py-2 font-extrabold text-base rounded-xl shadow-2xl leading-tight flex items-center justify-center gap-2" data-close-modal="playerNameModal" data-allow-close>
+
                             <span class="text-lg">✅</span><span class="whitespace-nowrap">確認並返回主選單</span>
+
                         </button>
+
                     </div>
+
                 </div>
+
+
 
                 <input type="hidden" id="currentViewedRecordId" value="" />
+
                 <p id="playerNameModalDesc" class="sr-only">此視窗顯示本局最終成績、詳細計分、可輸入名稱並提交至排行榜。</p>
+
             </div>
+
         </div>
+
+
 
         <!-- 裝備課程題庫明細視窗 -->
+
     <div id="equipTierBankModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[210]" role="dialog" aria-modal="true" aria-labelledby="equipTierBankTitle" aria-describedby="equipTierBankDesc" tabindex="-1" style="z-index:210;">
+
         <div class="cute-card bg-gradient-to-br from-white via-purple-50 to-indigo-50 p-5 md:p-6 max-w-3xl w-[92%] max-h-[90vh] overflow-hidden rounded-3xl border-2 border-purple-200 shadow-2xl modal-shell">
+
                 <button type="button" class="absolute top-3 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold" data-close-modal="equipTierBankModal" aria-label="關閉題庫視窗">&times;</button>
+
                 <div class="mb-4">
+
                     <h2 id="equipTierBankTitle" class="text-2xl font-black bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">題庫明細</h2>
+
                     <div class="w-16 h-1 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full mt-2"></div>
+
                     <p id="equipTierBankDesc" class="sr-only">顯示裝備課程指定班級所含經文清單。</p>
+
                 </div>
+
                 <div id="equipTierBankMeta" class="text-sm font-semibold text-purple-700 mb-3"></div>
+
                 <div id="equipTierBankList" class="overflow-y-auto pr-1 custom-scrollbar" style="max-height: calc(90vh - 170px);">
+
                     <div class="text-center text-gray-400 text-sm py-6" id="equipTierBankLoading">載入中…</div>
+
                 </div>
+
             </div>
+
         </div>
 
+
+
     </div>
+
+
 
     <!-- 成就條件詳情 Modal（堆疊於結算視窗之上） -->
+
     <div id="achievementDetailModal" class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-[12030]" style="z-index:12030;" role="dialog" aria-modal="true" aria-labelledby="achievementDetailTitle" aria-describedby="achievementDetailDesc" tabindex="-1">
+
         <div id="achievementDetailCard" class="cute-card achv-card relative bg-white p-5 md:p-6 max-w-lg mx-4 rounded-3xl shadow-2xl modal-shell" tabindex="0" data-autofocus>
+
             <div class="flex items-start gap-3 mb-3">
+
                 <div id="achievementDetailIcon" class="achv-icon"></div>
+
                 <div class="min-w-0 flex-1">
+
                     <h3 id="achievementDetailTitle" class="text-xl font-extrabold text-gray-900">成就名稱</h3>
+
                     <div id="achievementDetailMeta" class="text-xs font-bold text-gray-600 mt-1"></div>
+
                 </div>
+
             </div>
+
             <div id="achievementDetailDesc" class="text-sm text-gray-700">—</div>
+
         </div>
+
     </div>
 
+
+
     <script src="js/core/error-logger.js" defer></script>
+
     <script src="js/core/utils.js" defer></script>
+
     <script src="js/core/security.js" defer></script>
+
     <script src="js/core/audio.js" defer></script>
+
     <script src="js/utils/idb-helper.js" defer></script>
+
     <script src="js/core/data-loader.js" defer></script>
+
     <script src="js/game/state.js" defer></script>
+
     <script src="js/game/metrics.js" defer></script>
+
     <script src="js/core/startup.js" defer></script>
+
     
+
     <script src="js/modules/achievements.js" defer></script>
+
     <script src="js/modules/leaderboard.js" defer></script>
+
     <script src="js/modules/diagnostics.js" defer></script>
+
     
+
     <script src="js/ui/modal-manager.js" defer></script>
+
     <script src="js/ui/intro-animation.js" defer></script>
+
     <script src="js/ui/cute-hints.js" defer></script>
+
     <script src="js/ui/book-selection.js" defer></script>
+
     <script src="js/ui/settings-ui.js" defer></script>
+
     <script src="js/ui/achievement-ui.js" defer></script>
+
     <script src="js/ui/start-screen.js" defer></script>
+
     <script src="js/ui/settlement-ui.js" defer></script>
+
     <script src="js/ui/leaderboard-ui.js" defer></script>
 
+
+
     <script src="js/game/modes/equip.js" defer></script>
+
     <script src="js/game/modes/survival.js" defer></script>
+
     
+
     <script src="js/game/timer.js" defer></script>
+
     <script src="js/game/score.js" defer></script>
+    <script src="js/ui/game-ui-binder.js" defer></script>
     <script src="js/game/engine.js" defer></script>
 
+
+
         <script src="js/core/sw-register.js" defer></script>
+
     </body>
+
     </html>
+
+
 

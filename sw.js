@@ -4,7 +4,7 @@
 // 2. 對於任何外部 CDN (Tailwind, Fonts, Supabase)，一律採取 "Network Only" (直接連網)，絕不攔截或快取。
 //    這能徹底解決 Tailwind CDN 被錯誤快取導致介面崩壞 (Naked UI) 的問題。
 
-const VERSION = 'wave2-v22-lean-precache';
+const VERSION = 'wave2-v34-clean-phase2-hotfix';
 const CACHE_NAME = `bc-safe-${VERSION}`;
 
 // 僅列出絕對必要的本地檔案

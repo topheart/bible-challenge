@@ -3,10 +3,24 @@
 <html lang="zh-TW">
 
 <head>
-    <!-- Anti-Refresh-Loop: 阻止舊版 SW/快取腳本造成的 PWA 重新整理迴圈 -->
+    <!-- 核心崩潰防護：偵測 Webview 系統級無限重啟 (Crash Loop) 並進入安全模式 -->
     <script>
       (function(){
         try {
+          var crashCount = parseInt(sessionStorage.getItem('bc_sys_crash_count') || '0', 10);
+          sessionStorage.setItem('bc_sys_crash_count', crashCount + 1);
+          
+          if (crashCount >= 3) {
+            // 如果 5 秒內連續重啟超過 3 次，代表瀏覽器引擎因為某個資源而崩潰
+            document.write('<div style="padding:20px;background:#fff;color:#000;height:100vh;"><h1>⚠️ 安全模式啟動</h1><p>已攔截到連續異常刷新，停止載入遊戲素材。</p><button onclick="sessionStorage.setItem(\'bc_sys_crash_count\', 0); location.reload();" style="padding:10px 20px;font-size:20px;margin-top:20px;">嘗試修復並重整</button></div>');
+            window.stop(); // 停止後續所有 CSS/JS 與圖片的加載
+            return;
+          }
+          // 系統若正常存活超過 4 秒，就重置崩潰計數
+          setTimeout(function() {
+            sessionStorage.setItem('bc_sys_crash_count', '0');
+          }, 4000);
+
           var originalReload = window.location.reload;
           window.location.reload = function(forced) {
             var ts = parseInt(sessionStorage.getItem('bc_last_reload') || '0', 10);
@@ -1817,8 +1831,7 @@
 
 
 
-        <script src="js/core/sw-register.js" defer></script>
-
+<script src="js/core/sw-register.js?v=42" defer></script>
     </body>
 
     </html>

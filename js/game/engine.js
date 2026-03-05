@@ -87,9 +87,13 @@
         // Mobile viewport stability helpers
         (function mobileViewportFix(){
             try {
+                let lastVH = 0;
                 const setVH = () => {
                     const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-                    document.documentElement.style.setProperty('--vh', `${vh * 0.01}px`);
+                    if (Math.abs(lastVH - vh) > 1) { // Debounce 1px changes to prevent loop
+                        lastVH = vh;
+                        document.documentElement.style.setProperty('--vh', `${vh * 0.01}px`);
+                    }
                 };
                 setVH();
                 window.addEventListener('resize', setVH, { passive: true });
@@ -98,12 +102,16 @@
                     window.visualViewport.addEventListener('scroll', setVH, { passive: true });
                 }
 
+                let lastPinnedH = 0;
                 // Keep --pinned-controls-height in sync with actual bar size
                 const updatePinned = () => {
                     const el = document.getElementById('gameControlsPinned');
                     if (!el) return;
                     const h = Math.max(56, el.offsetHeight || 0);
-                    document.documentElement.style.setProperty('--pinned-controls-height', `${h}px`);
+                    if (Math.abs(lastPinnedH - h) > 1) { // Debounce
+                        lastPinnedH = h;
+                        document.documentElement.style.setProperty('--pinned-controls-height', `${h}px`);
+                    }
                 };
                 updatePinned();
                 window.addEventListener('resize', updatePinned, { passive: true });

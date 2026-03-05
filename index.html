@@ -36,11 +36,11 @@
       })();
     </script>
     <script>
-      // 如果網址包含 safemode=1，強制關絕所有高耗能渲染特效 (特別是引發 Jetsam 崩潰的 backdrop-filter)
-      if (window.location.search.indexOf('safemode=1') !== -1) {
-        document.write('<style> * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; filter: none !important; box-shadow: none !important; text-shadow: none !important; animation: none !important; transition: none !important; } </style>');
-        console.warn("⚠️ 啟動輕量安全模式：已禁用所有高耗能 CSS 特效");
-      }
+        // 如果網址包含 safemode=1，強制關絕所有高耗能渲染特效並阻擋所有 JS 執行，直接呈現文字
+        if (window.location.search.indexOf('safemode=1') !== -1) {
+          document.write('<style> * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; filter: none !important; box-shadow: none !important; text-shadow: none !important; animation: none !important; transition: none !important; } body { padding:20px; font-family:sans-serif; } </style>');
+          document.write('<div><h1>核彈級安全模式</h1><p>現在已經阻擋了遊戲的載入。如果您能看到這個畫面且<strong>沒有一直閃退</strong>，代表程式確實有某個資源或套件引起 LINE 崩潰。</p><button onclick="window.location.href=window.location.pathname.split(\'?\')[0]" style="padding:10px 20px;font-size:20px;margin-top:20px;">正常重啟</button></div>');
+          window.stop();
     </script>
 
 
@@ -154,7 +154,7 @@
 
     <link rel="stylesheet" href="css/themes.css?v=2">
 
-    <script src="https://cdn.tailwindcss.com" defer></script>
+    <!-- <script src="https://cdn.tailwindcss.com" defer></script> -->
 
     <!-- Supabase client (UMD) deferred: 將於實際需要時 (首次打開排行榜 / 結算需要上傳) 才載入
 

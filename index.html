@@ -3,48 +3,7 @@
 <html lang="zh-TW">
 
 <head>
-    <!-- 核心崩潰防護：偵測 Webview 系統級無限重啟 (Crash Loop) 並進入安全模式 -->
-    <script>
-      (function(){
-        try {
-          var crashCount = parseInt(sessionStorage.getItem('bc_sys_crash_count') || '0', 10);
-          sessionStorage.setItem('bc_sys_crash_count', crashCount + 1);
-          
-          if (crashCount >= 3) {
-            // 如果 5 秒內連續重啟超過 3 次，代表瀏覽器引擎因為某個資源而崩潰
-            document.write('<div style="padding:20px;background:#fff;color:#000;height:100vh;"><h1>⚠️ 安全模式啟動</h1><p>已攔截到連續異常刷新，停止載入遊戲素材。</p><button onclick="sessionStorage.setItem(\'bc_sys_crash_count\', 0); window.location.href = window.location.pathname + \'?safemode=1\';" style="padding:10px 20px;font-size:20px;margin-top:20px;">以輕量模式啟動(去除全部特效)</button></div>');
-            window.stop(); // 停止後續所有 CSS/JS 與圖片的加載
-            return;
-          }
-          // 系統若正常存活超過 4 秒，就重置崩潰計數
-          setTimeout(function() {
-            sessionStorage.setItem('bc_sys_crash_count', '0');
-          }, 4000);
-
-          var originalReload = window.location.reload;
-          window.location.reload = function(forced) {
-            var ts = parseInt(sessionStorage.getItem('bc_last_reload') || '0', 10);
-            var now = Date.now();
-            if (now - ts < 10000) {
-              console.warn('[SW] Blocked rapid location.reload() to prevent infinite loop.');
-              return; // 10秒內連續reload，強制阻擋
-            }
-            sessionStorage.setItem('bc_last_reload', String(now));
-            return originalReload.call(window.location, forced);
-          };
-        } catch(e) {}
-      })();
-    </script>
-    <script>
-        // 如果網址包含 safemode=1，強制關絕所有高耗能渲染特效並阻擋所有 JS 執行，直接呈現文字
-        if (window.location.search.indexOf('safemode=1') !== -1) {
-          document.write('<style> * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; filter: none !important; box-shadow: none !important; text-shadow: none !important; animation: none !important; transition: none !important; } body { padding:20px; font-family:sans-serif; } </style>');
-          document.write('<div><h1>核彈級安全模式</h1><p>現在已經阻擋了遊戲的載入。如果您能看到這個畫面且<strong>沒有一直閃退</strong>，代表程式確實有某個資源或套件引起 LINE 崩潰。</p><button onclick="window.location.href=window.location.pathname.split(\'?\')[0]" style="padding:10px 20px;font-size:20px;margin-top:20px;">正常重啟</button></div>');
-          window.stop();
-    </script>
-
-
-        <!-- =============================================================
+    <!-- =============================================================
 
                  名詞對照 / Terminology Mapping (2025-09)
 
@@ -1842,6 +1801,7 @@
     </body>
 
     </html>
+
 
 
 

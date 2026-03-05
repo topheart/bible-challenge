@@ -12,7 +12,7 @@
           
           if (crashCount >= 3) {
             // 如果 5 秒內連續重啟超過 3 次，代表瀏覽器引擎因為某個資源而崩潰
-            document.write('<div style="padding:20px;background:#fff;color:#000;height:100vh;"><h1>⚠️ 安全模式啟動</h1><p>已攔截到連續異常刷新，停止載入遊戲素材。</p><button onclick="sessionStorage.setItem(\'bc_sys_crash_count\', 0); location.reload();" style="padding:10px 20px;font-size:20px;margin-top:20px;">嘗試修復並重整</button></div>');
+            document.write('<div style="padding:20px;background:#fff;color:#000;height:100vh;"><h1>⚠️ 安全模式啟動</h1><p>已攔截到連續異常刷新，停止載入遊戲素材。</p><button onclick="sessionStorage.setItem(\'bc_sys_crash_count\', 0); window.location.href = window.location.pathname + \'?safemode=1\';" style="padding:10px 20px;font-size:20px;margin-top:20px;">以輕量模式啟動(去除全部特效)</button></div>');
             window.stop(); // 停止後續所有 CSS/JS 與圖片的加載
             return;
           }
@@ -34,6 +34,13 @@
           };
         } catch(e) {}
       })();
+    </script>
+    <script>
+      // 如果網址包含 safemode=1，強制關絕所有高耗能渲染特效 (特別是引發 Jetsam 崩潰的 backdrop-filter)
+      if (window.location.search.indexOf('safemode=1') !== -1) {
+        document.write('<style> * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; filter: none !important; box-shadow: none !important; text-shadow: none !important; animation: none !important; transition: none !important; } </style>');
+        console.warn("⚠️ 啟動輕量安全模式：已禁用所有高耗能 CSS 特效");
+      }
     </script>
 
 

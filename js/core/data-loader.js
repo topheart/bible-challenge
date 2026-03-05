@@ -144,6 +144,10 @@
 
     async function fetchVerseJson(path, options = {}) {
         try {
+            if (window.location.search.indexOf('safemode=1') !== -1 && path.includes('external-verses.json')) {
+                console.warn('⚠️ 安全模式：阻擋載入 ' + path + ' 以避免記憶體崩潰。');
+                return null;
+            }
             const timeoutMs = Math.max(800, Number(options.timeoutMs) || EXTERNAL_FETCH_TIMEOUT_MS);
             const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
             const timer = setTimeout(() => { try { ctrl && ctrl.abort(); } catch(_) {} }, timeoutMs);

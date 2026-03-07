@@ -7,7 +7,6 @@
     const ENABLE_VERSE_SHARDS = true;
     const EXTERNAL_FETCH_TIMEOUT_MS = 4500;
     const EXTERNAL_FETCH_TIMEOUT_URGENT_MS = 2600;
-    const EXTERNAL_VERSE_FULL_PATH = 'external-verses.json';
     const EXTERNAL_VERSE_SHARDS = {
         old: 'data/external-verses-old.json',
         new: 'data/external-verses-new.json'
@@ -24,15 +23,21 @@
     // IDBHelper logic moved to external script
 
     function scheduleIdleTask(fn, timeout = 1200) {
+        // iOS WebViews don't handle massive IDLE tasks well and lack robust requestIdleCallback
+        const isWebView = /Line|FBAN|FBAV|Instagram/i.test(navigator.userAgent || navigator.vendor || window.opera);
+        if (isWebView) {
+            return setTimeout(() => { try { fn(); } catch(_) {} }, 3500); // Massive delay to let initial animations settle
+        }
+        
         try {
             if (window.requestIdleCallback) {
                 return window.requestIdleCallback(() => { try { fn(); } catch(_) {} }, { timeout });
             }
         } catch(_) {}
-        return setTimeout(() => { try { fn(); } catch(_) {} }, 0);
+        return setTimeout(() => { try { fn(); } catch(_) {} }, 500);
     }
 
-    async function normalizeVerseDatabaseChunked(db, chunkSize = 320) {
+    async function normalizeVerseDatabaseChunked(db, chunkSize = 100) {
         const out = [];
         const seen = new Set();
         const defaultVersion = '新標點和合本 神版';
@@ -69,7 +74,9 @@
             out.push(v);
 
             if ((i + 1) % chunkSize === 0) {
-                await new Promise(resolve => setTimeout(resolve, 0));
+                // 🚀 Yield more time to the browser in WebViews to prevent Jetsam memory limits hitting max
+                const waitTime = /Line|FBAN|FBAV|Instagram/i.test(navigator.userAgent || navigator.vendor || window.opera) ? 25 : 0;
+                await new Promise(resolve => setTimeout(resolve, waitTime));
             }
         }
         return out;
@@ -144,10 +151,6 @@
 
     async function fetchVerseJson(path, options = {}) {
         try {
-            if (window.location.search.indexOf('safemode=1') !== -1 && path.includes('external-verses.json')) {
-                console.warn('⚠️ 安全模式：阻擋載入 ' + path + ' 以避免記憶體崩潰。');
-                return null;
-            }
             const timeoutMs = Math.max(800, Number(options.timeoutMs) || EXTERNAL_FETCH_TIMEOUT_MS);
             const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
             const timer = setTimeout(() => { try { ctrl && ctrl.abort(); } catch(_) {} }, timeoutMs);
@@ -217,88 +220,34 @@
                     }
                 } catch (e) { console.warn('IDB read failed', e); }
 
-                // 2. 若 IDB 無資料，則從網路抓取
-                // 2. If IDB empty, fetch from network
+// 2. If IDB empty, fetch from network
                 if (data.length === 0) {
                     const timeoutMs = urgent ? EXTERNAL_FETCH_TIMEOUT_URGENT_MS : EXTERNAL_FETCH_TIMEOUT_MS;
-                    const shardPath = (preferredScope && EXTERNAL_VERSE_SHARDS[preferredScope]) ? EXTERNAL_VERSE_SHARDS[preferredScope] : null;
-                    const fullFetchPromise = fetchVerseJson(EXTERNAL_VERSE_FULL_PATH, { timeoutMs, cache: urgent ? 'no-store' : 'default' });
-
-                    if (shardPath) {
-                        const shardPromise = fetchVerseJson(shardPath, { timeoutMs, cache: urgent ? 'no-store' : 'default' });
-                        // 給分片資料短暫優先時間窗，提升「先有可用資料」機率
-                        const shardHeadStartMs = urgent ? 700 : 1200;
-                        const earlyShard = await Promise.race([
-                            shardPromise,
-                            new Promise(resolve => setTimeout(() => resolve(null), shardHeadStartMs))
-                        ]);
-                        const shardData = (Array.isArray(earlyShard) && earlyShard.length > 0) ? earlyShard : await shardPromise;
-                        if (Array.isArray(shardData) && shardData.length > 0) {
-                            data = shardData;
-                            scope = preferredScope;
-                            try { IDBHelper.set(`externalVerses:${preferredScope}`, data).catch(e => console.warn('IDB write failed', e)); } catch(_) {}
-
-                            // 分片先上線後，背景補抓 full，供跨約切換與後續快速命中
-                            try {
-                                fullFetchPromise.then((fullData) => {
-                                    if (Array.isArray(fullData) && fullData.length > 0) {
-                                        try { IDBHelper.set('externalVerses', fullData).catch(() => {}); } catch(_) {}
-                                        try { if (!window.__externalFullVersesReady) window.__externalFullVersesReady = true; } catch(_) {}
-                                    }
-                                }).catch(() => {});
-                            } catch(_) {}
+                    
+                    try {
+                        if (preferredScope === 'new') {
+                            data = await fetchVerseJson(EXTERNAL_VERSE_SHARDS.new, { timeoutMs, cache: urgent ? 'no-store' : 'default' }) || [];
+                            scope = 'new';
+                            if (data.length > 0) try { IDBHelper.set('externalVerses:new', data).catch(()=>{}); } catch(_){}
+                        } else if (preferredScope === 'old') {
+                            data = await fetchVerseJson(EXTERNAL_VERSE_SHARDS.old, { timeoutMs, cache: urgent ? 'no-store' : 'default' }) || [];
+                            scope = 'old';
+                            if (data.length > 0) try { IDBHelper.set('externalVerses:old', data).catch(()=>{}); } catch(_){}
+                        } else {
+                            // 🚀 Critical Memory Fix: Fetch shards sequentially instead of concurrently. 
+                            // Resolves iOS LINE WebView Out-Of-Memory (Jetsam) crashes caused by simultaneous parsing of 7.8MB JSON.
+                            const newData = await fetchVerseJson(EXTERNAL_VERSE_SHARDS.new, { timeoutMs, cache: urgent ? 'no-store' : 'default' }) || [];
+                            await new Promise(r => setTimeout(r, 150)); // Allow garbage collector to settle
+                            const oldData = await fetchVerseJson(EXTERNAL_VERSE_SHARDS.old, { timeoutMs, cache: urgent ? 'no-store' : 'default' }) || [];
+                            
+                            if (Array.isArray(newData) && Array.isArray(oldData)) {
+                                data = oldData.concat(newData);
+                                scope = 'full';
+                                if (data.length > 0) try { IDBHelper.set('externalVerses', data).catch(()=>{}); } catch(_){}
+                            }
                         }
-                    } else if (ENABLE_VERSE_SHARDS && !forceFull) {
-                        // 未指定約別時，允許先拿到任一分片快速啟動，再背景補齊 full
-                        const oldPromise = fetchVerseJson(EXTERNAL_VERSE_SHARDS.old, { timeoutMs, cache: urgent ? 'no-store' : 'default' });
-                        const newPromise = fetchVerseJson(EXTERNAL_VERSE_SHARDS.new, { timeoutMs, cache: urgent ? 'no-store' : 'default' });
-                        const tag = (name, p) => p.then(v => ({ name, v })).catch(() => ({ name, v: null }));
-                        const firstShardHeadStartMs = urgent ? 650 : 1100;
-                        const first = await Promise.race([
-                            tag('old', oldPromise),
-                            tag('new', newPromise),
-                            new Promise(resolve => setTimeout(() => resolve({ name: null, v: null }), firstShardHeadStartMs))
-                        ]);
-
-                        if (first && Array.isArray(first.v) && first.v.length > 0 && (first.name === 'old' || first.name === 'new')) {
-                            data = first.v;
-                            scope = first.name;
-                            try { IDBHelper.set(`externalVerses:${scope}`, data).catch(()=>{}); } catch(_) {}
-                        }
-
-                        // 背景整併 old/new，補 full 快取（可供後續跨約與完整模式即時命中）
-                        try {
-                            Promise.all([oldPromise, newPromise]).then(([oldData, newData]) => {
-                                if (Array.isArray(oldData) && Array.isArray(newData) && (oldData.length || newData.length)) {
-                                    const merged = oldData.concat(newData);
-                                    try { IDBHelper.set('externalVerses', merged).catch(() => {}); } catch(_) {}
-                                    try { window.__externalFullVersesReady = true; } catch(_) {}
-                                }
-                            }).catch(() => {});
-                        } catch(_) {}
-                    }
-
-                    if (data.length === 0) {
-                        const fullData = await fullFetchPromise;
-                        if (Array.isArray(fullData) && fullData.length > 0) {
-                            data = fullData;
-                            scope = 'full';
-                            try { IDBHelper.set('externalVerses', data).catch(e => console.warn('IDB write failed', e)); } catch(_) {}
-                        }
-                    }
-
-                    // full 檔案不可用時，回退為 old/new 分檔合併
-                    if (data.length === 0 && forceFull && ENABLE_VERSE_SHARDS) {
-                        const timeoutMs = urgent ? EXTERNAL_FETCH_TIMEOUT_URGENT_MS : EXTERNAL_FETCH_TIMEOUT_MS;
-                        const [oldData, newData] = await Promise.all([
-                            fetchVerseJson(EXTERNAL_VERSE_SHARDS.old, { timeoutMs, cache: urgent ? 'no-store' : 'default' }),
-                            fetchVerseJson(EXTERNAL_VERSE_SHARDS.new, { timeoutMs, cache: urgent ? 'no-store' : 'default' })
-                        ]);
-                        if (Array.isArray(oldData) && Array.isArray(newData) && (oldData.length || newData.length)) {
-                            data = oldData.concat(newData);
-                            scope = 'full';
-                            try { IDBHelper.set('externalVerses', data).catch(e => console.warn('IDB write failed', e)); } catch(_) {}
-                        }
+                    } catch(e) {
+                         console.warn('Safe sequential fetch failed:', e);
                     }
                 }
 

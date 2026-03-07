@@ -198,22 +198,124 @@ function initializeGame() {
                     el.style.borderWidth = '4px';
                     el.style.borderColor = border;
                     el.style.boxShadow = `0 6px 18px ${glow}`;
+                    el.style.opacity = '1';
+                    el.style.filter = 'none';
+                    el.style.transform = 'scale(1.02)';
+                    el.style.zIndex = '10';
                 }
-                function resetCard(el) {
+                function resetCard(el, isAnySelected) {
                     if (!el) return;
                     el.style.borderWidth = '';
                     el.style.borderColor = '';
                     el.style.boxShadow = '';
+                    el.style.transition = 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+                    if (isAnySelected) {
+                        el.style.opacity = '0.55';
+                        el.style.filter = 'grayscale(30%)';
+                        el.style.transform = 'scale(0.98)';
+                        el.style.zIndex = '1';
+                    } else {
+                        el.style.opacity = '1';
+                        el.style.filter = 'none';
+                        el.style.transform = 'scale(1)';
+                        el.style.zIndex = '1';
+                    }
                 }
+
+                // Helper: 更新手機版收合面板狀態
+                function updateModeDrawerState(kind) {
+                    const modeCardHeader = document.getElementById('modeCardHeader');
+                    const modeCardTitle = document.getElementById('modeCardTitle');
+                    const modeCardBody = document.getElementById('modeCardBody');
+                    const modeCardToggleIcon = document.getElementById('modeCardToggleIcon');
+                    const modeCardToggleIconUp = document.getElementById('modeCardToggleIconUp');
+
+                    if (!modeCardHeader || !modeCardTitle || !modeCardBody) return;
+
+                    // 對應標題文字與顏色 (不論行動或桌面版都更新)
+                    let titleText = '選擇模式';
+                    let titleColor = '#374151'; // gray-700
+                    if (kind === 'classic') { titleText = '🎮 已選：闖關挑戰'; titleColor = '#e11d48'; }
+                    if (kind === 'survival') { titleText = '⏱️ 已選：生存計時'; titleColor = '#059669'; }
+                    if (kind === 'custom') { titleText = '🧩 已選：自訂專區'; titleColor = '#0284c7'; }
+                    if (kind === 'equip') { titleText = '📚 已選：裝備課程'; titleColor = '#6d28d9'; }
+                    
+                    modeCardTitle.textContent = titleText;
+                    modeCardTitle.style.color = titleColor;
+
+                    const vw = Math.min(window.innerWidth || 0, document.documentElement.clientWidth || 0);
+                    if (vw > 920) return; // 只有手機版生效後續的收合邏輯
+
+                    // 闖關與生存在手機上選擇後，經過簡短動畫後自動滑動收合
+                    // 若是裝備課程／自訂專區，剛點選進入卡片內部選擇時不收合，
+                    // 但若該模式已經有「具體下層選擇」，或裝備課程已經選了班級，則可以收合
+                    const hasEquipTierSelected = (kind === 'equip' && window.gameState && window.gameState.__pendingEquipTier);
+                    // 自訂專區中，只要有勾選任何一卷書，就視作選擇完成，可以收合幫助玩家往下滑
+                    const hasCustomSelected = (kind === 'custom' && window.gameState && window.gameState.customBooks && window.gameState.customBooks.length > 0);
+
+                    if (kind === 'classic' || kind === 'survival' || hasEquipTierSelected || hasCustomSelected) {
+                        setTimeout(() => {
+                            // 檢查玩家是否又點開了或者切換了（裝備或自訂模式下這步檢查略過，直接收合）
+                            if ((kind === 'classic' || kind === 'survival') && modeCardTitle.textContent !== titleText) return; 
+                            modeCardBody.style.maxHeight = '0px';
+                            modeCardBody.style.opacity = '0';
+                            modeCardHeader.classList.remove('rounded-t-xl');
+                            modeCardHeader.classList.add('rounded-xl');
+                            if (modeCardToggleIcon) modeCardToggleIcon.style.display = 'inline-block';
+                            if (modeCardToggleIconUp) modeCardToggleIconUp.style.display = 'none';
+                        }, 400); 
+                    } else {
+                        // 自訂/裝備不自動收合（因為還要選進一步選項），但標題會改
+                        modeCardBody.style.maxHeight = '2000px';
+                        modeCardBody.style.opacity = '1';
+                        modeCardHeader.classList.add('rounded-t-xl');
+                        modeCardHeader.classList.remove('rounded-xl');
+                        if (modeCardToggleIcon) modeCardToggleIcon.style.display = 'none';
+                        if (modeCardToggleIconUp) modeCardToggleIconUp.style.display = 'inline-block';
+                    }
+                }
+
+                // 綁定手動點擊標題展開/收合事件
+                try {
+                    const header = document.getElementById('modeCardHeader');
+                    if (header) {
+                        header.addEventListener('click', () => {
+                            const body = document.getElementById('modeCardBody');
+                            const iconDown = document.getElementById('modeCardToggleIcon');
+                            const iconUp = document.getElementById('modeCardToggleIconUp');
+                            if (!body) return;
+                            const isCollapsed = body.style.maxHeight === '0px';
+                            
+                            if (isCollapsed) {
+                                // 展開
+                                body.style.maxHeight = '2000px';
+                                body.style.opacity = '1';
+                                header.classList.add('rounded-t-xl');
+                                header.classList.remove('rounded-xl');
+                                if (iconDown) iconDown.style.display = 'none';
+                                if (iconUp) iconUp.style.display = 'inline-block';
+                            } else {
+                                // 手動收起
+                                body.style.maxHeight = '0px';
+                                body.style.opacity = '0';
+                                header.classList.remove('rounded-t-xl');
+                                header.classList.add('rounded-xl');
+                                if (iconDown) iconDown.style.display = 'inline-block';
+                                if (iconUp) iconUp.style.display = 'none';
+                            }
+                        });
+                    }
+                } catch(_) {}
 
                 // Unified exclusive selector for the four home modes:
                 // classic, survival, equip, custom
                 function selectHomeMode(kind) {
+                    const isAnySelected = !!kind;
                     // Clear UI highlights for all
-                    resetCard(modeClassicBtn);
-                    resetCard(modeSurvivalBtn);
-                    resetCard(customAreaCard);
-                    resetCard(equipCourseCard);
+                    resetCard(modeClassicBtn, isAnySelected);
+                    resetCard(modeSurvivalBtn, isAnySelected);
+                    resetCard(customAreaCard, isAnySelected);
+                    resetCard(equipCourseCard, isAnySelected);
 
                     // 轉換模式前，若先前有選裝備班級，清除待選與高亮（與其他模式互斥）
                     try {
@@ -295,10 +397,11 @@ function initializeGame() {
                         }
                     } catch(_) {}
                     try { window.__applyModeUI && window.__applyModeUI(); } catch (_) {}
-                    // Mobile 自動滾動：僅在選擇 core 模式 (classic/survival) 時觸發（取消/自訂/裝備不滾）
+                    
+                    // 觸發抽屜邏輯與滾動
                     try {
-                        if (kind === 'classic' || kind === 'survival') {
-                            scrollToStartButtonForMobile();
+                        if (kind) {
+                            updateModeDrawerState(kind);
                         }
                     } catch(_) {}
                 }
@@ -310,14 +413,17 @@ function initializeGame() {
                         const vw = Math.min(window.innerWidth || 0, document.documentElement.clientWidth || 0);
                         if (vw > 920) return; // 僅手機/窄螢幕
                         const btn = document.getElementById('startGameBtn');
-                        if(!btn) return;
-                        // 若按鈕目前不可開始 (disabled) 也仍可預先對齊位置，提供視覺指引
-                        const rect = btn.getBoundingClientRect();
-                        // 若按鈕已經在視窗中間上下 40% 範圍內，則不再滾動避免干擾
+                        const rangeCard = document.getElementById('rangeCard'); // 以包含按鈕的最外層卡片為定位基準
+                        const targetEl = rangeCard || btn;
+                        if (!targetEl) return;
+                        
+                        const rect = targetEl.getBoundingClientRect();
                         const vh = window.innerHeight || document.documentElement.clientHeight;
-                        if (rect.top > vh*0.2 && rect.bottom < vh*0.8) return;
-                        const offset = Math.max(0, window.pageYOffset + rect.top - (vh*0.28));
-                        window.scrollTo({ top: offset, behavior:'smooth' });
+                        
+                        // 計算理想的滾動位置：讓下方的卡片出現在畫面正中央偏上，約螢幕高度的 35% 處
+                        const targetOffset = window.pageYOffset + rect.top - (vh * 0.35);
+                        
+                        // 暫時取消自動滾動（依使用者需求）
                     } catch(_) {}
                 }
                 window.scrollToStartButtonForMobile = scrollToStartButtonForMobile;

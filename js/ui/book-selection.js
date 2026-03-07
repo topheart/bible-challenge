@@ -401,6 +401,7 @@ function initializeCustomBooks() {
     function updateStartButtonState() {
             const startBtn = document.getElementById('startGameBtn');
             const hintElement = document.getElementById('gameStartHint');
+            const confirmTitle = document.getElementById('confirmStartTitle');
             if (!startBtn || !hintElement) return;
             const startScreen = document.getElementById('startScreen');
             if (startScreen && startScreen.classList.contains('hidden')) return;
@@ -569,10 +570,14 @@ function initializeCustomBooks() {
                 startBtn.style.letterSpacing = desiredLetterSpacing;
                 startBtn.setAttribute('aria-busy', desiredBusy);
 
-                const setTone = (bgImage, bgColor, shadow) => {
+                const setTone = (bgImage, bgColor, shadow, titleText, titleColor) => {
                     startBtn.style.backgroundImage = bgImage;
                     startBtn.style.backgroundColor = bgColor;
                     startBtn.style.boxShadow = shadow;
+                    if (confirmTitle) {
+                        confirmTitle.textContent = '確認並開始';
+                        confirmTitle.style.color = '#374151'; // gray-700
+                    }
                 };
                 switch (desiredModeTone) {
                     case 'classic':

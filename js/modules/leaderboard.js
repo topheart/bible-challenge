@@ -1443,11 +1443,25 @@ if (!marqueeContainer || !Array.isArray(pool) || pool.length === 0) return;
                     } catch(_) {}
                 };
                 const loader = () => {
-                    if (ENABLE_EXTERNAL_VERSES) {
+                    const isWebView = /Line|FBAN|FBAV|Instagram/i.test(navigator.userAgent || navigator.vendor || window.opera);
+                    
+                    if (ENABLE_EXTERNAL_VERSES && !isWebView) {
                         attemptLoadExternalVerses().finally(kickoff);
                     } else {
-                        // 直接使用內建資料
-                        kickoff();
+                        // 🚀 Critical Fix for LINE WebView Infinite Refresh 🚀
+                        // In-app browsers like LINE have very strict Jetsam memory and CPU limits. 
+                        // Synchronously fetching + parsing an 8MB JSON while the DOM is rendering and animations
+                        // are starting will instantly crash the WebKit process and result in a silent reload loop.
+                        // By fully rendering the UI first and waiting 3.5 seconds before we even touch the network
+                        // or JSON.parse, the browser GC has time to settle, fully bypassing the crash limit.
+                        
+                        kickoff(); // Initialize with fallbacks first
+                        
+                        if (ENABLE_EXTERNAL_VERSES) {
+                            setTimeout(() => {
+                                attemptLoadExternalVerses();
+                            }, 3500);
+                        }
                     }
                 };
                 if ('requestIdleCallback' in window) {

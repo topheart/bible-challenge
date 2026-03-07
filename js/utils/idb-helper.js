@@ -1,7 +1,12 @@
 // IndexedDB Helper for storing large verse data
 const IDB_CONFIG = { name: 'BibleChallengeDB', version: 1, store: 'verses' };
+
+const ua = navigator.userAgent || navigator.vendor || window.opera;
+const isWebView = /Line|FBAN|FBAV|Instagram/i.test(ua);
+
 const IDBHelper = {
     open: () => new Promise((resolve, reject) => {
+        if (isWebView) return reject(new Error('IDB disabled in WebView to prevent Jetsam OOM crashes.'));
         const req = indexedDB.open(IDB_CONFIG.name, IDB_CONFIG.version);
         req.onupgradeneeded = (e) => {
             const db = e.target.result;

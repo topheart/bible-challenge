@@ -137,14 +137,31 @@
 
 ---
 
-## 4. 當前工作階段 (Current Session - 2026/02/25)
+## 4. 當前工作階段 (Current Session - 2026/03/06)
 
 ### 📋 本次工作進度
 
-**工作時間**：2026年2月25日
-**主要焦點**：排行榜配置、工作進度管理、避免等待卡死
+**工作時間**：2026年3月6日
+**主要焦點**：手機版首頁 UI/UX 大幅翻新、行動端操作體驗收斂、禁寫腳本約束
 
-#### ✅ 已完成
+#### ✅ 2026-03-06 (UI/UX 翻新與約束建立)
+
+- [X] **主畫面模式選單大改版**
+  - 移除生硬的分步字樣 (`Step 1 / Step 2`)，簡化為直覺的「選擇模式」。
+  - 引入 Focus Mode（聚焦模式）：被選中的模式卡片會有放大及光暈效果，未選中的則會自動暗化，提升視覺層次。
+- [X] **手機版手風琴 (Accordion) 收合體驗**
+  - 將手機版的模式列表改為折疊式設計 (`max-height` 轉場搭配 `overflow-hidden`)。
+  - 選擇完主模式或子模式（包含裝備層級或自訂書籍）後，面板會像原生 App 般順滑收起，並更新標題（如「已選：生存計時」），騰出螢幕空間。
+  - 徹底移除收合後強制下拉滾動 (`scrollTo`) 的粗暴邏輯，讓操作視角留在原地，不再突兀跳動。
+- [X] **桌面版切邊排版修復**
+  - 修復為了手機版 `overflow: hidden` 導致桌面版選項聚焦陰影被裁切的 CSS bug（使用負 Margin `-mx-4 -mb-4` 等技巧擴充作圖空間）。
+- [X] **裝備模式 (Equip Mode) 進度圖示同步修復**
+  - 修復第一階段完成後，上方進度橢圓球沒有立刻反應第二關為「進行中（紫色）」的延遲渲染問題（在遞增目前層級後，主動塞入一幀 `equipUpdateProgressUI` 以更新視圖）。
+- [X] **專案瘦身與 AI 工具行為紀律 (非常重要)**
+  - 清理多餘大檔與腳本（如 `external-verses.json`, `split_db.js`, `split_db.py`）。
+  - 已明確將 **「嚴禁使用單獨腳本(Python/Node.js)進行開發操作」** 的規章寫入 AI 的永久記憶（`/memories/preferences.md`），後續無論遇到何種問題，一律用直接編輯功能或原生語言處理，降低破壞環境的風險。
+
+#### ✅ 2026-02-25 (穩定性加固)
 
 - [X] 確認 `leaderboard-config.js` Supabase 連接配置完整
   - URL: `https://kkbwoahtwfdirqsgyqda.supabase.co`
@@ -369,5 +386,5 @@
 
 ---
 
-*Last Updated by AI Assistant on 2026-03-05 (Session handoff updated: Single-Session Roguelike Achievements, UI Perf fix, Encoding Safe Protocols)*
+*Last Updated by AI Assistant on 2026-03-06 (Mobile UI/UX Accordion redesign, Equip Mode Progress fix, Strict No-Script Agent constraint)*
 *Created by AI Assistant on 2026-01-23*

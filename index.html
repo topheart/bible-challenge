@@ -3,48 +3,7 @@
 <html lang="zh-TW">
 
 <head>
-    <!-- 核心崩潰防護：偵測 Webview 系統級無限重啟 (Crash Loop) 並進入安全模式 -->
-    <script>
-      (function(){
-        try {
-          var crashCount = parseInt(sessionStorage.getItem('bc_sys_crash_count') || '0', 10);
-          sessionStorage.setItem('bc_sys_crash_count', crashCount + 1);
-          
-          if (crashCount >= 3) {
-            // 如果 5 秒內連續重啟超過 3 次，代表瀏覽器引擎因為某個資源而崩潰
-            document.write('<div style="padding:20px;background:#fff;color:#000;height:100vh;"><h1>⚠️ 安全模式啟動</h1><p>已攔截到連續異常刷新，停止載入遊戲素材。</p><button onclick="sessionStorage.setItem(\'bc_sys_crash_count\', 0); window.location.href = window.location.pathname + \'?safemode=1\';" style="padding:10px 20px;font-size:20px;margin-top:20px;">以輕量模式啟動(去除全部特效)</button></div>');
-            window.stop(); // 停止後續所有 CSS/JS 與圖片的加載
-            return;
-          }
-          // 系統若正常存活超過 4 秒，就重置崩潰計數
-          setTimeout(function() {
-            sessionStorage.setItem('bc_sys_crash_count', '0');
-          }, 4000);
-
-          var originalReload = window.location.reload;
-          window.location.reload = function(forced) {
-            var ts = parseInt(sessionStorage.getItem('bc_last_reload') || '0', 10);
-            var now = Date.now();
-            if (now - ts < 10000) {
-              console.warn('[SW] Blocked rapid location.reload() to prevent infinite loop.');
-              return; // 10秒內連續reload，強制阻擋
-            }
-            sessionStorage.setItem('bc_last_reload', String(now));
-            return originalReload.call(window.location, forced);
-          };
-        } catch(e) {}
-      })();
-    </script>
-    <script>
-        // 如果網址包含 safemode=1，強制關絕所有高耗能渲染特效並阻擋所有 JS 執行，直接呈現文字
-        if (window.location.search.indexOf('safemode=1') !== -1) {
-          document.write('<style> * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; filter: none !important; box-shadow: none !important; text-shadow: none !important; animation: none !important; transition: none !important; } body { padding:20px; font-family:sans-serif; } </style>');
-          document.write('<div><h1>核彈級安全模式</h1><p>現在已經阻擋了遊戲的載入。如果您能看到這個畫面且<strong>沒有一直閃退</strong>，代表程式確實有某個資源或套件引起 LINE 崩潰。</p><button onclick="window.location.href=window.location.pathname.split(\'?\')[0]" style="padding:10px 20px;font-size:20px;margin-top:20px;">正常重啟</button></div>');
-          window.stop();
-    </script>
-
-
-        <!-- =============================================================
+    <!-- =============================================================
 
                  名詞對照 / Terminology Mapping (2025-09)
 
@@ -302,13 +261,19 @@
 
                 <div id="modeCard" class="cute-card bg-white p-4 start-intro-card lg:col-span-2">
 
-                    <div class="mb-3">
+                    <div id="modeCardHeader" class="mb-4 text-center border-b-2 border-gray-100 pb-3 cursor-pointer transition-colors duration-300 hover:bg-gray-50 rounded-t-xl group flex items-center justify-center gap-2">
 
-                        <h2 class="text-2xl font-bold text-gray-800 text-center">Step 1｜選擇模式</h2>
+                        <h2 id="modeCardTitle" class="text-xl font-extrabold text-gray-700 tracking-widest transition-colors duration-300">選擇模式</h2>
+
+                        <span id="modeCardToggleIcon" class="text-gray-400 group-hover:text-gray-600 transition-transform duration-300 transform rotate-180 lg:hidden text-sm" style="display: none;">▼</span>
+
+                        <span id="modeCardToggleIconUp" class="text-gray-400 group-hover:text-gray-600 transition-transform duration-300 lg:hidden text-sm">▲</span>
 
                     </div>
 
-                    <div class="home-mode-grid grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div id="modeCardBody" class="transition-all duration-500 ease-in-out origin-top overflow-hidden px-4 pt-1 pb-4 -mx-4 -mb-4" style="max-height: 2000px; opacity: 1;">
+
+                    <div class="home-mode-grid grid grid-cols-1 md:grid-cols-2 gap-4">
 
                         <button id="modeClassicBtn" class="mode-card-interactive w-full text-left p-5 rounded-2xl border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-pink-50 shadow-sm hover:shadow-md transition">
 
@@ -516,6 +481,8 @@
 
                     </div>
 
+                    </div>
+
                 </div>
 
 
@@ -524,7 +491,11 @@
 
                 <div id="rangeCard" class="cute-card bg-white p-4 start-intro-card">
 
-                    <h2 class="text-2xl font-bold text-gray-800 mb-3 text-center">Step 2｜確認並開始</h2>
+                    <div class="mb-4 text-center border-b-2 border-gray-100 pb-3">
+
+                        <h2 id="confirmStartTitle" class="text-xl font-extrabold text-gray-700 tracking-widest transition-colors duration-300">確認並開始</h2>
+
+                    </div>
 
 
 
@@ -1842,6 +1813,7 @@
     </body>
 
     </html>
+
 
 
 

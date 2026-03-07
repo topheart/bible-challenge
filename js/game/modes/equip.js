@@ -1173,6 +1173,8 @@
                 gameState.currentLevel++;
                 // allow next level inputs
                 delete gameState.__equipHandoffLocked;
+                // Force progress UI update after incrementing level to properly render current oval
+                try { equipUpdateProgressUI(); } catch(_) {}
                 startEquipLevel();
             }
         }

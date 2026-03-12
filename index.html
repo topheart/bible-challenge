@@ -1,8 +1,49 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html lang="zh-TW">
 
 <head>
+<script>
+window.onerror = function(msg, url, line, col, error) {
+    var d = document.createElement('div');
+    d.style.position = 'fixed';
+    d.style.top = '0';
+    d.style.left = '0';
+    d.style.width = '100%';
+    d.style.backgroundColor = 'red';
+    d.style.color = 'white';
+    d.style.zIndex = '999999';
+    d.style.padding = '20px';
+    d.style.fontSize = '24px';
+    d.innerHTML = 'ERROR: ' + msg + '<br>Line: ' + line + '<br>URL: ' + url;
+    document.body.appendChild(d);
+    return false;
+};
+</script>
+<script>
+(function() {
+    const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+    const isInAppBrowser = /Line|FBAN|FBAV|Instagram/i.test(ua);
+    window.__BC_IS_IN_APP_BROWSER = isInAppBrowser;
+    if (!isInAppBrowser) return;
+
+    document.documentElement.setAttribute('data-in-app-browser', 'true');
+
+    try {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations()
+                .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister().catch(() => {}))))
+                .catch(() => {});
+        }
+        if ('caches' in window) {
+            caches.keys()
+                .then((keys) => Promise.all(keys.filter((key) => /^bc-safe-/.test(key)).map((key) => caches.delete(key))))
+                .catch(() => {});
+        }
+    } catch (_) {}
+})();
+</script>
+
     <!-- =============================================================
 
                  名詞對照 / Terminology Mapping (2025-09)
@@ -26,7 +67,7 @@
                  ============================================================= -->
 
     <meta charset="UTF-8">
-
+    <!-- force rewrite to fix encoding via vscode api -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>經夠盃挑戰｜聖經經文記憶遊戲</title>
@@ -109,7 +150,26 @@
 
     <meta name="twitter:image" content="https://topheart.github.io/bible-challenge/logo/logo1-dark.png">
 
-    <link rel="stylesheet" href="css/main.css?v=2">
+    <script>
+        (function() {
+            const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+            const isInApp = /Line|FBAN|FBAV|Instagram/i.test(ua) || window.self !== window.top;
+            window.__BC_IS_IN_APP_BROWSER = isInApp;
+            window.__BC_DISABLE_SW = isInApp;
+            window.__BC_DISABLE_EXTERNAL_FULL_LOAD = isInApp;
+            if (isInApp) {
+                document.documentElement.setAttribute('data-in-app-browser', 'true');
+            }
+        })();
+    </script>
+
+    <link rel="stylesheet" href="css/main.css?v=3">
+
+    <link rel="stylesheet" href="css/modals.css?v=1">
+
+    <link rel="stylesheet" href="css/achievements.css?v=1">
+
+    <link rel="stylesheet" href="css/leaderboard.css?v=1">
 
     <link rel="stylesheet" href="css/themes.css?v=2">
 
@@ -273,167 +333,111 @@
 
                     <div id="modeCardBody" class="transition-all duration-500 ease-in-out origin-top overflow-hidden px-4 pt-1 pb-4 -mx-4 -mb-4" style="max-height: 2000px; opacity: 1;">
 
-                    <div class="home-mode-grid grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="home-mode-grid grid grid-cols-1 md:grid-cols-2 gap-2 mt-1">
 
-                        <button id="modeClassicBtn" class="mode-card-interactive w-full text-left p-5 rounded-2xl border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-pink-50 shadow-sm hover:shadow-md transition">
-
-                            <div class="flex items-start justify-between">
-
-                                <div>
-
-                                    <div class="mode-title-with-icon home-mode-title text-xl font-extrabold text-rose-700 tracking-wide"><span class="mode-title-icon" aria-hidden="true">🏁</span><span>闖關挑戰</span></div>
-
-                                    <div class="mt-1 text-sm text-rose-700/80">10 關 × 每關 5 題，節奏漸進、扎實累積熟練度</div>
-
+                        <button id="modeClassicBtn" class="mode-card-interactive w-full text-left py-1.5 px-3 md:py-2 md:px-4 rounded-xl border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-pink-50 shadow-sm hover:shadow-md transition flex items-center justify-between">
+                            <div class="home-mode-head flex items-center justify-between w-full">
+                                <div class="home-mode-copy-wrap flex items-center min-w-0">
+                                    <span class="home-mode-icon text-2xl mr-2" aria-hidden="true">🏁</span>
+                                    <div class="home-mode-copy min-w-0">
+                                        <div class="home-mode-title text-base md:text-lg font-extrabold text-rose-700 tracking-wide">闖關挑戰</div>
+                                        <div class="heading-sub text-[11px] md:text-xs text-rose-700/80 mt-0.5">循序漸進，扎實累積熟練度</div>
+                                    </div>
                                 </div>
-
-                                <div class="ml-3 shrink-0"><span class="mode-kind-badge inline-block text-xs font-bold text-rose-700 bg-rose-100 border border-rose-300 rounded-full px-2 py-1">回合制</span></div>
-
+                                <span class="mode-kind-badge inline-block text-[10px] font-bold text-rose-700 bg-rose-100 border border-rose-300 rounded px-1.5 py-0.5 whitespace-nowrap">10關 × 5題</span>
                             </div>
-
                         </button>
 
-                        <button id="modeSurvivalBtn" class="mode-card-interactive w-full text-left p-5 rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 shadow-sm hover:shadow-md transition">
-
-                            <div class="flex items-start justify-between">
-
-                                <div>
-
-                                    <div class="mode-title-with-icon home-mode-title text-xl font-extrabold text-emerald-700 tracking-wide"><span class="mode-title-icon" aria-hidden="true">⏱️</span><span>生存計時</span></div>
-
-                                    <div class="mt-1 text-sm text-emerald-700/80">90 秒倒數，答對補秒、失誤扣秒，衝刺極限反應！</div>
-
+                        <button id="modeSurvivalBtn" class="mode-card-interactive w-full text-left py-1.5 px-3 md:py-2 md:px-4 rounded-xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 shadow-sm hover:shadow-md transition flex items-center justify-between">
+                            <div class="home-mode-head flex items-center justify-between w-full">
+                                <div class="home-mode-copy-wrap flex items-center min-w-0">
+                                    <span class="home-mode-icon text-2xl mr-2" aria-hidden="true">⏱️</span>
+                                    <div class="home-mode-copy min-w-0">
+                                        <div class="home-mode-title text-base md:text-lg font-extrabold text-emerald-700 tracking-wide">生存計時</div>
+                                        <div class="heading-sub text-[11px] md:text-xs text-emerald-700/80 mt-0.5">反應極限，答對補秒失誤扣秒</div>
+                                    </div>
                                 </div>
-
-                                <div class="ml-3 shrink-0"><span class="mode-kind-badge inline-block text-xs font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 rounded-full px-2 py-1">計時制</span></div>
-
+                                <span class="mode-kind-badge inline-block text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 rounded px-1.5 py-0.5 whitespace-nowrap">90秒倒數</span>
                             </div>
-
                         </button>
 
                         <!-- 裝備課程 -->
-
-                        <div id="equipCourseCard" role="button" tabindex="0" aria-pressed="false" class="mode-card-interactive p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 cursor-pointer transition">
-
-                            <div class="flex items-center justify-between mb-2">
-
-                                <div class="flex items-center">
-
-                                    <span class="heading-icon mr-1">📚</span>
-
-                                    <h3 class="home-mode-title text-base md:text-xl font-bold text-purple-700"><span class="heading-label">裝備課程</span></h3>
-
+                        <style>
+                            /* 當裝備模式未被選中時隱藏內部選項，使其保持與其他模式相同的小尺寸 */
+                            #equipCourseCard[aria-pressed="false"] .equip-tiers-content {
+                                display: none;
+                            }
+                        </style>
+                        <div id="equipCourseCard" role="button" tabindex="0" aria-pressed="false" class="mode-card-interactive py-1.5 px-3 md:py-2 md:px-4 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 flex flex-col justify-center">
+                            <div class="home-mode-head flex items-center justify-between pointer-events-none w-full">
+                                <div class="home-mode-copy-wrap flex items-center min-w-0">
+                                    <span class="home-mode-icon text-2xl mr-2">📚</span>
+                                    <div class="home-mode-copy min-w-0">
+                                        <div class="home-mode-title text-base md:text-lg font-extrabold text-purple-700 tracking-wide">裝備課程</div>
+                                        <div class="heading-sub text-[11px] md:text-xs text-purple-700/80 mt-0.5">教會裝備必背經文</div>
+                                    </div>
                                 </div>
-
-                                <div id="equipHeadingSub" class="heading-sub text-purple-500 opacity-80 text-xs md:text-sm font-semibold">經文題庫</div>
-
+                                <span class="mode-kind-badge inline-block text-[10px] font-bold text-purple-700 bg-purple-100 border border-purple-300 rounded px-1.5 py-0.5 whitespace-nowrap">經文題庫</span>
                             </div>
 
-                            <div class="flex flex-col gap-2">
-
-                                <div class="flex items-stretch gap-2">
-
-                                    <button id="equipTierGrowth" class="flex-1 cute-button bg-white border border-purple-300 text-purple-700 py-2 rounded-xl text-sm font-bold transition text-center px-3">成長班｜基礎紮根</button>
-
-                                    <button type="button" data-equip-info="growth" class="equip-info-btn cute-button bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold text-sm px-3 rounded-xl" aria-label="查看成長班題庫 (📗)">📗</button>
-
+                            <div class="equip-tiers-content mode-detail-panel mt-2.5 pt-2.5 border-t border-purple-200/60">
+                                <div class="mode-detail-chip-grid flex flex-row justify-between w-full gap-1.5 sm:gap-2 pr-2 pl-1">
+                                    <div class="relative flex-1">
+                                        <button id="equipTierGrowth" class="mode-detail-chip w-full cute-button bg-white border border-purple-300 text-purple-700 py-1.5 rounded-xl text-[11px] md:text-xs font-bold transition text-center truncate shadow-sm">成長班</button>
+                                        <button type="button" data-equip-info="growth" class="equip-info-btn mode-detail-info-btn absolute -top-2.5 -right-2 w-5 h-5 flex items-center justify-center bg-green-50 border border-green-200 hover:bg-green-100 rounded-full shadow text-[10px] z-10 transition-transform hover:scale-110" aria-label="題庫">📗</button>
+                                    </div>
+                                    <div class="relative flex-1">
+                                        <button id="equipTierDisciple" class="mode-detail-chip w-full cute-button bg-white border border-purple-300 text-purple-700 py-1.5 rounded-xl text-[11px] md:text-xs font-bold transition text-center truncate shadow-sm">門徒班</button>
+                                        <button type="button" data-equip-info="disciple" class="equip-info-btn mode-detail-info-btn absolute -top-2.5 -right-2 w-5 h-5 flex items-center justify-center bg-red-50 border border-red-200 hover:bg-red-100 rounded-full shadow text-[10px] z-10 transition-transform hover:scale-110" aria-label="題庫">📕</button>
+                                    </div>
+                                    <div class="relative flex-1">
+                                        <button id="equipTierLeader" class="mode-detail-chip w-full cute-button bg-white border border-purple-300 text-purple-700 py-1.5 rounded-xl text-[11px] md:text-xs font-bold transition text-center truncate shadow-sm">領袖班</button>
+                                        <button type="button" data-equip-info="leader" class="equip-info-btn mode-detail-info-btn absolute -top-2.5 -right-2 w-5 h-5 flex items-center justify-center bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-full shadow text-[10px] z-10 transition-transform hover:scale-110" aria-label="題庫">📘</button>
+                                    </div>
                                 </div>
-
-                                <div class="flex items-stretch gap-2">
-
-                                    <button id="equipTierDisciple" class="flex-1 cute-button bg-white border border-purple-300 text-purple-700 py-2 rounded-xl text-sm font-bold transition text-center px-3">門徒班｜進階操練</button>
-
-                                    <button type="button" data-equip-info="disciple" class="equip-info-btn cute-button bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold text-sm px-3 rounded-xl" aria-label="查看門徒班題庫 (📕)">📕</button>
-
-                                </div>
-
-                                <div class="flex items-stretch gap-2">
-
-                                    <button id="equipTierLeader" class="flex-1 cute-button bg-white border border-purple-300 text-purple-700 py-2 rounded-xl text-sm font-bold transition text-center px-3">領袖班｜深度裝備</button>
-
-                                    <button type="button" data-equip-info="leader" class="equip-info-btn cute-button bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold text-sm px-3 rounded-xl" aria-label="查看領袖班題庫 (📘)">📘</button>
-
-                                </div>
-
                             </div>
-
-                            <div class="equip-mode-detail mt-3 text-[12px] leading-relaxed text-purple-700/90 font-medium bg-white/60 rounded-lg p-3 border border-purple-200">
-
-                                分為三階段訓練：<span class="font-semibold">抽卷→選章→排序經文</span>。<br class="hidden sm:block"/>採卓越行道會裝備課程所用的背誦經文。
-
-                            </div>
-
                         </div>
 
-
-
                         <!-- 自訂專區（固定顯示） -->
-
-                        <div id="customAreaCard" role="button" tabindex="0" aria-pressed="false" class="mode-card-interactive p-4 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 cursor-pointer transition">
-
-                            <div class="flex items-center justify-between mb-2">
-
-                                <div class="flex items-center">
-
-                                    <span class="heading-icon mr-1">🧩</span>
-
-                                    <h3 class="home-mode-title text-base md:text-xl font-bold text-blue-700"><span class="heading-label">自訂專區</span></h3>
-
+                        <style>
+                            /* 當自訂模式未被選中時隱藏內部選項，使其保持與其他模式相同的小尺寸 */
+                            #customAreaCard[aria-pressed="false"] .custom-settings-content {
+                                display: none;
+                            }
+                        </style>
+                        <div id="customAreaCard" role="button" tabindex="0" aria-pressed="false" class="mode-card-interactive py-1.5 px-3 md:py-2 md:px-4 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 flex flex-col justify-center">
+                            <div class="home-mode-head flex items-center justify-between pointer-events-none w-full">
+                                <div class="home-mode-copy-wrap flex items-center min-w-0">
+                                    <span class="home-mode-icon text-2xl mr-2">🧩</span>
+                                    <div class="home-mode-copy min-w-0">
+                                        <div class="home-mode-title text-base md:text-lg font-extrabold text-blue-700 tracking-wide">自訂專區</div>
+                                        <div class="heading-sub text-[11px] md:text-xs text-blue-700/80 mt-0.5">自由挑選範圍與題數</div>
+                                    </div>
                                 </div>
-
-                                <div class="heading-sub text-blue-500 opacity-80 text-xs md:text-sm font-semibold">不列入排行</div>
-
+                                <span class="mode-kind-badge inline-block text-[10px] font-bold text-blue-700 bg-blue-100 border border-blue-300 rounded px-1.5 py-0.5 whitespace-nowrap">不列排行</span>
                             </div>
 
-
-
-                            <div class="custom-mode-summary text-[12px] leading-relaxed text-blue-700/90 font-medium bg-white/60 rounded-lg p-3 border border-blue-200 mb-2">
-
-                                選取後可快速勾選書卷，建立你的自訂題庫。
-
-                            </div>
-
-
-
-                            <div class="custom-settings-content">
-
-
-
+                            <div class="custom-settings-content mode-detail-panel mt-2.5 pt-2.5 border-t border-blue-200/60">
                             <!-- 快速選擇 -->
-
-                            <!-- 新版快速勾選：兩行九分類 -->
-
-                            <div class="mb-2 grid grid-cols-5 gap-2">
-
-                                <button id="qsOld" class="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded">舊約</button>
-
-                                <button id="qsLaw" class="text-xs bg-lime-100 hover:bg-lime-200 text-lime-700 px-2 py-1 rounded">律法</button>
-
-                                <button id="qsHistory" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 px-2 py-1 rounded">歷史</button>
-
-                                <button id="qsPoetry" class="text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 px-2 py-1 rounded">詩歌</button>
-
-                                <button id="qsProphets" class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded">先知</button>
-
+                            <div class="mode-detail-chip-grid mb-1 grid grid-cols-5 gap-1">
+                                <button id="qsOld" class="mode-detail-chip text-[10px] md:text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-1 py-1 rounded truncate">舊約</button>
+                                <button id="qsLaw" class="mode-detail-chip text-[10px] md:text-xs bg-lime-100 hover:bg-lime-200 text-lime-700 px-1 py-1 rounded truncate">律法</button>
+                                <button id="qsHistory" class="mode-detail-chip text-[10px] md:text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 px-1 py-1 rounded truncate">歷史</button>
+                                <button id="qsPoetry" class="mode-detail-chip text-[10px] md:text-xs bg-pink-100 hover:bg-pink-200 text-pink-700 px-1 py-1 rounded truncate">詩歌</button>
+                                <button id="qsProphets" class="mode-detail-chip text-[10px] md:text-xs bg-red-100 hover:bg-red-200 text-red-700 px-1 py-1 rounded truncate">先知</button>
                             </div>
-
-                            <div class="mb-3 grid grid-cols-4 gap-2">
-
-                                <button id="qsNew" class="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded">新約</button>
-
-                                <button id="qsGospels" class="text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-2 py-1 rounded">福音</button>
-
-                                <button id="qsPaul" class="text-xs bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2 py-1 rounded text-center">保羅書信</button>
-
-                                <button id="qsGeneral" class="text-xs bg-cyan-100 hover:bg-cyan-200 text-cyan-700 px-2 py-1 rounded text-center">普通書信</button>
-
+                            <div class="mode-detail-chip-grid grid grid-cols-4 gap-1">
+                                <button id="qsNew" class="mode-detail-chip text-[10px] md:text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-1 py-1 rounded truncate">新約</button>
+                                <button id="qsGospels" class="mode-detail-chip text-[10px] md:text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-1 py-1 rounded truncate">福音</button>
+                                <button id="qsPaul" class="mode-detail-chip text-[10px] md:text-xs bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-1 py-1 rounded text-center truncate">保羅信</button>
+                                <button id="qsGeneral" class="mode-detail-chip text-[10px] md:text-xs bg-cyan-100 hover:bg-cyan-200 text-cyan-700 px-1 py-1 rounded text-center truncate">普通信</button>
                             </div>
 
 
 
                             <!-- 自訂書卷面板（預設隱藏，選擇自訂時顯示） -->
 
-                            <div id="customBooksExpandCard" class="cute-card bg-white p-3 mt-2 hidden">
+                            <div id="customBooksExpandCard" class="mode-detail-subcard cute-card bg-white p-3 mt-2 hidden">
 
                                 <div class="flex justify-between items-center mb-2">
 
@@ -441,9 +445,9 @@
 
                                     <div class="flex items-center gap-2">
 
-                                        <button id="selectAllBooksExpand" class="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded">全選</button>
+                                        <button id="selectAllBooksExpand" class="mode-detail-subcard-btn text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded">全選</button>
 
-                                        <button id="clearAllBooksExpand" class="text-xs bg-red-400 hover:bg-red-500 text-white px-2 py-1 rounded">取消勾選</button>
+                                        <button id="clearAllBooksExpand" class="mode-detail-subcard-btn text-xs bg-red-400 hover:bg-red-500 text-white px-2 py-1 rounded">取消勾選</button>
 
                                     </div>
 
@@ -453,7 +457,7 @@
 
                                 <div class="mb-2">
 
-                                    <input type="text" id="bookSearchExpand" placeholder="搜尋書卷..." class="w-full p-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-400">
+                                    <input type="text" id="bookSearchExpand" placeholder="搜尋書卷..." class="mode-detail-search w-full p-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-400">
 
                                 </div>
 
@@ -607,11 +611,11 @@
 
         <div class="cute-card bg-white p-6 max-w-2xl mx-4 w-full text-left rounded-2xl border-2 border-sky-200 shadow-2xl modal-shell">
 
-            <div class="flex items-center justify-between mb-3">
+            <div class="modal-topbar score-guide-topbar">
 
                 <h3 id="scoreGuideTitle" class="text-xl font-bold text-gray-800">📊 計分說明</h3>
 
-                <button data-close-modal="scoreGuideModal" class="cute-button bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 font-bold rounded" aria-label="關閉計分說明視窗 (Esc)">✖</button>
+                <button data-close-modal="scoreGuideModal" class="cute-button modal-close-pill bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 font-bold rounded" aria-label="關閉計分說明視窗 (Esc)">✖</button>
 
             </div>
 
@@ -895,34 +899,23 @@
 
                 </div>
 
-                <div class="flex items-center justify-between mb-4 sticky top-0 z-30 bg-white/90 backdrop-blur-sm pt-2 pb-2">
+                <div class="modal-topbar achievements-topbar sticky top-0 z-30">
 
-                    <div class="flex items-center gap-3 flex-wrap w-full">
-
-                        <button class="back-main-btn" data-close-modal="achievementsModal" type="button" aria-label="返回 (Esc)">← 返回</button>
-
-                        <h3 id="achievementsModalHeading" class="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
-
-                            <span>勳章一覽</span>
-
+                    <div class="achievements-topbar-main">
+                        <h3 id="achievementsModalHeading" class="achievements-topbar-title text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
+                            <span>🏅 勳章一覽</span>
                         </h3>
 
-                        <!-- 將分類按鈕移到標題旁邊 -->
+                        <button data-close-modal="achievementsModal" class="cute-button modal-close-pill bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 font-bold rounded flex-shrink-0" aria-label="關閉勳章一覽視窗 (Esc)">✖</button>
+                    </div>
 
-                        <div id="achvCatalogTabs" class="mode-switch inline-flex items-center ml-1" role="tablist" aria-label="勳章分類切換">
-
-                            <button type="button" data-achv-cat="all" class="focus:outline-none" role="tab" aria-pressed="true" aria-selected="true">全部 <span class="achv-cat-count" data-role="count"></span></button>
-
-                            <button type="button" data-achv-cat="any" class="focus:outline-none" role="tab" aria-pressed="false" aria-selected="false">共通 <span class="achv-cat-count" data-role="count"></span></button>
-
-                            <button type="button" data-achv-cat="classic" class="focus:outline-none" role="tab" aria-pressed="false" aria-selected="false">闖關 <span class="achv-cat-count" data-role="count"></span></button>
-
-                            <button type="button" data-achv-cat="survival" class="focus:outline-none" role="tab" aria-pressed="false" aria-selected="false">生存 <span class="achv-cat-count" data-role="count"></span></button>
-
+                    <div class="achievements-topbar-tabs">
+                        <div id="achvCatalogTabs" class="mode-switch flex w-full justify-between items-center" role="tablist" aria-label="勳章分類切換" style="padding:4px;">
+                            <button type="button" data-achv-cat="all" class="flex-1 whitespace-nowrap text-center px-1 md:px-3 text-[13px] md:text-sm focus:outline-none" role="tab" aria-pressed="true" aria-selected="true">全部 <span class="achv-cat-count" data-role="count"></span></button>
+                            <button type="button" data-achv-cat="any" class="flex-1 whitespace-nowrap text-center px-1 md:px-3 text-[13px] md:text-sm focus:outline-none" role="tab" aria-pressed="false" aria-selected="false">共通 <span class="achv-cat-count" data-role="count"></span></button>
+                            <button type="button" data-achv-cat="classic" class="flex-1 whitespace-nowrap text-center px-1 md:px-3 text-[13px] md:text-sm focus:outline-none" role="tab" aria-pressed="false" aria-selected="false">闖關 <span class="achv-cat-count" data-role="count"></span></button>
+                            <button type="button" data-achv-cat="survival" class="flex-1 whitespace-nowrap text-center px-1 md:px-3 text-[13px] md:text-sm focus:outline-none" role="tab" aria-pressed="false" aria-selected="false">生存 <span class="achv-cat-count" data-role="count"></span></button>
                         </div>
-
-                        
-
                     </div>
 
                 </div>
@@ -1085,7 +1078,7 @@
 
                         </div>
 
-                        <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center justify-between mb-1.5 md:mb-2">
 
                             <div id="survivalTimerDisplay" class="text-2xl font-black text-rose-800">1:30</div>
 
@@ -1343,7 +1336,7 @@
 
             <div id="equipFlow" class="p-2 md:p-3 hidden">
 
-                <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center justify-between mb-1.5 md:mb-2">
 
                     <div class="flex items-center gap-2 equip-header-block">
 
@@ -1495,13 +1488,13 @@
 
                 </div>
 
-                <div class="mt-5 flex items-center justify-end gap-2 flex-wrap" id="settingsActionButtons">
+                <div class="mt-5 flex flex-row items-center justify-center gap-1.5 sm:gap-2 flex-nowrap w-full" id="settingsActionButtons">
 
-                    <button id="openDevCommands" data-open-modal="devCommandModal" data-visibility="menu-only" class="cute-button bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-4 py-2 font-bold text-sm shadow" type="button">開發者指令</button>
+                    <button id="openDevCommands" data-open-modal="devCommandModal" data-visibility="menu-only" class="flex-1 cute-button bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-1 sm:px-2 py-2 font-bold text-[12px] sm:text-sm shadow whitespace-nowrap text-center" type="button">開發者指令</button>
 
-                    <button id="settingsBackToMenu" class="cute-button bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white px-4 py-2 font-bold text-sm shadow">返回主選單</button>
+                    <button id="settingsBackToMenu" class="flex-1 cute-button bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white px-1 sm:px-2 py-2 font-bold text-[12px] sm:text-sm shadow whitespace-nowrap text-center">返回主選單</button>
 
-                    <button id="saveSettingsBtn" class="cute-button bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-4 py-2 font-bold text-sm shadow">儲存</button>
+                    <button id="saveSettingsBtn" class="flex-1 cute-button bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-1 sm:px-2 py-2 font-bold text-[12px] sm:text-sm shadow whitespace-nowrap text-center">儲存</button>
 
                 </div>
 
@@ -1580,20 +1573,7 @@
                 
 
                 <!-- 成就勳章（上移至經文上方） -->
-
-                <div id="achievementBox" class="mb-6 hidden order-[40]">
-
-                    <h3 class="text-lg font-extrabold text-gray-800 mb-3 flex items-center gap-2" id="achievementBoxTitle">
-
-                        ⭐ 本局勳章
-
-                    </h3>
-
-                    <div id="achievementGrid" class="grid grid-cols-4 sm:grid-cols-6 gap-2"></div>
-
-                    <div id="achievementHintEmpty" class="text-sm text-gray-500 font-semibold hidden">本局尚未解鎖勳章</div>
-
-                </div>
+                <div id="settlementAchievements" class="w-full mb-6 order-[40]" style="display: none;"></div>
 
 
 
@@ -1663,7 +1643,7 @@
 
                         <button id="confirmNameBtn" class="cute-button flex-1 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white px-3 py-2 font-extrabold text-base rounded-xl shadow-2xl leading-tight flex items-center justify-center gap-2" data-close-modal="playerNameModal" data-allow-close>
 
-                            <span class="text-lg">✅</span><span class="whitespace-nowrap">確認並返回主選單</span>
+                            <span class="text-lg">✅</span><span class="whitespace-nowrap">確認並返回</span>
 
                         </button>
 
@@ -1757,19 +1737,19 @@
 
     <script src="js/utils/idb-helper.js" defer></script>
 
-    <script src="js/core/data-loader.js" defer></script>
+    <script src="js/core/data-loader.js?v=44" defer></script>
 
     <script src="js/game/state.js" defer></script>
 
     <script src="js/game/metrics.js" defer></script>
 
-    <script src="js/core/startup.js" defer></script>
+    
 
     
 
     <script src="js/modules/achievements.js" defer></script>
 
-    <script src="js/modules/leaderboard.js" defer></script>
+    <script src="js/modules/leaderboard.js?v=44" defer></script>
 
     <script src="js/modules/diagnostics.js" defer></script>
 
@@ -1787,7 +1767,7 @@
 
     <script src="js/ui/achievement-ui.js" defer></script>
 
-    <script src="js/ui/start-screen.js" defer></script>
+    <script src="js/ui/start-screen.js?v=44" defer></script>
 
     <script src="js/ui/settlement-ui.js" defer></script>
 
@@ -1804,12 +1784,14 @@
     <script src="js/game/timer.js" defer></script>
 
     <script src="js/game/score.js" defer></script>
+    <script src="js/ui/board-ui.js" defer></script>
     <script src="js/ui/game-ui-binder.js" defer></script>
+    <script src="js/core/startup.js" defer></script>
     <script src="js/game/engine.js" defer></script>
 
 
 
-<script src="js/core/sw-register.js?v=42" defer></script>
+<script src="js/core/sw-register.js?v=44" defer></script>
     </body>
 
     </html>

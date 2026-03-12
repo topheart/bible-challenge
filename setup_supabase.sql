@@ -85,6 +85,10 @@ alter table if exists public.scores
 
 create index if not exists scores_client_record_id_idx on public.scores (client_record_id);
 
+create unique index if not exists scores_client_record_id_uidx
+    on public.scores (client_record_id)
+    where client_record_id is not null;
+
 alter table if exists public.scores
     add column if not exists avg_answer_ms integer;
 

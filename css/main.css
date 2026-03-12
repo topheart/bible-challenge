@@ -1,0 +1,3386 @@
+/* Mobile Performance optimizations */
+@media (max-width: 640px) {
+    *, *::before, *::after {
+        /* 禁止手機版背景模糊效果，改回彈性或無 */
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        /* 禁止不必要的陰影 */
+        box-shadow: none !important;
+    }
+    /* 但保留按鈕與卡片的基本輪廓陰影 (選用) 或僅移除 blur */
+    .cute-card, .cute-button, .difficulty-option, .range-option, #levelProgressCard, #survivalTimerCard, #scoreCardWrapper {
+        /* 恢復基本陰影 (原本 box-shadow: none !important 可能太激進) -> 改為僅移除昂貴濾鏡 */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important; 
+    }
+}
+/* Reduced motion overrides */
+        Emotional & Milestone VFX
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+        .reduced-motion .animated, .reduced-motion .fade, .reduced-motion .spin, .reduced-motion [data-anim] {
+            animation: none !important;
+        }
+        .reduced-motion .cute-button, .reduced-motion .difficulty-option, .reduced-motion .range-option {
+            transition: none !important;
+        }
+        /* Global app font for start menu and gameplay */
+        html, body, #startScreen, #gameScreen, button, input, select, textarea {
+            font-family: 'Noto Sans TC', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang TC', 'Microsoft JhengHei', 'Heiti TC', 'PMingLiU', sans-serif !important;
+        }
+
+        /* Essential Utility Classes (Fallback for Tailwind delay/failure) */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+            #startScreen .difficulty-option > div > .col-span-1 { flex-basis: 44px !important; min-width:44px !important; display:flex; align-items:center; justify-content:center; }
+            /* small hint under each difficulty button (visible on mobile compact layout) */
+            #startScreen .difficulty-option .difficulty-hint { display: none; }
+        }
+        
+        .verse-card {
+            transition: all 0.3s ease;
+            border-radius: 15px;
+            cursor: pointer;
+            position: relative; /* allow absolutely-positioned overlays like the ref label */
+        }
+
+        /* Easy-mode reference label: overlay at the bottom of the verse card without affecting layout */
+        .verse-ref-label {
+            position: absolute;
+            right: 10px; /* 靠右一點 */
+            bottom: 6px;
+            /* subtle readable chip */
+            background: rgba(255,255,255,0.75);
+            -webkit-backdrop-filter: saturate(120%) blur(2px);
+            backdrop-filter: saturate(120%) blur(2px);
+            padding: 2px 8px;
+            border-radius: 9999px;
+            line-height: 1;
+            pointer-events: none; /* decorative only */
+            z-index: 5;
+            white-space: nowrap;
+            max-width: calc(100% - 1.4rem);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 0 !important; /* ignore any margin classes when overlaid */
+        }
+
+        /* Mobile comfort adjustments */
+    @media (max-width: 640px) {
+            html, body { -webkit-text-size-adjust: 100%; }
+
+            /* Bigger tappable buttons */
+            .cute-button {
+                padding: 0.9rem 1rem !important;
+                min-height: 48px !important;
+                font-size: 1rem !important;
+                border-radius: 14px !important;
+            }
+
+            /* Slightly smaller card radius and lighter shadows for mobile performance */
+            .cute-card {
+                    border-radius: 12px !important;
+                    box-shadow: 0 10px 30px rgba(16,24,40,0.06) !important;
+            }
+
+            /* Make modals full-screen and scrollable on small devices */
+            #playerNameModal .cute-card,
+            #clearLeaderboardModal .cute-card,
+            #customBooksModal .cute-card,
+            #confirmBackModal .cute-card {
+                width: 100% !important;
+                max-width: none !important;
+                height: 100% !important;
+                max-height: none !important;
+                border-radius: 0 !important;
+                margin: 0 !important;
+                padding: 1rem !important;
+                box-shadow: none !important;
+                border-left: none !important;
+                border-right: none !important;
+                overflow-y: auto !important;
+            }
+
+            /* Reduce heavy decorative animations/particles on mobile only to protect performance */
+            .confetti, .party-popper, .celebration-popup { display: none !important; }
+
+            /* 計分說明改為獨立卡片固定顯示；移除舊版手機展開按鈕樣式 */
+            #scoringCard .scoring-body { display: block !important; }
+            #toggleScoringBtn { display: none !important; }
+            /* End modal: make closing-verse text smaller to reduce scrolling */
+            @media (max-width: 420px) {
+                #playerNameModal #closingVerseText { font-size: 0.98rem !important; line-height: 1.55 !important; }
+                #playerNameModal #closingVerse { padding: 0.6rem !important; }
+            }
+
+            /* Slightly larger verse cards and touch area */
+            .verse-card, .chapter-card {
+                min-height: 64px;
+                padding: 0.75rem;
+            }
+
+            /* unified button style for clarity */
+            .cute-button {
+                box-shadow: 0 8px 24px rgba(2,6,23,0.08) !important;
+                transition: transform 160ms ease, box-shadow 160ms ease !important;
+            }
+
+            .cute-button:active {
+                transform: translateY(1px) scale(0.998) !important;
+                box-shadow: 0 6px 18px rgba(2,6,23,0.06) !important;
+            }
+
+            /* focus-visible for keyboard users on mobile (accessibility) */
+            .cute-button:focus-visible {
+                outline: 3px solid rgba(99,102,241,0.22) !important;
+                outline-offset: 4px !important;
+            }
+
+            /* Restore thin pale borders for unselected difficulty/range options on mobile (overrides .cute-button { border: none !important }) */
+            #startScreen .difficulty-option:not(.selected),
+            #startScreen .range-option:not(.selected) {
+                border-style: solid !important;
+                border-width: 2px !important;
+                /* keep the color provided by utility classes (border-*-300) so the pale tint remains */
+            }
+
+            /* Mobile: single-column game area and larger interactive regions (scoped to startScreen only) */
+            #startScreen .grid, #startScreen .game-area, #startScreen .game-controls {
+                display: block !important;
+                width: 100% !important;
+                padding: 0 0.5rem !important;
+            }
+
+        /* Mobile adjustments for difficulty cards: hide the '配對XX' label and simplify descriptions */
+        @media (max-width: 640px) {
+            /* hide the prominent pair label on mobile to save space */
+            #startScreen .difficulty-option .difficulty-badges > div:first-child {
+                display: none !important;
+            }
+            /* hide the first description line and keep only the concise final line */
+            #startScreen .difficulty-option .difficulty-badges > div:nth-child(2) {
+                display: none !important;
+            }
+            #startScreen .difficulty-option .difficulty-badges > div:nth-child(3) {
+                display: block !important;
+                font-size: 0.82rem !important; /* smaller on mobile */
+                line-height: 1.15 !important;
+                white-space: nowrap !important; /* keep single line */
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+            }
+            /* ensure concise description colors follow difficulty */
+            #startScreen .difficulty-option[data-difficulty="easy"] .difficulty-badges > div:nth-child(3) { color: #047857 !important; }
+            #startScreen .difficulty-option[data-difficulty="normal"] .difficulty-badges > div:nth-child(3) { color: #b45309 !important; }
+            #startScreen .difficulty-option[data-difficulty="hard"] .difficulty-badges > div:nth-child(3) { color: #b91c1c !important; }
+        }
+
+            /* Compact mobile: stack difficulty options vertically as thin horizontal strips (three rows)
+               Each button is full-width, single row layout with icon on the left and label + hint on the right.
+               This is mobile-only and does not affect desktop layout. */
+            #startScreen .cute-card > .space-y-3 {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0.18rem !important; /* even smaller spacing between difficulty cards */
+                align-items: stretch !important;
+                justify-content: flex-start !important;
+            }
+
+            #startScreen .cute-card > .space-y-3 .difficulty-option {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                justify-content: flex-start !important;
+                width: 100% !important;
+                padding: 0.3rem 0.6rem !important; /* slightly tighter internal padding */
+                height: 56px !important;
+                min-height: 56px !important;
+                max-height: 56px !important;
+                box-sizing: border-box !important;
+                gap: 0.6rem !important; /* reduce inner gap */
+                border-radius: 12px !important;
+                box-shadow: 0 6px 18px rgba(0,0,0,0.05) !important;
+            }
+
+            /* keep compact badges visible in mobile strip layout */
+            #startScreen .cute-card > .space-y-3 .difficulty-option .difficulty-badges {
+                display: flex !important;
+                gap: 0.2rem 0.4rem !important; /* a bit looser so 失誤/提示不會過近 */
+            }
+            /* Loosen the two visible lines (失誤/提示) */
+            #difficultyCard .difficulty-badges > div {
+                line-height: 1.18 !important;
+                margin: 0 !important;
+            }
+            /* Add a touch more spacing before 提示 (third child; second is hidden on mobile) */
+            #difficultyCard .difficulty-badges > div:nth-child(3) {
+                margin-top: 0.1rem !important;
+            }
+
+            /* Layout the original grid children as horizontal content: left icon area and main label area */
+            #startScreen .cute-card > .space-y-3 .difficulty-option .grid {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                width: 100% !important;
+                gap: 0.75rem !important;
+            }
+
+            /* left icon column — fixed width */
+            #startScreen .cute-card > .space-y-3 .difficulty-option > .grid > .col-span-1 {
+                flex: 0 0 52px !important;
+                min-width: 52px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+
+            /* main content area */
+            #startScreen .cute-card > .space-y-3 .difficulty-option > .grid > .col-span-4 {
+                flex: 1 1 auto !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                justify-content: center !important;
+                padding-right: 0.5rem !important;
+            }
+
+            /* icon and label sizing for consistency */
+            #startScreen .cute-card > .space-y-3 .difficulty-option .text-3xl { font-size: 1.4rem !important; line-height: 1 !important; }
+            #startScreen .cute-card > .space-y-3 .difficulty-option .text-lg { font-size: 0.95rem !important; margin-top: 0 !important; }
+
+            /* place the small hint inline under the label but keep it subtle */
+            #startScreen .cute-card > .space-y-3 .difficulty-option .difficulty-hint {
+                display: inline-block !important;
+                font-size: 0.8rem !important;
+                margin-top: 2px !important;
+                opacity: 0.9 !important;
+            }
+
+            /* Mobile-only: show a large right-aligned difficulty hint (e.g., 配對經文) */
+            #startScreen .difficulty-mobile-strip { display: none !important; }
+            #startScreen .cute-card > .space-y-3 .difficulty-option .mobile-rarity { white-space: nowrap !important; }
+            #startScreen .cute-card > .space-y-3 .difficulty-option .difficulty-hint {
+                display: block !important;
+                position: absolute !important;
+                right: 0.85rem !important;
+                top: 50% !important;
+                transform: translateY(-50%) !important;
+                margin: 0 !important;
+                font-weight: 800 !important;
+                letter-spacing: 0.08em !important;
+                white-space: nowrap !important;
+                text-align: right !important;
+                max-width: 48% !important; /* prevent overflow on very small screens */
+                /* responsive size: bigger on mobile but not overwhelming */
+                font-size: clamp(1.05rem, 4.6vw, 1.35rem) !important;
+                color: rgba(31,41,55,0.9) !important; /* default gray, overridden per difficulty below */
+                text-shadow: 0 1px 0 rgba(255,255,255,0.6) !important;
+                pointer-events: none !important;
+                z-index: 32 !important;
+            }
+            /* Color the big hint to match each difficulty */
+            #startScreen .cute-card > .space-y-3 .difficulty-option[data-difficulty="easy"] .difficulty-hint { color: #047857 !important; /* green-700 */ }
+            #startScreen .cute-card > .space-y-3 .difficulty-option[data-difficulty="normal"] .difficulty-hint { color: #b45309 !important; /* amber-700 */ }
+            #startScreen .cute-card > .space-y-3 .difficulty-option[data-difficulty="hard"] .difficulty-hint { color: #b91c1c !important; /* red-700 */ }
+
+            /* Show the strip in the mobile stacked layout */
+            #startScreen .cute-card > .space-y-3 .difficulty-option .difficulty-mobile-strip {
+                display: block !important;
+                width: 100% !important;
+                padding: 0.45rem !important;
+                border-radius: 12px !important;
+                background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.4)) !important;
+                box-shadow: 0 6px 18px rgba(2,6,23,0.04) !important;
+            }
+
+            /* ensure difficulty-option and its strip sit above nearby cute-card backgrounds on mobile */
+            #startScreen .cute-card > .space-y-3 .difficulty-option {
+                position: relative !important;
+                z-index: 30 !important; /* above the parent cute-card but below modals */
+                /* reserve space on the right for the big label 配對ＸＸ */
+                padding-right: clamp(4.5rem, 28vw, 9rem) !important;
+            }
+            #startScreen .cute-card > .space-y-3 .difficulty-option .difficulty-mobile-strip {
+                position: relative !important;
+                z-index: 31 !important; /* make the strip visually above the tile edges */
+            }
+
+            /* adjust inner strip layout */
+            #startScreen .difficulty-mobile-strip .mobile-strip-icon { width: 36px; display: inline-flex; align-items: center; justify-content: center; opacity: 0.95; }
+            /* keep the original icon area visible */
+            /* (previous override that hid .col-span-1 removed) */
+
+            #startScreen .difficulty-mobile-strip .mobile-strip-content { display: flex; align-items: center; gap: 0.5rem; width: 100%; }
+            #startScreen .difficulty-mobile-strip .mobile-strip-left { display: flex; flex-direction: column; }
+            #startScreen .difficulty-mobile-strip .mobile-strip-right { display: flex; align-items: center; }
+
+            /* per-difficulty strip tints (subtle) */
+            #startScreen .cute-card > .space-y-3 .difficulty-option[data-difficulty="easy"] .difficulty-mobile-strip {
+                background: linear-gradient(180deg, rgba(236,253,245,0.9), rgba(255,255,255,0.55)) !important;
+            }
+            #startScreen .cute-card > .space-y-3 .difficulty-option[data-difficulty="normal"] .difficulty-mobile-strip {
+                background: linear-gradient(180deg, rgba(255,250,235,0.9), rgba(255,255,255,0.55)) !important;
+            }
+            #startScreen .cute-card > .space-y-3 .difficulty-option[data-difficulty="hard"] .difficulty-mobile-strip {
+                background: linear-gradient(180deg, rgba(255,244,244,0.9), rgba(255,255,255,0.55)) !important;
+            }
+
+            /* better spacing for labels */
+            #startScreen .difficulty-mobile-strip .mobile-label { font-size: 0.98rem !important; }
+            #startScreen .difficulty-mobile-strip .mobile-hint { font-size: 0.78rem !important; color: rgba(31,41,55,0.65) !important; }
+            #startScreen .difficulty-mobile-strip .mobile-rarity { font-size: 0.72rem !important; opacity: 0.95 !important; }
+
+            /* On mobile, hide the middle badge line (配對經文/書卷/章節) to avoid duplication with the large right label */
+            #startScreen .cute-card > .space-y-3 .difficulty-option .difficulty-badges > div:nth-child(2) { display: none !important; }
+
+            /* ensure the cute-card itself doesn't force extra vertical stacking for difficulty area */
+            #startScreen .cute-card.bg-white.p-6 { padding-bottom: 0.5rem !important; }
+
+            /* Add vertical spacing between the white info cards on the start screen for better separation on mobile */
+            #startScreen .cute-card {
+                margin-bottom: 0.9rem !important;
+            }
+
+            /* Defensive: if the start screen is visible, ensure the game screen is hidden to avoid scrolling into it.
+               Use the general sibling selector so the rule still applies when modals or other elements are between them. */
+            #startScreen:not(.hidden) ~ #gameScreen {
+                display: none !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
+            }
+
+            /* Verse cards become full-width tappable rows */
+            .verse-card {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                width: 100% !important;
+                margin-bottom: 0.6rem !important;
+                padding: 0.9rem !important;
+                font-size: 1.05rem !important;
+                touch-action: manipulation !important;
+                /* reserve a little space at the bottom so the overlaid ref-label won't cover text */
+                padding-bottom: calc(0.9rem + 1.1rem) !important;
+            }
+
+            /* Title container adjustments for small screens: allow wrapping and reduce spacing */
+            .title-container {
+                display: block !important;
+                width: 100% !important;
+                padding: 0.8rem 1rem !important;
+                overflow: visible !important;
+                border-radius: 12px !important;
+            }
+
+            /* Compact labels and improved button style for difficulty and range cards on mobile */
+            #difficultyCard h2, #rangeCard h2 {
+                font-size: 1.25rem !important;
+                letter-spacing: 0.03em !important;
+                margin-bottom: 0.6rem !important;
+            }
+            /* Make the range buttons visually tighter and unified on mobile */
+            #rangeCard .range-option {
+                padding: 0.6rem !important;
+                border-radius: 12px !important;
+                font-size: 0.95rem !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 0.5rem !important;
+                box-shadow: 0 6px 18px rgba(2,6,23,0.04) !important;
+            }
+
+            /* differentiate the practice/testament options with subtle tint and smaller badges */
+            #rangeCard .range-option .label { font-weight: 700 !important; }
+            #rangeCard .range-option.selected { box-shadow: 0 10px 28px rgba(0,0,0,0.08) !important; transform: translateY(-2px) !important; }
+            #rangeCard .range-option .label { padding: 0.2rem 0.4rem !important; border-radius: 8px !important; }
+
+            #startScreen h1 {
+                font-size: 1.6rem !important;
+                line-height: 1.05 !important;
+                letter-spacing: 0.04em !important;
+                white-space: normal !important;
+                text-shadow: 0 0 8px rgba(255,255,255,0.4) !important;
+                padding: 0.1rem 0.2rem !important;
+                display: block !important;
+                word-break: keep-all !important;
+            }
+
+            /* make the little emoji icons slightly smaller to avoid wrapping issues */
+            #titleLeftIcon, #titleRightIcon { font-size: 1.1rem !important; margin: 0 .25rem !important; }
+
+            /* Mobile swipe panels: show only one panel (front OR back) full-width at a time, hide headings */
+            @media (max-width: 760px){
+                .verses-carousel { scroll-snap-type:x mandatory; }
+                .verses-carousel .panel { min-width:100% !important; scroll-snap-align:start; }
+                .verses-carousel .panel .panel-title { display:none !important; }
+                body.equip-running #gameInfoTitle { display:none !important; }
+                body.equip-running #questionProgressCard { padding:0.5rem 0.6rem !important; }
+                body.equip-running #adaptiveStatusText { font-size:0.82rem !important; line-height:1.35 !important; }
+                body.equip-running #equipFlow { margin-top:0.25rem !important; }
+                body.equip-running #versesCarousel { display:none !important; }
+                body.equip-running #verseTitle, body.equip-running #chapterTitle { display:none !important; }
+                /* 新增：在手機上進行闖關/生存遊戲時也隱藏『經文 / 章節』標題 */
+                body.core-mode-playing #verseTitle, body.core-mode-playing #chapterTitle { display:none !important; }
+                /* Hide info icon + equip header elements entirely on mobile in equip mode */
+                body.equip-running .info-icon,
+                body.equip-running .equip-header-block,
+                body.equip-running .equip-header-icon,
+                body.equip-running .equip-header-text { display:none !important; }
+                /* 手機節省空間：隱藏裝備模式階段區（進度條、階段徽章、副標） */
+                body.equip-running #equipStepProgress.equip-stepper,
+                body.equip-running .equip-header-stage,
+                body.equip-running .equip-header-sub {
+                    display:none !important;
+                }
+            }
+
+            /* --- Mobile: force entire game screen to fit within one viewport --- */
+            #gameScreen {
+                height: 100vh !important;
+                padding: 0.3rem !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                overflow: hidden !important;
+            }
+            /* 裝備課程手機：允許垂直捲動避免最下方按鈕被遮擋 */
+            body.equip-running #gameScreen { overflow-y:auto !important; justify-content:flex-start !important; }
+            body.equip-running #equipFlow { padding-bottom:5rem !important; }
+
+            /* Make the main content area grow to fill the available space so the carousel can use full height */
+            #gameScreen > .max-w-7xl {
+                margin: 0 !important;
+                padding: 0.25rem !important;
+                max-width: 100% !important;
+                display: flex !important;
+                flex-direction: column !important;
+                flex: 1 1 auto !important;
+                overflow: visible !important; /* allow score card rounded corners/shadow to show */
+            }
+
+            /* Let the carousel and panels grow to fill the middle area */
+            .verses-carousel {
+                flex: 1 1 auto !important;
+                display: flex !important;
+                overflow-x: auto !important;
+            }
+            .verses-carousel .panel {
+                display: flex !important;
+                flex-direction: column !important;
+                height: 100% !important;
+                overflow-y: auto !important; /* allow the content inside each panel to scroll vertically */
+                padding-top: 0.4rem !important; /* reduce extra top space above titles */
+                padding-bottom: 0.6rem !important; /* small internal bottom padding */
+            }
+
+            /* Ensure the lists inside panels have safe bottom padding so the last item is reachable above pinned controls */
+            .verses-list, .chapter-list {
+                padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)) !important; /* provide space for pinned controls */
+                overflow-y: auto !important;
+            }
+
+            /* Extra small spacer element at the end of lists if needed (keeps last card tappable) */
+            .verses-list::after, .chapter-list::after { content: ''; display: block; height: 0.8rem; }
+
+                /* Hide non-essential info on mobile to ensure the gameplay fits in one viewport.
+                    Keep level & question progress, and the hint/back buttons visible per request. */
+                #gameInfoSettings, #gameInfoCard {
+                display: none !important;
+                visibility: hidden !important;
+                height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+            }
+
+            /* Ensure level progress card stays visible but compact */
+            #levelProgressCard {
+                display: block !important;
+                padding: 0.5rem !important;
+                margin-bottom: 0.35rem !important;
+            }
+
+            /* Save space: hide the level-progress heading row (icon + label), keep only the ovals */
+            #levelProgressCard .flex.items-center { display: none !important; }
+            #levelProgressCard #levelOvals { margin-top: 0 !important; }
+            #levelProgressCard .flex.space-x-2 { gap: 0.35rem !important; }
+
+            /* Ensure the ovals grid is always visible and has a minimum height on small screens */
+            #levelOvals { display: grid !important; grid-template-columns: repeat(5, minmax(0, 1fr)) !important; min-height: 1.75rem !important; gap: 0.35rem !important; }
+
+            /* Mobile: hide dynamic difficulty status card (right column) */
+            #questionProgressCard { display: none !important; visibility: hidden !important; height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
+            /* 裝備課程強制顯示（覆蓋上面 mobile 隱藏設定） */
+            #questionProgressCard.equip-force-show { display:block !important; visibility:visible !important; height:auto !important; margin:0 0 0.5rem 0 !important; padding:0.6rem 0.75rem !important; overflow:visible !important; }
+            #questionProgressCard.equip-force-show #adaptiveStatusText { white-space:normal !important; overflow:visible !important; }
+            #questionProgressCard.equip-force-show .equip-wrap-line { white-space:normal !important; overflow:visible !important; text-overflow:clip !important; display:block !important; }
+            #questionProgressCard.equip-force-show .equip-wrap-multi { display:block !important; white-space:normal !important; line-height:1.5 !important; }
+            #questionProgressCard.equip-force-show .equip-wrap-multi div { white-space:normal !important; }
+            #questionProgressCard.equip-force-show .equip-status-card {
+                border: 1px solid rgba(139, 92, 246, 0.24);
+                background:
+                    radial-gradient(circle at 90% 14%, rgba(167,139,250,.20), transparent 38%),
+                    linear-gradient(140deg, rgba(250,245,255,.96), rgba(239,246,255,.93));
+                border-radius: 13px;
+                padding: 9px 11px;
+                box-shadow: 0 8px 20px -16px rgba(76,29,149,.52), 0 1px 0 rgba(255,255,255,.62) inset;
+            }
+            #questionProgressCard.equip-force-show .equip-status-top {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 8px;
+                margin-bottom: 6px;
+            }
+            #questionProgressCard.equip-force-show .equip-phase-pill {
+                display: none !important;
+            }
+            #questionProgressCard.equip-force-show .equip-count-pill {
+                display: inline-flex;
+                align-items: center;
+                font-size: 11px;
+                font-weight: 800;
+                color: #1e3a8a;
+                background: rgba(219,234,254,.82);
+                border: 1px solid rgba(147,197,253,.9);
+                border-radius: 9999px;
+                padding: 2px 8px;
+                letter-spacing: .01em;
+                box-shadow: 0 1px 0 rgba(255,255,255,.65) inset;
+            }
+            #questionProgressCard.equip-force-show .equip-kv-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 6px;
+            }
+            #questionProgressCard.equip-force-show .equip-kv {
+                border-radius: 9px;
+                border: 1px solid rgba(196,181,253,.62);
+                background: rgba(255,255,255,.82);
+                padding: 6px 8px;
+                min-width: 0;
+            }
+            #questionProgressCard.equip-force-show .equip-kv span {
+                display: block;
+                font-size: 10px;
+                line-height: 1.15;
+                color: rgba(76,29,149,.78);
+                font-weight: 700;
+            }
+            #questionProgressCard.equip-force-show .equip-kv strong {
+                display: block;
+                margin-top: 2px;
+                font-size: 12px;
+                line-height: 1.25;
+                color: #4c1d95;
+                font-weight: 800;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            #questionProgressCard.equip-force-show .equip-order-track {
+                margin-top: 7px;
+                height: 8px;
+                border-radius: 9999px;
+                overflow: hidden;
+                border: 1px solid rgba(147,197,253,.75);
+                background: rgba(219,234,254,.62);
+            }
+            #questionProgressCard.equip-force-show .equip-order-fill {
+                height: 100%;
+                border-radius: 9999px;
+                background: linear-gradient(90deg, #8b5cf6, #3b82f6);
+                transition: width .25s ease;
+            }
+            #questionProgressCard.equip-force-show .equip-order-fill.equip-order-fill-live {
+                position: relative;
+                overflow: hidden;
+            }
+            #questionProgressCard.equip-force-show .equip-order-fill.equip-order-fill-live::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                left: -45%;
+                width: 45%;
+                background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.45), rgba(255,255,255,0));
+                animation: equipOrderShimmer 1.25s ease-in-out infinite;
+            }
+            #questionProgressCard.equip-force-show .equip-order-head {
+                margin-top: 6px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-size: 11px;
+                font-weight: 800;
+                color: #4c1d95;
+            }
+            #questionProgressCard.equip-force-show .equip-order-text {
+                margin-top: 6px;
+                font-size: 11px;
+                line-height: 1.4;
+                color: rgba(55,48,163,.92);
+                font-weight: 700;
+                white-space: normal;
+                word-break: break-word;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+                align-items: center;
+            }
+            #questionProgressCard.equip-force-show .equip-frag-chip {
+                display: inline-flex;
+                align-items: center;
+                max-width: 100%;
+                border-radius: 9999px;
+                border: 1px solid rgba(147,197,253,.92);
+                background: rgba(239,246,255,.95);
+                color: #1d4ed8;
+                padding: 2px 8px;
+                font-size: 10.5px;
+                line-height: 1.3;
+                font-weight: 800;
+            }
+            #questionProgressCard.equip-force-show .equip-frag-empty {
+                font-size: 11px;
+                color: rgba(76,29,149,.75);
+            }
+            #questionProgressCard.equip-force-show .equip-frag-more {
+                font-size: 10.5px;
+                color: rgba(76,29,149,.74);
+                font-weight: 800;
+            }
+            #questionProgressCard.equip-force-show .equip-inline-note {
+                margin-top: 2px;
+                font-size: 11px;
+                line-height: 1.35;
+                color: rgba(76,29,149,.86);
+                font-weight: 700;
+            }
+            @media (max-width: 760px) {
+                /* 手機版裝備課程：移除外層題目進度綠色底卡，節省可視高度 */
+                body.equip-running #questionProgressCard.equip-force-show {
+                    margin: 0 0 0.22rem 0 !important;
+                    padding: 0 !important;
+                    border: 0 !important;
+                    border-radius: 0 !important;
+                    background: transparent !important;
+                    box-shadow: none !important;
+                }
+                body.equip-running #questionProgressCard.equip-force-show #adaptiveStatusText {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+            }
+            @keyframes equipOrderShimmer {
+                0% { transform: translateX(0); opacity: .1; }
+                45% { opacity: .6; }
+                100% { transform: translateX(360%); opacity: .1; }
+            }
+            /* 強制顯示通用類（題庫 modal fallback 用） */
+            .force-show { display:flex !important; opacity:1 !important; visibility:visible !important; pointer-events:auto !important; }
+
+            /* Pin controls (hint + back) to the bottom for easy reach without hiding them */
+            #gameControlsPinned {
+                position: fixed !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                z-index: 9999 !important;
+                padding: 0.5rem !important;
+                background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.9)) !important;
+                backdrop-filter: blur(6px) !important;
+                box-shadow: 0 -6px 24px rgba(2,6,23,0.06) !important;
+            }
+
+            /* Keep hint and back buttons large and side-by-side inside the pinned controls */
+            #gameControlsPinned .cute-button {
+                width: 48% !important;
+                display: inline-block !important;
+                font-size: 1rem !important;
+                padding: 0.7rem 0.9rem !important;
+            }
+
+            /* Mobile: make the hint/back buttons horizontal (icon + text inline), same-height and more compact */
+            #gameControlsPinned { padding: 0.35rem !important; }
+            #gameControlsPinned .cute-button {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                flex-direction: row !important;
+                gap: 0.4rem !important;
+                height: 44px !important; /* uniform height */
+                padding: 0 0.6rem !important; /* horizontal padding only */
+                font-size: 0.95rem !important;
+                width: 48% !important;
+                white-space: nowrap !important;
+            }
+
+            /* Ensure the inline content inside the button stays on one line */
+            #gameControlsPinned .cute-button > span { display: inline-flex !important; align-items: center !important; gap: 0.4rem !important; flex-direction: row !important; white-space: nowrap !important; }
+
+            /* Shrink the hint-count badge to match button height */
+            #hintCount {
+                height: 36px !important;
+                min-width: 36px !important;
+                padding: 0 0.6rem !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                font-size: 0.88rem !important;
+            }
+
+            /* Slightly reduce pinned area vertical footprint */
+            #gameControlsPinned { background: linear-gradient(180deg, rgba(255,255,255,0.66), rgba(255,255,255,0.92)) !important; }
+
+            /* Reduce margins around verse/chapter areas to save vertical space */
+            .max-w-7xl.mx-auto.mb-6.relative.z-10 { margin-bottom: 0.5rem !important; padding: 0 !important; }
+            .p-8.relative.overflow-hidden { padding: 0.5rem !important; }
+
+            /* Reduce top info area and make it compact */
+            #gameScreen > .max-w-7xl {
+                margin: 0 !important;
+                padding: 0.25rem !important;
+                max-width: 100% !important;
+            }
+
+            /* compact the three-column header into a vertical stack that fits */
+            #gameScreen .flex.items-center.justify-between.gap-6 {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0.5rem !important;
+                align-items: stretch !important;
+            }
+
+            /* Reduce whitespace above panel titles and make titles compact */
+            .panel-title { margin: 0.15rem 0 0.25rem 0 !important; padding: 0 !important; }
+            .panel .mb-8 { margin-bottom: 0.3rem !important; }
+
+            /* shrink score panel and allow it to scale responsively */
+            #gameScreen .cute-card[style*="min-w"] {
+                min-width: auto !important;
+                padding: 0.6rem !important;
+            }
+
+            #centerScore {
+                font-size: clamp(2.2rem, 10vw, 3.6rem) !important;
+                line-height: 1 !important;
+            }
+
+            /* reduce progress card sizes and paddings */
+            #gameScreen .cute-card.p-5, #gameScreen .cute-card.p-4 {
+                padding: 0.5rem !important;
+            }
+
+            /* compress titles and verse/chapter areas */
+            #verseTitle, #chapterTitle {
+                font-size: clamp(1rem, 4.5vw, 1.4rem) !important;
+                margin-bottom: 0.35rem !important;
+                letter-spacing: 0.06em !important;
+            }
+
+            /* make verse and chapter containers smaller and ensure cards wrap compactly */
+            #gameVerses, #gameChapters {
+                gap: 6px !important;
+                justify-content: center !important;
+            }
+
+            .verse-card {
+                /* 先前的較扁設定移除，改由後方統一規則（.verses-list .verse-card）套用；保留字體大小即可 */
+                font-size: 0.95rem !important;
+            }
+
+            /* controls area pinned at bottom and easy to tap */
+            #gameScreen .cute-card.bg-white\/60.rounded-xl.p-3.border {
+                padding: 0.45rem !important;
+            }
+
+            /* ensure control buttons are large and full-width on mobile */
+            .cute-card .cute-button, .cute-card button.cute-button {
+                padding: 0.7rem 0.9rem !important;
+                font-size: 1rem !important;
+            }
+
+            /* hide oversized decorative fixed icons to free space */
+            #gameScreen .fixed.inset-0.pointer-events-none.z-0 { display: none !important; }
+
+            /* reduce modal/popup sizes if they appear during gameplay */
+            .cute-card.max-w-2xl { max-width: 92% !important; padding: 0.8rem !important; }
+
+            /* Choice / answer buttons larger and more touch-friendly */
+            .choice-button, .choice-btn, .answer-btn {
+                width: 100% !important;
+                display: block !important;
+                padding: 0.95rem 1rem !important;
+                font-size: 1.05rem !important;
+                border-radius: 12px !important;
+                margin-bottom: 0.6rem !important;
+                touch-action: manipulation !important;
+            }
+
+            /* Ensure verse (question) and chapter (answer) cards follow the same sizing rule on mobile
+               — full width, variable height for longer text, and consistent gap. */
+            .verses-list .verse-card,
+            .chapter-list .chapter-card {
+                width: 100% !important;
+                max-width: 100% !important;
+                min-height: 44px !important; /* fixed min height; grows with content */
+                display: block !important;
+                margin-bottom: 0.6rem !important;
+            }
+
+            /* Start button full width and large on mobile */
+            #startGameBtn {
+                font-size: 1.25rem !important;
+                padding: 1rem 1.25rem !important;
+                border-radius: 14px !important;
+            }
+
+            /* remove hover-only effects that interfere with touch */
+            .cute-button:hover, .difficulty-option:hover, .range-option:hover { transform: none !important; box-shadow: 0 6px 18px rgba(0,0,0,0.06) !important; }
+        }
+
+    /* Make selected state on mobile as prominent as desktop: thicker border + larger shadow */
+    @media (max-width: 760px) {
+            .chapter-list .chapter-card {
+                width: 100% !important;
+                max-width: 100% !important;
+                display: block !important;
+                padding: 0.9rem 1rem !important;
+                box-shadow: 0 6px 18px rgba(14, 30, 37, 0.06);
+                border-radius: 0.5rem;
+                overflow-x: hidden !important; /* ensure card content doesn't create horizontal overflow */
+                box-sizing: border-box !important;
+            }
+            /* 讓前段經文（question）卡片在手機上與後段經文（answer）卡片完全一致的尺寸與樣式 */
+            .verses-list .verse-card {
+                width: 100% !important;
+                max-width: 100% !important;
+                display: block !important;
+                padding: 0.9rem 1rem !important; /* 與 chapter-card 一樣 */
+                box-shadow: 0 6px 18px rgba(14, 30, 37, 0.06) !important; /* 統一陰影 */
+                border-radius: 0.5rem !important; /* 與 chapter-card 相同倒角 */
+                overflow-x: hidden !important;
+                box-sizing: border-box !important;
+                min-height: 64px !important; /* 與共用基礎設定一致，避免過扁 */
+            }
+            /* 移除前段經文卡片可能遺留的特殊 margin / 間距差異（保險） */
+            .verses-list .verse-card + .verse-card { margin-top: 0 !important; }
+
+            /* Small spacing and larger tap targets on mobile */
+            .verses-list,
+            .chapter-list {
+                display: flex;
+                flex-direction: column;
+                gap: 0.6rem;
+                overflow-x: hidden !important; /* prevent nested horizontal scrolling */
+                padding-left: 0.4rem !important; /* small inset so cards don't sit flush to panel edges */
+                padding-right: 0.4rem !important;
+                box-sizing: border-box !important;
+            }
+
+            /* Hide default scrollbar on supported browsers for a cleaner look */
+            .verses-carousel::-webkit-scrollbar { height: 6px; }
+            .verses-carousel::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 3px; }
+        }
+        
+        .verse-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+
+        /* Ensure selected cards float above neighbors and are not clipped: use border+shadow highlight instead of scaling */
+        .selected-verse {
+            position: relative !important;
+            z-index: 50 !important;
+            transform: none !important; /* avoid layout shift/clipping */
+            border-width: 3px !important; /* unified selection thickness */
+            box-shadow: 0 12px 34px rgba(0,0,0,0.18) !important;
+        }
+
+        /* If a selected card sits inside an overflow-hidden container, allow its visible overflow within panels specifically */
+        .panel .selected-verse {
+            overflow: visible !important;
+            box-shadow: 0 12px 34px rgba(0,0,0,0.18) !important;
+        }
+
+        /* General safety rules to avoid clipping on transforms */
+        .verse-card, .chapter-card, .verse-card > div, .chapter-card > div {
+            box-sizing: border-box !important;
+            transform-origin: center center !important;
+            -webkit-transform-origin: center center !important;
+            will-change: transform, box-shadow !important;
+        }
+
+        /* Ensure inner text doesn't overflow when card is scaled */
+        .verse-card > div, .chapter-card > div { overflow-wrap: break-word; word-break: break-word; }
+        
+        .chapter-card {
+            transition: all 0.3s ease;
+            border-radius: 15px;
+            cursor: pointer;
+        }
+        
+        .chapter-card:hover {
+            transform: scale(1.05);
+        }
+        
+        .hint-flash {
+            animation: hintPulse 1s ease-in-out infinite;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.8) !important;
+            border: 3px solid #FFD700 !important;
+        }
+        
+        @keyframes hintPulse {
+            0%, 100% { 
+                opacity: 1; 
+                transform: scale(1);
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.05);
+                box-shadow: 0 0 30px rgba(255, 215, 0, 1);
+            }
+        }
+
+        /* encouragement pulse available globally; class only applied on mobile via media query */
+        @keyframes encouragementPulseMobile {
+            0% { transform: translate(-50%, -50%) scale(0.95); opacity: 0; }
+            10% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+            40% { transform: translate(-50%, -50%) scale(1.03); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        @-webkit-keyframes encouragementPulseMobile {
+            0% { -webkit-transform: translate(-50%, -50%) scale(0.95); opacity: 0; }
+            10% { -webkit-transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+            40% { -webkit-transform: translate(-50%, -50%) scale(1.03); opacity: 1; }
+            100% { -webkit-transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        /* when JS adds this class, the animation will run (kept global to avoid media-query quirks) */
+        #encouragementText.mobile-pulse {
+            animation: encouragementPulseMobile 700ms cubic-bezier(.2,.9,.2,1) 0s 1 both;
+            -webkit-animation: encouragementPulseMobile 700ms cubic-bezier(.2,.9,.2,1) 0s 1 both;
+        }
+
+        /* inner span scale-only pulse (more reliable on mobile/webviews) */
+        .encourage-inner { display: inline-block; transform-origin: center center; }
+        @keyframes encourageInnerPulse {
+            0% { transform: scale(0.96); }
+            30% { transform: scale(1.12); }
+            60% { transform: scale(1.04); }
+            100% { transform: scale(1); }
+        }
+        @-webkit-keyframes encourageInnerPulse {
+            0% { -webkit-transform: scale(0.96); }
+            30% { -webkit-transform: scale(1.12); }
+            60% { -webkit-transform: scale(1.04); }
+            100% { -webkit-transform: scale(1); }
+        }
+        .encourage-inner.pulse {
+            animation: encourageInnerPulse 700ms cubic-bezier(.2,.9,.2,1) 0s 1 both;
+            -webkit-animation: encourageInnerPulse 700ms cubic-bezier(.2,.9,.2,1) 0s 1 both;
+        }
+
+        /* floating score popup animation */
+        .score-popup {
+            animation: scoreFloat 1.8s ease-out forwards;
+        }
+
+        /* downward sink for negative score popups */
+        .score-popup.score-down {
+            animation: scoreSink 1.8s ease-out forwards;
+        }
+
+        /* downward sink for combo announcements */
+        .score-popup.combo-down {
+            animation: scoreSink 1.4s ease-out forwards;
+        }
+
+        /* Floating +/- seconds for Survival timer adjustments */
+        .survival-delta {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: 900;
+            pointer-events: none;
+            text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+            opacity: 0;
+            will-change: transform, opacity;
+        }
+        .survival-delta.up { color: #16a34a; /* green-600 */ }
+        .survival-delta.down { color: #dc2626; /* red-600 */ }
+        .survival-delta.small { font-size: 0.95rem; }
+        .survival-delta.large { font-size: 1.25rem; }
+        .survival-delta.float-up { animation: survivalDeltaUp 1.2s ease-out forwards; }
+        .survival-delta.float-down { animation: survivalDeltaDown 1.2s ease-out forwards; }
+        @keyframes survivalDeltaUp {
+            0% { transform: translate(-50%, 6px) scale(0.95); opacity: 0; }
+            15% { opacity: 1; }
+            60% { transform: translate(-50%, -16px) scale(1.06); opacity: 1; }
+            100% { transform: translate(-50%, -28px) scale(1.12); opacity: 0; }
+        }
+        @keyframes survivalDeltaDown {
+            0% { transform: translate(-50%, -6px) scale(0.98); opacity: 0; }
+            15% { opacity: 1; }
+            60% { transform: translate(-50%, 12px) scale(0.96); opacity: 1; }
+            100% { transform: translate(-50%, 22px) scale(0.92); opacity: 0; }
+        }
+
+        @keyframes scoreFloat {
+            0% { transform: translate(var(--tx, -50%), var(--ty, 0)) scale(1); opacity: 1; }
+            50% { transform: translate(var(--tx, -50%), calc(var(--ty, 0px) - 30px)) scale(1.08); opacity: 1; }       
+            100% { transform: translate(var(--tx, -50%), calc(var(--ty, 0px) - 60px)) scale(1.2); opacity: 0; }       
+        }
+
+        @keyframes scoreSink {
+            0% { transform: translate(var(--tx, -50%), var(--ty, 0)) scale(1); opacity: 1; }
+            50% { transform: translate(var(--tx, -50%), calc(var(--ty, 0px) + 30px)) scale(0.96); opacity: 1; }        
+            100% { transform: translate(var(--tx, -50%), calc(var(--ty, 0px) + 60px)) scale(0.92); opacity: 0; }       
+        }
+
+        .celebration-popup {
+            animation: celebrationFloat 2.2s ease-out forwards;
+            text-shadow: 0 0 16px rgba(255, 255, 255, 0.9), 0 0 32px rgba(255, 255, 255, 0.5), 0 6px 12px rgba(255, 255, 255, 0.3) !important;
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.9)) drop-shadow(0 6px 12px rgba(255, 255, 255, 0.3));
+            /* ensure the text itself is centered and the box hugs content width */
+            text-align: center;
+            display: inline-block;
+        }
+        
+        @keyframes celebrationFloat {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 1; }
+            20% { transform: translate(-50%, -50%) translateY(-20px) scale(1.2); opacity: 1; }
+            60% { transform: translate(-50%, -50%) translateY(-40px) scale(1.1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) translateY(-80px) scale(1.4); opacity: 0; }
+        }
+        
+        .perfect-popup {
+            animation: perfectFloat 4s ease-out forwards;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 1), 0 0 60px rgba(255, 255, 255, 0.8), 0 8px 16px rgba(255, 255, 255, 0.4) !important;
+            filter: drop-shadow(0 0 15px rgba(255, 255, 255, 1)) drop-shadow(0 8px 16px rgba(255, 255, 255, 0.4));
+            /* ensure the text itself is centered and the box hugs content width */
+            text-align: center;
+            display: inline-block;
+        }
+
+        /* keep encouragement text out of document flow so it won't shift the score box */
+    /* Legacy encouragement element is no longer used */
+    #encouragementText { display: none !important; visibility: hidden !important; }
+
+        /* Mobile tweaks: ensure the floating +score / encouragement text is visible
+           above the pinned controls on small viewports. Use a fixed position so
+           it won't be clipped/covered by the bottom control bar. */
+        @media (max-width: 640px) {
+            :root { --pinned-controls-height: 64px; }
+            #encouragementText { display: none !important; visibility: hidden !important; }
+
+            /* give the score card a little extra bottom padding so its internal
+               progress bar / labels aren't accidentally clipped when the viewport
+               is very tight. This is minimal and only on small screens. */
+            .cute-card[style*="min-w-[320px]"] {
+                padding-bottom: 4.5rem !important;
+            }
+                /* Mobile overlay badge that will be inserted into the two panel titles
+                    or next to the main score. Use a dedicated center badge style for
+                    positioning beside the gold score. */
+                .mobile-score-badge {
+                position: absolute;
+                left: 50%;
+                top: -1.6rem; /* float above the title text */
+                transform: translateX(-50%);
+                background: linear-gradient(90deg,#16a34a,#4ade80);
+                color: white;
+                padding: 6px 10px;
+                border-radius: 999px;
+                font-weight: 800;
+                font-size: 0.95rem;
+                line-height: 1;
+                box-shadow: 0 6px 18px rgba(16,185,129,0.18), 0 2px 6px rgba(0,0,0,0.12);
+                pointer-events: none;
+                opacity: 0;
+                transition: transform 420ms cubic-bezier(.2,.9,.2,1), opacity 420ms ease-out;
+            }
+
+            /* entrance/exit transforms */
+            .mobile-score-badge.show {
+                opacity: 1;
+                transform: translateX(-50%) translateY(-6px) scale(1);
+            }
+            .mobile-score-badge.hide {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-28px) scale(0.96);
+            }
+            /* ensure title containers can host absolute children */
+            .panel .panel-front .panel-title,
+            .panel .panel-back .panel-title,
+            #verseTitle, #chapterTitle {
+                position: relative;
+                overflow: visible;
+            }
+
+            /* class applied when encouragement appears on mobile (rule moved to global scope for compatibility) */
+            /* center score badge (places +/- value next to the large gold score) */
+            .mobile-center-badge {
+                position: absolute;
+                right: -0.6rem; /* nudge slightly outside the score box */
+                top: -0.45rem;
+                transform: none;
+                background: linear-gradient(90deg,#16a34a,#4ade80);
+                color: white;
+                padding: 4px 8px;
+                border-radius: 999px;
+                font-weight: 800;
+                font-size: 1rem;
+                line-height: 1;
+                box-shadow: 0 6px 18px rgba(16,185,129,0.18), 0 2px 6px rgba(0,0,0,0.12);
+                pointer-events: none;
+                opacity: 0;
+                transition: transform 260ms ease-out, opacity 260ms ease-out;
+            }
+            .mobile-center-badge.show { opacity: 1; transform: translateY(-4px); }
+            .mobile-center-badge.hide { opacity: 0; transform: translateY(0); }
+        }
+
+    /* removed center golden halo behind the encouragement text to keep screen clean */
+    #encouragementText::before { display: none !important; }
+    #encouragementText:empty::before { display: none !important; }
+
+        /* Platinum → Gold gradient text helper (used for encouragement text) */
+        .platinum-gold-text {
+            /* Stronger score-like gold: white → rich yellow → white, with wider gold band */
+            background: linear-gradient(90deg,
+                #ffffff 0%,
+                #fff7d6 12%,   /* warm white */
+                #ffe38a 28%,   /* soft gold */
+                #ffd54d 45%,   /* mid gold (approx Tailwind amber/yellow) */
+                #f6c629 55%,   /* deep gold core */
+                #ffd54d 65%,   /* mid gold */
+                #ffe38a 82%,   /* soft gold */
+                #fff7d6 90%,   /* warm white */
+                #ffffff 100%
+            );
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        /* Platinum themed result card (match in-game dark score card) */
+        .platinum-card {
+            position: relative;
+            background: linear-gradient(135deg, #334155 0%, #1f2937 55%, #0f172a 100%); /* slate-700 → slate-800 → slate-900 */
+            border: 2px solid #475569; /* slate-600 */
+            box-shadow:
+                0 16px 40px rgba(0,0,0,0.35),
+                inset 0 1px 0 rgba(255,255,255,0.06),
+                inset 0 -1px 0 rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .platinum-card::after {
+            /* subtle diagonal sheen with a hint of gold, tuned for dark bg */
+            content: "";
+            position: absolute;
+            top: -40%;
+            left: -20%;
+            width: 80%;
+            height: 180%;
+            transform: rotate(20deg);
+            background: linear-gradient(135deg,
+                rgba(255,255,255,0.06) 0%,
+                rgba(255,215,0,0.045) 25%,
+                rgba(255,255,255,0.05) 55%,
+                rgba(212,175,55,0.045) 85%,
+                rgba(255,255,255,0.04) 100%
+            );
+            pointer-events: none;
+            z-index: 0; /* keep sheen behind content */
+        }
+        /* ensure card content stays above the sheen */
+        .platinum-card > * { position: relative; z-index: 1; }
+
+        /* high-contrast helpers for dark card */
+        .on-dark-strong { color: rgba(255,255,255,0.98) !important; }
+        .on-dark-medium { color: rgba(255,255,255,0.88) !important; }
+        .on-dark-subtle { color: rgba(255,255,255,0.80) !important; }
+        .text-on-dark-glow { text-shadow: 0 1px 0 rgba(0,0,0,0.35); }
+        /* CONTRAST NOTE: On very bright accent backgrounds (gold gradients) white @0.80 alpha may reduce legibility; monitor feedback. Could raise to 0.92 or switch to solid #fff if readability complaints occur. */
+
+        /* subtle vertical divider for the platinum card center */
+        .platinum-divider {
+            width: 1.5px;
+            height: 56px;
+            background: linear-gradient(to bottom,
+                rgba(255,255,255,0.08) 0%,
+                rgba(255,215,0,0.14) 50%,
+                rgba(255,255,255,0.08) 100%
+            );
+            box-shadow: 0 0 10px rgba(255,255,255,0.08);
+            border-radius: 8px;
+        }
+        .final-score-xl { font-size: clamp(2.4rem, 8vw, 3.25rem); line-height: 1; }
+        .final-score-shadow { text-shadow: 0 0 22px rgba(255,255,255,0.85), 0 0 36px rgba(255,255,255,0.55); }
+        
+        @keyframes perfectFloat {
+            0% { transform: translate(-50%, -50%) scale(0.5) rotate(0deg); opacity: 1; }
+            15% { transform: translate(-50%, -50%) translateY(-15px) scale(1.3) rotate(10deg); opacity: 1; }
+            30% { transform: translate(-50%, -50%) translateY(-30px) scale(1.1) rotate(-5deg); opacity: 1; }
+            70% { transform: translate(-50%, -50%) translateY(-50px) scale(1.2) rotate(5deg); opacity: 1; }
+            100% { transform: translate(-50%, -50%) translateY(-100px) scale(1.5) rotate(0deg); opacity: 0; }
+        }
+        
+        @keyframes sparkleEffect {
+            0% { 
+                transform: translate(-50%, -50%) scale(0) rotate(0deg); 
+                opacity: 1; 
+            }
+            50% { 
+                transform: translate(-50%, -50%) scale(1.5) rotate(180deg); 
+                opacity: 1; 
+            }
+            100% { 
+                transform: translate(-50%, -50%) scale(0.5) rotate(360deg); 
+                opacity: 0; 
+            }
+        }
+        
+        @keyframes confettiEffect {
+            0% { 
+                transform: translateY(0) scale(1) rotate(0deg); 
+                opacity: 1; 
+            }
+            100% { 
+                transform: translateY(-80px) scale(0.8) rotate(720deg); 
+                opacity: 0; 
+            }
+        }
+
+        /* Lightweight score particle sprites that appear near the large center score
+           Now using a sparkle/star glyph and white->gold color palette. Animation duration
+           doubled per user request but travel distance remains controlled by --dx/--dy.
+        */
+        .score-particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10003;
+            will-change: transform, opacity;
+            opacity: 1;
+            transform-origin: center center;
+            display: inline-block;
+            line-height: 1;
+            font-weight: 700;
+            animation: scoreParticleMove 1400ms cubic-bezier(.2,.9,.2,1) forwards;
+        }
+
+        @keyframes scoreParticleMove {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) scale(0.6) rotate(0deg);
+            }
+            60% {
+                opacity: 1;
+                transform: translate(var(--dx, 0px), var(--dy, -28px)) scale(1.05) rotate(90deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(calc(var(--dx, 0px) * 1.2), calc(var(--dy, -28px) * 1.4)) scale(0.8) rotate(180deg);
+            }
+        }
+
+        /* Confetti rain pieces (colorful ribbons) */
+    .confetti-piece {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10005;
+            will-change: transform, opacity;
+            width: 10px;
+            height: 16px;
+            border-radius: 2px;
+            opacity: 1;
+            transform-origin: center center;
+            animation: confettiFallLinear 5600ms cubic-bezier(.2,.8,.2,1) forwards;
+        }
+
+        @keyframes confettiFallLinear {
+            0% { transform: translateY(-6vh) rotate(0deg) translateX(0); opacity: 1; }
+            60% { opacity: 1; }
+            100% { transform: translateY(110vh) rotate(540deg) translateX(var(--conf-x, 0px)); opacity: 0; }
+        }
+
+        /* Gold glitter: small shimmering particles that fall/sparkle */
+        .gold-glitter {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10006;
+            color: #FFD700;
+            text-shadow: 0 0 6px rgba(255,215,0,0.9), 0 0 14px rgba(255,240,200,0.45);
+            font-weight: 800;
+            font-size: 10px;
+            will-change: transform, opacity;
+            opacity: 1;
+            animation: goldGlitterFall 2000ms ease-out forwards;
+        }
+
+        @keyframes goldGlitterFall {
+            0% { transform: translateY(0) scale(0.85) rotate(0deg); opacity: 1; }
+            60% { opacity: 1; }
+            100% { transform: translateY(140px) scale(0.6) rotate(180deg); opacity: 0; }
+        }
+        
+    /* medal badge backgrounds & readable text colors */
+    .medal-gold { background: linear-gradient(135deg,#D69E2E,#FFD700); color: #111827; box-shadow: 0 2px 6px rgba(214,158,46,0.2); }
+    .medal-silver { background: linear-gradient(135deg,#9CA3AF,#C0C0C0); color: #111827; box-shadow: 0 2px 6px rgba(156,163,175,0.12); }
+    .medal-bronze { background: linear-gradient(135deg,#b36b2a,#CD7F32); color: #ffffff; box-shadow: 0 2px 6px rgba(205,127,50,0.18); }
+    .medal-default { background: #e5e7eb; color: #6b7280; }
+    /* CONTRAST NOTE: medal-default (#6b7280 on #e5e7eb) passes ~4.6:1 at normal size; acceptable. Bronze gradient with #ffffff text is fine (>=7:1 most stops). */
+    /* Rank header styles for the end-game modal */
+    .rank-header { display:inline-flex; align-items:center; gap:0.6rem; justify-content:center; }
+    .rank-badge { width:40px; height:40px; border-radius:9999px; display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:1rem; }
+    .rank-title { font-weight:900; font-size:1.15rem; background:linear-gradient(90deg,#7c3aed,#ec4899); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .rank-gold .rank-badge { background: linear-gradient(135deg,#D69E2E,#FFD700); color:#111827; box-shadow:0 4px 14px rgba(214,158,46,0.18); }
+    .rank-silver .rank-badge { background: linear-gradient(135deg,#9CA3AF,#C0C0C0); color:#111827; box-shadow:0 4px 12px rgba(156,163,175,0.12); }
+    .rank-bronze .rank-badge { background: linear-gradient(135deg,#b36b2a,#CD7F32); color:#fff; box-shadow:0 4px 12px rgba(205,127,50,0.14); }
+    .rank-default .rank-badge { background:#e5e7eb; color:#6b7280; }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .score-flash {
+            animation: scoreFlash 1.5s ease-in-out;
+        }
+        
+        @keyframes scoreFlash {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        .score-animate {
+            animation: scoreShow 2s ease-out forwards;
+        }
+        
+        @keyframes scoreShow {
+            0% { opacity: 1; transform: translateX(0); }
+            70% { opacity: 1; transform: translateX(0); }
+            100% { opacity: 0; transform: translateX(20px); }
+        }
+
+        /* Start menu intro animations (perf tuned) */
+        .start-intro-card { opacity:0; transform: translateY(22px) scale(.95); will-change: opacity, transform; }
+    .start-intro-card.intro-play { animation: startCardIn 1.4s cubic-bezier(.22,.95,.46,1) forwards; }
+        @keyframes startCardIn {
+            0% { opacity:0; transform:translateY(26px) scale(.90); }
+            55% { opacity:1; transform:translateY(-3px) scale(1.008); }
+            100% { opacity:1; transform:translateY(0) scale(1); }
+        }
+        /* Stagger helpers (JS sets inline style --intro-delay) */
+        .start-intro-card.intro-play { animation-delay: var(--intro-delay, 0ms); }
+        
+        /* Reduced Motion Support: minimize movement for users preferring reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+            .start-intro-card, .start-intro-card.intro-play { opacity:1 !important; transform:none !important; animation:none !important; filter:none !important; }
+            #fullLeaderboardModal .full-lb-shell,
+            #fullLeaderboardModal .leaderboard-card.fl-appear,
+            #achievementsModal .modal-shell,
+            #settingsModal .modal-shell,
+            #clearLeaderboardModal .modal-shell,
+            #confirmBackModal .modal-shell,
+            #playerNameModal .modal-shell,
+            #devCommandModal .modal-shell,
+            #equipTierBankModal .modal-shell,
+            #achievementDetailModal .modal-shell { animation:none !important; opacity:1 !important; transform:none !important; }
+        }
+
+        /* Start menu: increase translucency (>50%) and remove backdrop blur for performance */
+        #startScreen #modeCard.cute-card,
+        #startScreen #rangeCard.cute-card,
+        #startScreen #scoringCard.cute-card,
+        #startScreen #leaderboardSection.cute-card {
+            background-color: rgba(255,255,255,0.50) !important;
+            -webkit-backdrop-filter: none !important;
+            backdrop-filter: none !important;
+            /* CONTRAST NOTE: 50% white over variable background lowers effective contrast of mid-gray text (#6b7280 etc). If user reports low contrast, consider raising layer opacity to 0.60–0.64 or darkening text tokens by one step. */
+        }
+
+        /* ===================================== */
+        /* Custom Books Modal Enhanced Styling   */
+        /* ===================================== */
+        #customBooksModal .cbk-action {
+            --cbk-bg: linear-gradient(135deg,#ecfdf5,#d1fae5);
+            --cbk-border: #a7f3d0;
+            --cbk-color: #065f46;
+            position: relative;
+            padding: .45rem .85rem;
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            background: var(--cbk-bg);
+            color: var(--cbk-color);
+            border: 1px solid var(--cbk-border);
+            border-radius: 999px;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            box-shadow: 0 2px 4px -2px rgba(0,0,0,0.1), 0 1px 0 rgba(255,255,255,0.4) inset;
+            transition: background .28s, color .28s, box-shadow .28s, transform .18s;
+        }
+        #customBooksModal .cbk-action:hover {
+            box-shadow: 0 4px 10px -4px rgba(0,0,0,0.20), 0 1px 0 rgba(255,255,255,0.55) inset;
+            transform: translateY(-2px);
+        }
+        #customBooksModal .cbk-action:active { transform: translateY(0); }
+        #customBooksModal .cbk-action:focus-visible {
+            outline: 3px solid rgba(16,185,129,0.35);
+            outline-offset: 2px;
+        }
+        /* Variant tokens */
+        #customBooksModal .cbk-action.variant-blue { --cbk-bg: linear-gradient(135deg,#eff6ff,#dbeafe); --cbk-border:#bfdbfe; --cbk-color:#1d4ed8; }
+        #customBooksModal .cbk-action.variant-purple { --cbk-bg: linear-gradient(135deg,#f5f3ff,#ede9fe); --cbk-border:#ddd6fe; --cbk-color:#6d28d9; }
+        #customBooksModal .cbk-action.variant-danger { --cbk-bg: linear-gradient(135deg,#fef2f2,#fee2e2); --cbk-border:#fecaca; --cbk-color:#b91c1c; }
+
+        /* Primary / Secondary confirmation buttons */
+        #customBooksModal .cbk-primary,
+        #customBooksModal .cbk-secondary {
+            position: relative;
+            padding: .75rem 1.4rem;
+            font-size: .82rem;
+            font-weight: 800;
+            letter-spacing: .05em;
+            border-radius: 14px;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+            transition: background .35s, box-shadow .35s, transform .2s;
+            border: 1px solid transparent;
+            box-shadow: 0 6px 18px -6px rgba(0,0,0,0.25), 0 2px 4px -2px rgba(0,0,0,0.15);
+        }
+        #customBooksModal .cbk-primary {
+            background: linear-gradient(135deg,#10b981,#059669);
+            color:#fff;
+            border-color:#059669;
+        }
+        #customBooksModal .cbk-primary:hover { box-shadow:0 10px 26px -8px rgba(16,185,129,.55),0 4px 10px -4px rgba(0,0,0,0.22); transform: translateY(-2px); }
+        #customBooksModal .cbk-primary:active { transform: translateY(0); }
+        #customBooksModal .cbk-primary:focus-visible { outline:3px solid rgba(16,185,129,.45); outline-offset:3px; }
+
+        #customBooksModal .cbk-secondary {
+            background: linear-gradient(135deg,#f1f5f9,#e2e8f0);
+            color:#334155;
+            border-color:#cbd5e1;
+        }
+        #customBooksModal .cbk-secondary:hover { box-shadow:0 8px 20px -8px rgba(51,65,85,.35),0 3px 8px -4px rgba(0,0,0,0.18); transform: translateY(-2px); }
+        #customBooksModal .cbk-secondary:active { transform: translateY(0); }
+        #customBooksModal .cbk-secondary:focus-visible { outline:3px solid rgba(51,65,85,.35); outline-offset:3px; }
+
+        /* Book grid tiles (labels generated dynamically) */
+        #customBooksModal .book-grid label {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding:.55rem .4rem;
+            background: linear-gradient(135deg,#ffffff,#f1f5f9);
+            border:1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size:.68rem;
+            font-weight:700;
+            letter-spacing:.05em;
+            text-align:center;
+            line-height:1.15;
+            cursor:pointer;
+            user-select:none;
+            overflow:hidden;
+            color:#334155;
+            transition: background .35s, border-color .35s, color .35s, box-shadow .35s, transform .22s;
+        }
+        #customBooksModal .book-grid label:hover { background:linear-gradient(135deg,#f8fafc,#e2e8f0); box-shadow:0 4px 12px -4px rgba(0,0,0,0.18); }
+        #customBooksModal .book-grid label:active { transform:scale(.97); }
+        #customBooksModal .book-grid input[type="checkbox"] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+        #customBooksModal .book-grid label:focus-within { outline:3px solid rgba(16,185,129,.45); outline-offset:2px; }
+        /* Selected State */
+        /* (Removed empty fallback rules; JS adds .selected class. Structure-specific selectors can be reintroduced if markup changes.) */
+        #customBooksModal .book-grid label.selected,
+        #customBooksModal .book-grid input[type="checkbox"]:checked + label,
+        #customBooksModal .book-grid label:has(input[type="checkbox"]:checked) {
+            background: linear-gradient(150deg,#10b981,#059669 55%,#047857);
+            color:#fff !important;
+            border-color:#059669;
+            box-shadow:0 6px 16px -4px rgba(4,120,87,.55),0 1px 0 rgba(255,255,255,0.3) inset;
+        }
+        /* Tiny selected badge dot */
+        #customBooksModal .book-grid label:has(input[type="checkbox"]:checked)::after {
+            content:"";
+            position:absolute; top:4px; right:5px; width:8px; height:8px; border-radius:50%; background:radial-gradient(circle at 30% 30%,#fff,#d1fae5); box-shadow:0 0 0 2px rgba(255,255,255,0.4); }
+        /* Scrollbar styling inside grid */
+        #customBooksModal .book-grid { scrollbar-width: thin; scrollbar-color:#a7f3d0 #ecfdf5; }
+        #customBooksModal .book-grid::-webkit-scrollbar { width:10px; }
+        #customBooksModal .book-grid::-webkit-scrollbar-track { background:#ecfdf5; border-radius:999px; }
+        #customBooksModal .book-grid::-webkit-scrollbar-thumb { background:linear-gradient(180deg,#6ee7b7,#34d399); border:2px solid #ecfdf5; border-radius:999px; }
+        #customBooksModal .book-grid::-webkit-scrollbar-thumb:hover { background:linear-gradient(180deg,#34d399,#059669); }
+        /* Responsive adjustments */
+        @media (max-width:560px){
+            #customBooksModal .cbk-action { font-size:.6rem; padding:.42rem .65rem; }
+            #customBooksModal .book-grid label { font-size:.6rem; padding:.5rem .35rem; }
+            #customBooksModal .cbk-primary, #customBooksModal .cbk-secondary { font-size:.7rem; padding:.65rem 1.05rem; }
+        }
+        @media (prefers-reduced-motion: reduce){
+            #customBooksModal .cbk-action, #customBooksModal .cbk-primary, #customBooksModal .cbk-secondary, #customBooksModal .book-grid label { transition:none !important; }
+        }
+
+        /* ===================================== */
+        /* Start Screen Visual Unification       */
+        /* ===================================== */
+        body {
+            background:
+                radial-gradient(1100px 700px at 8% 10%, rgba(251, 207, 232, 0.50), transparent 58%),
+                radial-gradient(900px 620px at 92% 14%, rgba(191, 219, 254, 0.58), transparent 56%),
+                radial-gradient(980px 760px at 50% 100%, rgba(254, 240, 138, 0.24), transparent 60%),
+                linear-gradient(180deg, #fffaf5 0%, #f8fbff 48%, #f8f5ff 100%) !important;
+            background-attachment: fixed;
+        }
+
+        #startScreen {
+            position: relative;
+            isolation: isolate;
+        }
+
+        #startScreen::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.22), transparent 38%),
+                radial-gradient(circle at 22% 18%, rgba(255,255,255,0.55), transparent 20%),
+                radial-gradient(circle at 78% 12%, rgba(255,255,255,0.45), transparent 18%);
+            opacity: 0.9;
+            z-index: -1;
+        }
+
+        #mainMenuGrid {
+            align-items: start;
+            gap: 1.1rem !important;
+        }
+
+        #titleCard {
+            border: 1px solid rgba(255,255,255,0.18) !important;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.26), inset 0 1px 0 rgba(255,255,255,0.12) !important;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(255,255,255,0.14), transparent 24%),
+                radial-gradient(circle at 82% 18%, rgba(250,204,21,0.14), transparent 22%),
+                linear-gradient(145deg, #0f172a 0%, #1f2937 45%, #111827 100%) !important;
+        }
+
+        #titleCard::before {
+            content: "";
+            position: absolute;
+            inset: 1px;
+            border-radius: inherit;
+            background: linear-gradient(180deg, rgba(255,255,255,0.10), transparent 28%);
+            pointer-events: none;
+        }
+
+        #menuBrandCorner {
+            opacity: 0.76 !important;
+            filter: drop-shadow(0 12px 24px rgba(15, 23, 42, 0.18));
+        }
+
+        #startScreen #modeCard.cute-card,
+        #startScreen #rangeCard.cute-card,
+        #startScreen #leaderboardSection.cute-card {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.52) !important;
+            border-radius: 28px !important;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.84), rgba(255,255,255,0.68)),
+                linear-gradient(135deg, rgba(255,255,255,0.40), rgba(255,255,255,0.05)) !important;
+            box-shadow: 0 18px 44px rgba(15, 23, 42, 0.10), inset 0 1px 0 rgba(255,255,255,0.70) !important;
+            backdrop-filter: saturate(1.08) blur(10px) !important;
+            -webkit-backdrop-filter: saturate(1.08) blur(10px) !important;
+        }
+
+        #startScreen #modeCard.cute-card::before,
+        #startScreen #rangeCard.cute-card::before,
+        #startScreen #leaderboardSection.cute-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(520px 220px at -8% -5%, rgba(125, 211, 252, 0.18), transparent 55%),
+                radial-gradient(420px 210px at 105% 0%, rgba(244, 114, 182, 0.12), transparent 52%);
+            opacity: 0.9;
+        }
+
+        #modeCardHeader,
+        #rangeCard .mb-4.text-center.border-b-2,
+        #leaderboardSection .flex.justify-between.items-center.mb-4 {
+            position: relative;
+            z-index: 1;
+        }
+
+        #modeCardTitle,
+        #confirmStartTitle,
+        #leaderboardSection h2 {
+            letter-spacing: 0.14em !important;
+        }
+
+        #modeCardTitle {
+            background: none;
+            -webkit-background-clip: border-box;
+            background-clip: border-box;
+            -webkit-text-fill-color: currentColor;
+            color: #334155;
+        }
+
+        #confirmStartTitle {
+            background: none;
+            -webkit-background-clip: border-box;
+            background-clip: border-box;
+            -webkit-text-fill-color: currentColor;
+            color: #1e293b !important;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.72);
+        }
+
+        .home-mode-grid {
+            gap: 0.8rem !important;
+        }
+
+        .mode-card-interactive {
+            position: relative;
+            overflow: hidden;
+            border-radius: 22px !important;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255,255,255,0.45);
+            transition: transform .24s ease, box-shadow .24s ease, border-color .2s ease, background .28s ease;
+        }
+
+        .mode-card-interactive::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.32), transparent 46%);
+            opacity: 0.9;
+            pointer-events: none;
+        }
+
+        .mode-card-interactive:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 34px rgba(15, 23, 42, 0.13), inset 0 1px 0 rgba(255,255,255,0.55);
+        }
+
+        .mode-card-interactive[aria-pressed="true"] {
+            box-shadow: 0 18px 40px var(--mode-card-glow, rgba(15, 23, 42, 0.16)), 0 0 0 1px rgba(255,255,255,0.22) inset;
+        }
+
+        #customAreaCard button,
+        #equipCourseCard button:not(.equip-info-btn) {
+            border-radius: 14px !important;
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255,255,255,0.58);
+        }
+
+        #startScreen #modeCard .mode-detail-panel {
+            margin-top: 0.8rem;
+            padding-top: 0.8rem;
+        }
+
+        #startScreen #modeCard .mode-detail-chip-grid {
+            gap: 0.4rem;
+        }
+
+        #startScreen #modeCard .mode-detail-chip {
+            min-height: 34px;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+        }
+
+        #startScreen #modeCard #equipCourseCard .mode-detail-chip {
+            font-size: 0.84rem !important;
+            line-height: 1.2;
+            padding-left: 0.4rem;
+            padding-right: 0.4rem;
+        }
+
+        .equip-info-btn {
+            box-shadow: 0 8px 16px rgba(15, 23, 42, 0.10), inset 0 1px 0 rgba(255,255,255,0.62) !important;
+        }
+
+        #startScreen #modeCard .mode-detail-info-btn {
+            width: 1.3rem;
+            height: 1.3rem;
+        }
+
+        #customAreaCard .grid button {
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.42);
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255,255,255,0.48);
+            transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+        }
+
+        #customAreaCard .grid button:hover {
+            transform: translateY(-1px);
+            filter: saturate(1.05);
+        }
+
+        #customBooksExpandCard {
+            border-radius: 20px !important;
+            border: 1px solid rgba(255,255,255,0.58) !important;
+            background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(248,250,252,0.88)) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.64), 0 12px 28px rgba(15, 23, 42, 0.08) !important;
+        }
+
+        #startScreen #modeCard .mode-detail-subcard-btn {
+            border-radius: 999px;
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.10), inset 0 1px 0 rgba(255,255,255,0.22);
+            font-weight: 800;
+            letter-spacing: 0.04em;
+        }
+
+        #startScreen #modeCard .mode-detail-search {
+            min-height: 34px;
+            border-radius: 12px;
+            padding: 0.45rem 0.65rem;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+        }
+
+        #startGameBtn {
+            position: relative;
+            overflow: hidden;
+            border-radius: 22px !important;
+            border: 1px solid rgba(255,255,255,0.20);
+            box-shadow: 0 16px 34px rgba(124, 58, 237, 0.26), inset 0 1px 0 rgba(255,255,255,0.22) !important;
+            letter-spacing: 0.18em !important;
+        }
+
+        #startGameBtn::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent 12%, rgba(255,255,255,0.22) 36%, transparent 58%);
+            transform: translateX(-120%);
+            animation: startBtnSweep 4.6s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes startBtnSweep {
+            0%, 16% { transform: translateX(-120%); }
+            32%, 100% { transform: translateX(130%); }
+        }
+
+        .menu-action-list {
+            gap: 0.7rem !important;
+        }
+
+        .menu-action-btn {
+            position: relative;
+            overflow: hidden;
+            border-radius: 18px !important;
+            border: 1px solid rgba(255,255,255,0.18);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10), inset 0 1px 0 rgba(255,255,255,0.16) !important;
+        }
+
+        .menu-action-btn::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.24), transparent 50%);
+            pointer-events: none;
+        }
+
+        .menu-action-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.7rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .menu-action-icon {
+            font-size: 1rem;
+            filter: drop-shadow(0 2px 4px rgba(15,23,42,0.18));
+        }
+
+        #settingsModal input[type="range"] {
+            accent-color: #6366f1;
+        }
+
+        #settingsModal input[type="text"],
+        #clearLeaderboardModal input,
+        #devCommandModal input {
+            border-radius: 14px !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: inset 0 1px 2px rgba(15,23,42,0.04);
+        }
+
+        #settingsActionButtons > button,
+        #confirmBackModal .cute-button,
+        #clearLeaderboardModal .cute-button,
+        #devCommandModal .cute-button {
+            border-radius: 16px !important;
+        }
+
+        @media (max-width: 640px) {
+            #startScreen #modeCard.cute-card,
+            #startScreen #rangeCard.cute-card,
+            #startScreen #leaderboardSection.cute-card {
+                border-radius: 22px !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+                background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,250,252,0.88)) !important;
+            }
+        }
+
+        /* ========================================================
+           Emotional & Milestone VFX
+           ======================================================== */
+        .shield-break-shatter {
+            animation: shieldShatter 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+            will-change: transform, box-shadow;
+        }
+
+        @keyframes shieldShatter {
+            0% { box-shadow: inset 0 0 0 0 rgba(191, 219, 254, 0); transform: scale(1) rotate(0deg); }
+            20% { box-shadow: inset 0 0 100px 30px rgba(147, 197, 253, 0.8); transform: scale(0.99) rotate(-0.5deg); }
+            40% { transform: scale(1.01) rotate(0.5deg); }
+            60% { box-shadow: inset 0 0 50px 10px rgba(191, 219, 254, 0.4); transform: scale(0.995) rotate(-0.2deg); }
+            100% { box-shadow: inset 0 0 0 0 rgba(191, 219, 254, 0); transform: scale(1) rotate(0deg); }
+        }
+
+        .combo-ripple-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            border-radius: inherit;
+            border: 4px solid #fcd34d;
+            opacity: 1;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            animation: rippleExpand 0.8s ease-out forwards;
+        }
+
+        @keyframes rippleExpand {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; border-color: #f59e0b; border-width: 0; }
+        }
+
+        .combo-number-pop {
+            animation: comboNumberPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            color: #f59e0b !important;
+            text-shadow: 0 0 15px rgba(245, 158, 11, 0.8);
+        }
+
+        @keyframes comboNumberPop {
+            0% { transform: scale(1); }
+            40% { transform: scale(1.8) rotate(-5deg); }
+            60% { transform: scale(1.4) rotate(3deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        body.max-awakening-active {
+            animation: maxBreathing 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes maxBreathing {
+            0% { box-shadow: inset 0 0 30px 5px rgba(251, 191, 36, 0.1); }
+            100% { box-shadow: inset 0 0 80px 15px rgba(245, 158, 11, 0.25); }
+        }
+
+        .godlike-text {
+            position: fixed;
+            top: 40%;
+            left: 50%;
+            font-size: 3rem;
+            font-weight: 900;
+            color: #fff;
+            text-transform: uppercase;
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), 0 0 30px rgba(245, 158, 11, 0.9);
+            background: linear-gradient(to bottom, #fef08a, #f59e0b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0;
+            transform: translate(-50%, 80px) scale(0.3);
+            animation: godlikeFloat 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        @keyframes godlikeFloat {
+            0% { opacity: 0; transform: translate(-50%, 80px) scale(0.3); }
+            20% { opacity: 1; transform: translate(-50%, 0) scale(1.3); }
+            30% { transform: translate(-50%, -10px) scale(1.1); }
+            80% { opacity: 1; transform: translate(-50%, -40px) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -80px) scale(0.8); filter: blur(5px); }
+        }
+
+        :root {
+        }
+        /* Dark Theme Overrides (簡化：聚焦常用背景/文字/邊框/卡片) */
+        :root[data-theme='dark']{
+            color-scheme: dark;
+            --bg-base:#0f172a; --bg-soft:#1e293b; --bg-softer:#243244; --border-soft:#334155; --text-primary:#f1f5f9; --text-secondary:#cbd5e1;
+            --card-bg:linear-gradient(150deg,#1e293b,#0f172a 65%);
+            --modal-bg:linear-gradient(160deg,#162132,#0f172a);
+            --panel-bg:linear-gradient(155deg,#1b2636,#152233);
+            --accent-1:#6366f1; --accent-2:#818cf8; --accent-glow:rgba(99,102,241,.45);
+            --confirm-grad-from:#4f46e5; --confirm-grad-to:#6366f1;
+            --replay-grad-from:#059669; --replay-grad-to:#10b981;
+        }
+        :root[data-theme='dark'] body{ background:#0f172a; color:var(--text-primary); }
+        :root[data-theme='dark'] .cute-card{ background:var(--card-bg) !important; border:1px solid var(--border-soft) !important; box-shadow:0 6px 22px -4px rgba(0,0,0,.55),0 2px 4px -2px rgba(0,0,0,.4) !important; }
+        :root[data-theme='dark'] #playerNameModal.rank-theme-applied #confirmNameBtn{ background-image:linear-gradient(90deg,var(--confirm-grad-from),var(--confirm-grad-to)) !important; }
+        :root[data-theme='dark'] #playerNameModal.rank-theme-applied #replaySameQuestionsBtn{ background-image:linear-gradient(90deg,var(--replay-grad-from),var(--replay-grad-to)) !important; }
+    /* Dark theme rank badge / heading subtle brightness adjustments */
+    :root[data-theme='dark'] #playerNameModal.rank-theme-applied .rank-heading-text{ filter:drop-shadow(0 2px 4px rgba(0,0,0,.65)); }
+        /* Shared mode-switch tabs look (use in full leaderboard and achievements) */
+    .mode-switch { display:inline-flex; background:#f1f5f9; padding:4px; border-radius:999px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.05); gap:6px; }
+    .mode-switch button { position:relative; flex:1 1 auto; padding:.45rem 1rem; font-size:.75rem; font-weight:600; border-radius:999px; color:#475569; transition:color .25s, background .25s, box-shadow .25s; }
+        .mode-switch button[aria-pressed="true"], .mode-switch button[aria-selected="true"] { background:linear-gradient(90deg,#6366f1,#818cf8); color:#fff; box-shadow:0 4px 10px -2px rgba(99,102,241,.45); }
+
+        #playerNameModal .cute-card .bg-white\/70 {
+            padding: 0.6rem !important; /* reduce inner panel padding */
+        }
+
+        /* Closing verse: auto-size on desktop to avoid overlapping the reference line; keep text clamped to 2 lines */
+        #closingVerse {
+            max-height: none !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            white-space: normal !important;
+            padding: 0.5rem !important;
+            margin-bottom: 0.45rem !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            justify-content: flex-start !important;
+            gap: 0.25rem !important;
+        }
+
+        /* Helper for clamping the closing verse text (2 lines) */
+        .closing-verse-clamp {
+            display: -webkit-box !important;
+            -webkit-line-clamp: 2 !important;
+            -webkit-box-orient: vertical !important;
+            line-clamp: 2 !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+
+        /* Compact name input and buttons inside modal */
+        #playerNameModal input#playerNameInput { padding: 0.6rem !important; font-size: 0.96rem !important; }
+        #playerNameModal #confirmNameBtn { padding: 0.7rem 0.9rem !important; font-size: 1rem !important; }
+        #playerNameModal .cute-button.w-full { margin-bottom: 0.35rem !important; }
+
+        #replaySameQuestionsBtn { padding: 0.5rem 0.6rem !important; font-size: 0.95rem !important; }
+        #sameReplayNote { margin-top: 0.35rem !important; font-size: 0.85rem !important; }
+
+        #playerNameModal .modal-footer > div {
+            align-items: stretch !important;
+            gap: 0.75rem !important;
+        }
+
+        #playerNameModal .modal-footer .cute-button {
+            min-width: 0 !important;
+            min-height: 3.4rem !important;
+            flex: 1 1 0 !important;
+            align-self: stretch !important;
+        }
+
+        #replaySameQuestionsBtn,
+        #confirmNameBtn {
+            white-space: normal !important;
+            text-align: center !important;
+            line-height: 1.25 !important;
+        }
+
+        #replaySameQuestionsBtn > span:last-child,
+        #confirmNameBtn > span:last-child {
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            min-width: 0 !important;
+        }
+
+        #replaySameQuestionsBtn > span:last-child {
+            font-size: 0.92rem !important;
+            font-weight: 800 !important;
+        }
+
+        #replaySameQuestionsBtn > span:last-child > div {
+            margin-top: 0.1rem !important;
+            font-size: 0.68rem !important;
+            line-height: 1.2 !important;
+        }
+
+        #confirmNameBtn > span:last-child {
+            font-size: 0.95rem !important;
+            font-weight: 800 !important;
+            white-space: normal !important;
+        }
+
+
+        #playerNameModal .modal-footer {
+            position: relative !important;
+            isolation: isolate;
+            margin-top: 0.4rem !important;
+        }
+
+        #playerNameModal .modal-footer::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 1.3rem;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.06), rgba(148, 163, 184, 0.14));
+            border: 1px solid rgba(255, 255, 255, 0.42);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(14px) saturate(1.08);
+            -webkit-backdrop-filter: blur(14px) saturate(1.08);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        #playerNameModal.rank-theme-applied .modal-footer::before {
+            background: linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04)), var(--rt-soft, linear-gradient(135deg, rgba(15, 23, 42, 0.06), rgba(148, 163, 184, 0.14)));
+            border-color: color-mix(in srgb, var(--rt-border, #ffffff) 28%, rgba(255,255,255,0.42));
+            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255,255,255,0.38);
+        }
+
+        @media (max-width: 640px) {
+            /* Mobile: allow inner content to scroll and keep action footer sticky/visible */
+            #playerNameModal .cute-card {
+                padding: 0.9rem !important;
+                max-height: 90vh !important;
+                overflow: visible !important; /* allow body to scroll while footer stays sticky */
+                border-radius: 1rem !important; /* stronger rounded corners on mobile */
+                box-shadow: 0 18px 40px rgba(6,21,38,0.16) !important;
+            }
+            /* Show full closing verse on mobile */
+            #closingVerse { max-height: none !important; overflow: visible !important; }
+            .closing-verse-clamp { -webkit-line-clamp: unset !important; line-clamp: unset !important; }
+            /* Restore internal scrolling so sticky footer stays visible while content scrolls */
+            #playerNameModal .modal-body {
+                -webkit-overflow-scrolling: touch !important;
+                overflow-y: auto !important;
+                max-height: calc(90vh - 88px) !important; /* reserve space for footer */
+                padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)) !important;
+                touch-action: manipulation !important;
+                scrollbar-width: none !important; /* Firefox */
+                -ms-overflow-style: none !important; /* IE/Edge */
+            }
+            #playerNameModal .modal-body::-webkit-scrollbar { display: none !important; }
+            #playerNameModal .modal-body::-webkit-scrollbar-thumb { background: transparent !important; }
+            #playerNameModal .modal-body::-webkit-scrollbar-track { background: transparent !important; }
+            /* Sticky footer with safe-area support */
+            #playerNameModal .modal-footer {
+                position: sticky !important;
+                bottom: env(safe-area-inset-bottom, 0px) !important;
+                z-index: 70 !important;
+                pointer-events: auto !important;
+                background: transparent !important;
+                padding-top: 0.25rem !important;
+                padding-bottom: calc(0.35rem + env(safe-area-inset-bottom, 0px)) !important;
+            }
+            #playerNameModal .modal-footer::before {
+                border-radius: 1.15rem;
+                background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.20)), linear-gradient(135deg, rgba(15,23,42,0.10), rgba(148,163,184,0.16));
+                box-shadow: 0 10px 24px rgba(15,23,42,0.12), inset 0 1px 0 rgba(255,255,255,0.34);
+            }
+            #playerNameModal .modal-footer > div {
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+                gap: 0.55rem !important;
+                position: relative;
+                z-index: 1;
+                padding: 0.42rem !important;
+            }
+            #playerNameModal .modal-footer button.cute-button {
+                padding: 0.78rem 0.72rem !important;
+                min-height: 4.2rem !important;
+                font-size: 0.95rem !important;
+                border-radius: 0.95rem !important;
+                border: 1px solid rgba(255,255,255,0.18) !important;
+                box-shadow: 0 8px 18px rgba(15,23,42,0.14), inset 0 1px 0 rgba(255,255,255,0.12) !important;
+            }
+            #playerNameModal .modal-footer button.cute-button .text-lg {
+                font-size: 1rem !important;
+                flex-shrink: 0 !important;
+            }
+            #confirmNameBtn {
+                background-image: linear-gradient(135deg, #7c3aed, #ec4899) !important;
+            }
+            #confirmNameBtn > span:last-child {
+                font-size: 0.86rem !important;
+                line-height: 1.2 !important;
+            }
+            #replaySameQuestionsBtn > span:last-child {
+                font-size: 0.84rem !important;
+                line-height: 1.18 !important;
+            }
+            #replaySameQuestionsBtn > span:last-child > div {
+                font-size: 0.62rem !important;
+            }
+            #sameReplayNote {
+                text-align: center !important;
+                padding-inline: 0.25rem !important;
+            }
+        }
+
+        /* 倒數數字輕微上下浮動效果 */
+        @keyframes countdownFloat {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0); }
+        }
+
+        .countdown-float {
+            animation: countdownFloat 1.2s ease-in-out infinite;
+        }
+        
+        .hint-blink {
+            animation: hintBlink 1s ease-in-out infinite;
+        }
+        
+        @keyframes hintBlink {
+            0%, 50% { background-color: #fbbf24; }
+            51%, 100% { background-color: #f59e0b; }
+        }
+        
+        .shake-error {
+            animation: shakeError 0.6s ease-in-out;
+        }
+        
+        @keyframes shakeError {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-14px); }
+            20%, 40%, 60%, 80% { transform: translateX(14px); }
+        }
+        
+        .start-button-pulse {
+            animation: startButtonPulse 1s ease-in-out 5;
+        }
+        
+        @keyframes startButtonPulse {
+            0%, 100% { 
+                transform: scale(1);
+            }
+            50% { 
+                transform: scale(1.05);
+            }
+        }
+        
+        .game-instruction {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 193, 7, 0.95);
+            color: #856404;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 1000;
+            animation: instructionFade 15s ease-in-out;
+            border: 2px solid rgba(255, 193, 7, 0.8);
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+            text-shadow: none;
+        }
+        
+        @keyframes instructionFade {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+            10%, 90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+        }
+        
+        @keyframes instructionFadeOut {
+            0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+        }
+        
+        @keyframes instructionEnhanced {
+            0% { 
+                opacity: 0; 
+                transform: translate(-50%, -50%) scale(0.5) rotate(-5deg); 
+                filter: blur(5px);
+            }
+            10% { 
+                opacity: 1; 
+                transform: translate(-50%, -50%) scale(1.1) rotate(2deg); 
+                filter: blur(0px);
+            }
+            15% { 
+                transform: translate(-50%, -50%) scale(1) rotate(0deg); 
+            }
+            85% { 
+                opacity: 1; 
+                transform: translate(-50%, -50%) scale(1) rotate(0deg); 
+                filter: blur(0px);
+            }
+            95% { 
+                opacity: 0.3; 
+                transform: translate(-50%, -50%) scale(0.9) rotate(-2deg); 
+                filter: blur(2px);
+            }
+            100% { 
+                opacity: 0; 
+                transform: translate(-50%, -50%) scale(0.7) rotate(-5deg); 
+                filter: blur(5px);
+            }
+        }
+        
+        /* 慶祝彩帶動畫 */
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #f39c12;
+            animation: confetti-fall 3s linear infinite;
+        }
+        
+        .confetti:nth-child(odd) {
+            background: #e74c3c;
+            width: 8px;
+            height: 8px;
+            animation-duration: 2.5s;
+        }
+        
+        .confetti:nth-child(even) {
+            background: #3498db;
+            width: 6px;
+            height: 6px;
+            animation-duration: 3.5s;
+        }
+        
+        .confetti:nth-child(3n) {
+            background: #2ecc71;
+            width: 12px;
+            height: 12px;
+            animation-duration: 2.8s;
+        }
+        
+        .confetti:nth-child(4n) {
+            background: #9b59b6;
+            width: 9px;
+            height: 9px;
+            animation-duration: 3.2s;
+        }
+        
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+        
+        /* 拉炮效果 */
+        .party-popper {
+            position: absolute;
+            font-size: 4rem;
+            animation: party-pop 2s ease-out;
+        }
+        
+        @keyframes party-pop {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2) rotate(180deg);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1) rotate(360deg);
+                opacity: 0.8;
+            }
+        }
+        
+    /* Removed duplicate conflicting .selected-verse scale rule to keep selection stable */
+        
+        .selected-verse.bg-blue-50 {
+            border-color: #1d4ed8 !important;
+            box-shadow: 0 10px 25px rgba(29, 78, 216, 0.3);
+        }
+        
+        .selected-verse.bg-yellow-100 {
+            border-color: #d97706 !important;
+            box-shadow: 0 10px 25px rgba(217, 119, 6, 0.3);
+        }
+        
+        .selected-verse.bg-orange-100 {
+            border-color: #ea580c !important;
+            box-shadow: 0 10px 25px rgba(234, 88, 12, 0.3);
+        }
+        
+        .hint-reminder {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: rgba(255, 193, 7, 0.95);
+            color: #856404;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 100;
+            animation: hintReminder 2s ease-in-out;
+            border: 1px solid rgba(255, 193, 7, 0.8);
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+        }
+        
+        @keyframes hintReminder {
+            0%, 100% { opacity: 0; transform: translateY(10px); }
+            20%, 80% { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 背景經文跑馬燈效果 */
+        .verse-marquee {
+            position: fixed;
+            /* expand container and rotate so lines move diagonally (counter-clockwise -45deg) */
+            top: -25%;
+            left: -25%;
+            width: 150%;
+            height: 150%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: visible; /* allow entries from outside viewport */
+            transform: rotate(-45deg);
+            transform-origin: 50% 50%;
+        }
+        
+        .verse-text {
+            position: absolute;
+            white-space: nowrap;
+            font-size: 4.5rem;
+            font-weight: 800;
+            color: rgba(139, 69, 19, 0.08);
+            animation: marquee-horizontal 25s linear infinite;
+            transform-origin: center;
+            letter-spacing: 0.3rem;
+            opacity: 1;
+            text-shadow: 0 0 20px rgba(0,0,0,0.05);
+            /* keep line spacing consistent even if font-size varies (halved as requested) */
+            line-height: 3.5rem;
+        }
+
+        /* Mobile: show a lightweight marquee instead of fully disabling */
+        @media (max-width: 640px) {
+            .verse-marquee { display: block !important; opacity: 0.6; }
+        }
+        
+        @keyframes marquee-horizontal {
+            0% {
+                /* start well outside the right edge */
+                transform: translateX(calc(100vw + 300px));
+                opacity: 0.0;
+            }
+            6% {
+                opacity: 1;
+            }
+            94% {
+                opacity: 1;
+            }
+            100% {
+                /* end well past the left edge */
+                transform: translateX(calc(-100vw - 300px));
+                opacity: 0.0;
+            }
+        }
+        
+        .verse-text:nth-child(1) {
+            top: 5%;
+            color: rgba(107, 114, 128, 0.12);
+        }
+        
+        .verse-text:nth-child(2) {
+            top: 18%;
+            color: rgba(75, 85, 99, 0.12);
+        }
+        
+        .verse-text:nth-child(3) {
+            top: 31%;
+            color: rgba(156, 163, 175, 0.12);
+        }
+        
+        .verse-text:nth-child(4) {
+            top: 44%;
+            color: rgba(139, 69, 19, 0.12);
+        }
+        
+        .verse-text:nth-child(5) {
+            top: 57%;
+            color: rgba(120, 113, 108, 0.12);
+        }
+        
+        .verse-text:nth-child(6) {
+            top: 70%;
+            color: rgba(99, 102, 241, 0.12);
+        }
+        
+        .verse-text:nth-child(7) {
+            top: 83%;
+            color: rgba(168, 85, 247, 0.12);
+        }
+        
+
+        
+                
+                    /* Difficulty change pulse effect */
+                    @keyframes diffPulse { 0% { transform: scale(1); box-shadow: none; } 50% { transform: scale(1.02); box-shadow: 0 12px 30px rgba(0,0,0,0.12); } 100% { transform: scale(1); box-shadow: none; } }
+                    .difficulty-pulse { animation: diffPulse 620ms cubic-bezier(.2,.9,.2,1) 1 both; will-change: transform, box-shadow; }
+
+                    /* Temporary difficulty tint overlay (fade in/out only on change) */
+                    #difficultyTintOverlay {
+                        position: fixed; inset: 0; pointer-events: none; z-index: 5;
+                        opacity: 0; transition: opacity 500ms ease;
+                    }
+                    #difficultyTintOverlay.show { opacity: 1; }
+                    #difficultyTintOverlay.easy { background: linear-gradient(135deg, rgba(16,185,129,0.10), rgba(209,250,229,0.10)); }
+                    #difficultyTintOverlay.normal { background: linear-gradient(135deg, rgba(245,158,11,0.10), rgba(254,243,199,0.10)); }
+                    #difficultyTintOverlay.hard { background: linear-gradient(135deg, rgba(244,63,94,0.10), rgba(254,226,226,0.10)); }
+
+                    /* Mobile mini timer: allow a subtle pulse on difficulty change */
+                    #survivalTimerMini.difficulty-pulse { animation: diffPulse 620ms cubic-bezier(.2,.9,.2,1) 1 both; }
+                
+        
+            /* Cute hint bar shared styles */
+            .cute-hint { 
+                display: none; align-items: center; gap: .5rem; 
+                position: fixed; left: 50%; transform: translateX(-50%) translateY(24px);
+                bottom: 12px; opacity: 0;
+                max-width: 56rem; width: max-content; 
+                padding: .6rem .9rem; border-radius: 9999px; 
+                border: 2px solid; background: white; 
+                box-shadow: 0 10px 30px rgba(2,6,23,.1);
+                font-weight: 700; letter-spacing: .02em; z-index: 1000;
+                pointer-events: none; /* do not block clicks */
+                transition: opacity .2s ease, transform .2s ease;
+                white-space: nowrap !important; /* keep hint in a single line */
+                overflow: hidden !important; /* clip overflow on small screens */
+                text-overflow: ellipsis !important;
+            }
+            .cute-hint.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+            .cute-hint .cute-hint-icon { font-size: 1.1rem; }
+            .cute-hint .cute-hint-text { font-size: .95rem; color: #334155; white-space: nowrap !important; }
+            /* Neutralize the cute icon for a more professional tone */
+            .cute-hint .cute-hint-icon { display: inline-block !important; margin-right: 2px; }
+            /* theme colors */
+            .cute-hint.green { border-color: #86efac; background: #f0fdf4; }
+            .cute-hint.green .cute-hint-text { color: #065f46; }
+            .cute-hint.amber { border-color: #fcd34d; background: #fffbeb; }
+            .cute-hint.amber .cute-hint-text { color: #92400e; }
+            .cute-hint.red { border-color: #fca5a5; background: #fef2f2; }
+            .cute-hint.red .cute-hint-text { color: #991b1b; }
+            .cute-hint.purple { border-color: #c4b5fd; background: #faf5ff; }
+            .cute-hint.purple .cute-hint-text { color: #6b21a8; }
+            .cute-hint.blue { border-color: #93c5fd; background: #eff6ff; }
+            .cute-hint.blue .cute-hint-text { color: #1d4ed8; }
+            .cute-hint.rose { border-color:#fecdd3; background:#fff1f2; }
+            .cute-hint.rose .cute-hint-text { color:#be123c; }
+            .cute-hint.emerald { border-color:#6ee7b7; background:#ecfdf5; }
+            .cute-hint.emerald .cute-hint-text { color:#047857; }
+            /* mobile fit */
+            @media (max-width: 640px) {
+                .cute-hint { 
+                    max-width: calc(100% - 1rem); width: auto; 
+                    transform: translateX(-50%) translateY(24px); 
+                    /* keep hint bar above pinned controls and safe-area */
+                    bottom: calc(var(--pinned-controls-height, 64px) + env(safe-area-inset-bottom, 0px) + 8px);
+                    padding: .55rem .8rem; border-width: 2px; border-radius: 16px; 
+                }
+                .cute-hint .cute-hint-text { font-size: .9rem; }
+            }
+        
+        
+            /* === 裝備模式 Slot Machine 樣式增強 === */
+            .equip-slot-wrap { --fade-size: 56px; }
+            .equip-slot-wrap::before, .equip-slot-wrap::after { content: ""; position: absolute; top:0; bottom:0; width: var(--fade-size); pointer-events:none; z-index:5; }
+            .equip-slot-wrap::before { left:0; background: linear-gradient(90deg, rgba(255,255,255,1), rgba(255,255,255,0)); }
+            .equip-slot-wrap::after { right:0; background: linear-gradient(270deg, rgba(255,255,255,1), rgba(255,255,255,0)); }
+            .equip-slot-reel { padding: .25rem 0 0.5rem 0; }
+            .equip-slot-item { position:relative; opacity:.45; transform:translateZ(0); backdrop-filter: blur(0px); display:flex; align-items:center; justify-content:center; height:72px; padding-top:0.25rem; padding-bottom:0.25rem; }
+            .equip-slot-item::after { content:""; position:absolute; inset:0; border-radius:inherit; box-shadow:0 3px 8px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(99,102,241,0.12); opacity:0; pointer-events:none; transition:opacity .4s ease; }
+            .equip-slot-item.slot-picked { opacity:1 !important; background: linear-gradient(135deg,#fff7ed,#fffbeb); color:#92400e !important; transform: scale(1.12) rotate(-1deg); font-weight:800; letter-spacing:.05em; }
+            .equip-slot-item.slot-picked::after { opacity:1; box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 6px 24px rgba(245,158,11,0.35), inset 0 0 0 1px rgba(245,158,11,0.55); }
+            .equip-slot-item.slot-picked::before { content:"★"; position:absolute; top:-14px; left:50%; transform:translateX(-50%) scale(0.6); font-size:1.4rem; color:#f59e0b; text-shadow:0 0 12px rgba(245,158,11,0.65); animation: equipStarPop 900ms cubic-bezier(.2,.9,.2,1) forwards; }
+            @keyframes equipStarPop { 0% { opacity:0; transform:translateX(-50%) translateY(12px) scale(.4) rotate(-20deg); } 40% { opacity:1; transform:translateX(-50%) translateY(-4px) scale(1.15) rotate(8deg); } 70% { transform:translateX(-50%) translateY(0) scale(.96) rotate(-4deg); } 100% { opacity:1; transform:translateX(-50%) translateY(0) scale(1) rotate(0deg); } }
+            /* Center highlight guide */
+            .equip-slot-wrap::marker{display:none}
+            .equip-slot-wrap .equip-slot-guide { position:absolute; top:0; bottom:0; left:50%; width:138px; transform:translateX(-50%); pointer-events:none; z-index:4; }
+            .equip-slot-wrap .equip-slot-guide::after { content:""; position:absolute; inset:8px; border-radius:22px; border:2px dashed rgba(245,158,11,0.55); box-shadow:0 0 0 3px rgba(245,158,11,0.15), inset 0 0 18px rgba(245,158,11,0.25); animation: equipGuidePulse 2.4s ease-in-out infinite; }
+            @keyframes equipGuidePulse { 0%,100% { opacity:.9; transform:scale(1); } 50% { opacity:.4; transform:scale(.96); } }
+
+            /* === 裝備模式：上方 3 張卡片等寬 & 自動換行 === */
+            .equip-header-equal { display:grid; grid-template-columns:repeat(3,1fr); gap:1.25rem; align-items:stretch; }
+            .equip-header-equal .equip-equal-card { width:100%; height:100%; display:flex; flex-direction:column; }
+            #questionProgressCard.equip-mode-wrap { white-space:normal !important; overflow-wrap:break-word; word-break:break-word; }
+            #questionProgressCard.equip-mode-wrap .adaptive-verse-text { flex:1 1 auto; width:100%; line-height:1.45; font-size:0.92rem; }
+            @media (max-width:900px){ .equip-header-equal { grid-template-columns:1fr; } }
+            /* Ensure center score truly centers when using grid */
+            .equip-header-equal #centerScore { text-align:center; }
+            /* fallback if JS adds class later */
+            #centerScore.equip-centered { text-align:center; margin:0 auto; }
+            /* subtle divider reposition for bottom controls already moved previously */
+            #questionProgressCard.equip-mode-wrap .equip-bottom-controls { margin-top:auto; }
+            /* unify shadow so all three look aligned */
+            .equip-header-equal .cute-card { box-shadow:0 10px 30px rgba(0,0,0,0.08) !important; }
+        
+        
+            /* === 問題卡片 進/出/掉落 動畫 === */
+            @keyframes cardEnterRight {
+                0% { opacity: 0; transform: translateX(calc(var(--enterX, 120px) * 4)) translateY(var(--enterY, 0px)) rotate(var(--enterR, 0deg)) scale(0.98); filter: blur(1px); }
+                100% { opacity: 1; transform: translateX(0) translateY(0) rotate(0deg) scale(1); filter: blur(0); }
+            }
+            .card-enter {
+                animation: cardEnterRight var(--enterDur, 620ms) cubic-bezier(.2,.9,.2,1) var(--enterDelay, 0ms) both;
+                will-change: transform, opacity, filter;
+            }
+            @keyframes cardExitLeft {
+                to { opacity: 0; transform: translateX(calc((-160px - var(--exitX, 0px)) * 4)) translateY(var(--exitY, 0px)) rotate(var(--exitR, -6deg)); filter: blur(1px); }
+            }
+            .card-exit { 
+                animation: cardExitLeft var(--exitDur, 520ms) cubic-bezier(.2,.9,.2,1) var(--exitDelay, 0ms) forwards;
+                will-change: transform, opacity, filter;
+            }
+            @keyframes fallScatter {
+                to { opacity: 0; transform: translateX(var(--fx, 0px)) translateY(var(--fy, 260px)) rotate(var(--fr, 24deg)) scale(0.98); filter: blur(1.5px); }
+            }
+            .card-fall-scatter { 
+                animation: fallScatter var(--fallDur, 900ms) cubic-bezier(.2,.8,.2,1.05) var(--fallDelay, 0ms) forwards;
+                will-change: transform, opacity, filter;
+            }
+            /* Correct pop feedback without conflicting with slide animations */
+            @keyframes correctPop { 0% { transform: scale(1); } 30% { transform: scale(1.06); } 100% { transform: scale(1); } }
+            /* Equip mode enhanced feedback */
+            @keyframes equipWrongPulse {
+                0% { transform: translateY(0) scale(1); filter: brightness(1); }
+                10% { transform: translateX(-6px) rotate(-2deg) scale(0.98); }
+                22% { transform: translateX(6px) rotate(2deg) scale(1.02); }
+                32% { transform: translateX(-4px) rotate(-1deg); }
+                42% { transform: translateX(3px) rotate(1deg); }
+                55% { transform: translateX(0) scale(1.04); filter: brightness(1.08); }
+                70% { transform: translateY(-2px) scale(0.97); filter: brightness(0.92); }
+                100% { transform: translateY(0) scale(1); filter: brightness(1); }
+            }
+            @keyframes equipCorrectHold {
+                0% { transform: scale(1) translateY(0); box-shadow:0 0 0 0 rgba(250,204,21,0.0); }
+                20% { transform: scale(1.08) translateY(-2px); box-shadow:0 6px 18px -4px rgba(250,204,21,0.55), 0 0 0 4px rgba(250,204,21,0.25); }
+                55% { transform: scale(1.04) translateY(-1px); box-shadow:0 4px 14px -3px rgba(250,204,21,0.40), 0 0 0 6px rgba(250,204,21,0.18); }
+                100% { transform: scale(1.02) translateY(0); box-shadow:0 2px 10px -2px rgba(250,204,21,0.32), 0 0 0 2px rgba(250,204,21,0.15); }
+            }
+            .equip-wrong-pulse { animation: equipWrongPulse 640ms cubic-bezier(.36,.07,.19,.97); }
+            .equip-correct-hold { animation: equipCorrectHold 800ms cubic-bezier(.2,.9,.2,1); position:relative; }
+            .equip-correct-hold::after { content:"★"; position:absolute; top:-10px; right:-10px; font-size:1.25rem; color:#FBBF24; filter:drop-shadow(0 0 4px rgba(251,191,36,0.8)); animation: correctPop 840ms ease-out; }
+            @keyframes equipSorterCorrectHit {
+                0% { transform: translateY(0) scale(1); box-shadow: 0 0 0 0 rgba(34,197,94,.0); filter: saturate(1); }
+                40% { transform: translateY(-3px) scale(1.06); box-shadow: 0 0 0 7px rgba(34,197,94,.22), 0 12px 26px -10px rgba(22,163,74,.65); filter: saturate(1.18); }
+                100% { transform: translateY(0) scale(1); box-shadow: 0 0 0 0 rgba(34,197,94,0); filter: saturate(1); }
+            }
+            @keyframes equipSorterCheckPop {
+                0% { opacity: 0; transform: translate(-50%, -6px) scale(.4) rotate(-14deg); }
+                35% { opacity: 1; transform: translate(-50%, -12px) scale(1.12) rotate(0deg); }
+                100% { opacity: 0; transform: translate(-50%, -20px) scale(.92) rotate(8deg); }
+            }
+            .equip-sorter-correct-hit {
+                position: relative;
+                animation: equipSorterCorrectHit 560ms cubic-bezier(.2,.9,.2,1) both;
+            }
+            .equip-sorter-correct-hit::before {
+                content: '✓';
+                position: absolute;
+                top: 4px;
+                left: 50%;
+                transform: translateX(-50%);
+                color: #15803d;
+                font-size: 1.1rem;
+                font-weight: 900;
+                text-shadow: 0 2px 6px rgba(187,247,208,.8);
+                pointer-events: none;
+                animation: equipSorterCheckPop 620ms cubic-bezier(.2,.9,.2,1) both;
+            }
+            .equip-fade-disabled { opacity:.5 !important; filter:grayscale(45%) saturate(.72) !important; pointer-events:none !important; }
+            .correct-pop { animation: correctPop 420ms cubic-bezier(.2,.9,.2,1) 0ms 1 both; }
+
+            /* Equip desktop polish: align visual quality with mobile card UI */
+            @media (min-width: 761px) {
+                body.equip-running #equipFlow {
+                    margin-top: 0.25rem;
+                    padding: 0.85rem 0.95rem !important;
+                    border-radius: 15px;
+                    border: 1px solid rgba(167, 139, 250, 0.34);
+                    background:
+                        radial-gradient(circle at 88% 12%, rgba(167,139,250,.18), transparent 36%),
+                        linear-gradient(145deg, rgba(250,245,255,.88), rgba(239,246,255,.76));
+                    box-shadow: 0 14px 28px -20px rgba(76,29,149,.45), 0 1px 0 rgba(255,255,255,.62) inset;
+                }
+                body.equip-running #equipFlow .equip-header-stage {
+                    box-shadow: 0 1px 0 rgba(255,255,255,.65) inset;
+                    border-color: rgba(196,181,253,.95) !important;
+                    background: rgba(243,232,255,.92) !important;
+                    color: #6b21a8 !important;
+                    letter-spacing: .02em;
+                }
+                body.equip-running #equipSubtitle {
+                    color: rgba(76,29,149,.9) !important;
+                    margin-bottom: 0.55rem !important;
+                }
+                body.equip-running #equipStepProgress.equip-stepper {
+                    margin-bottom: 0.5rem !important;
+                }
+
+                body.equip-running #questionProgressCard {
+                    padding: 0.7rem 0.85rem !important;
+                    border-radius: 15px;
+                }
+                body.equip-running #questionProgressCard #adaptiveStatusText {
+                    font-size: 0.9rem;
+                    line-height: 1.45;
+                }
+                body.equip-running #questionProgressCard .equip-status-card {
+                    border: 1px solid rgba(139, 92, 246, 0.28);
+                    background:
+                        radial-gradient(circle at 90% 14%, rgba(167,139,250,.18), transparent 38%),
+                        linear-gradient(140deg, rgba(250,245,255,.94), rgba(239,246,255,.9));
+                    border-radius: 13px;
+                    padding: 10px 12px;
+                    box-shadow: 0 8px 24px -18px rgba(76,29,149,.45), 0 1px 0 rgba(255,255,255,.62) inset;
+                }
+                body.equip-running #questionProgressCard .equip-status-top {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 8px;
+                    margin-bottom: 7px;
+                }
+                body.equip-running #questionProgressCard .equip-phase-pill {
+                    display: inline-flex;
+                    align-items: center;
+                    font-size: 11.5px;
+                    font-weight: 800;
+                    color: #6b21a8;
+                    background: rgba(233,213,255,.84);
+                    border: 1px solid rgba(167,139,250,.9);
+                    border-radius: 9999px;
+                    padding: 2px 9px;
+                    letter-spacing: .02em;
+                    box-shadow: 0 1px 0 rgba(255,255,255,.65) inset;
+                }
+                body.equip-running #questionProgressCard .equip-count-pill {
+                    display: inline-flex;
+                    align-items: center;
+                    font-size: 11.5px;
+                    font-weight: 800;
+                    color: #1e3a8a;
+                    background: rgba(219,234,254,.82);
+                    border: 1px solid rgba(147,197,253,.9);
+                    border-radius: 9999px;
+                    padding: 2px 8px;
+                    letter-spacing: .01em;
+                    box-shadow: 0 1px 0 rgba(255,255,255,.65) inset;
+                }
+                body.equip-running #questionProgressCard .equip-kv-grid {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 7px;
+                }
+                body.equip-running #questionProgressCard .equip-kv {
+                    border-radius: 9px;
+                    border: 1px solid rgba(196,181,253,.62);
+                    background: rgba(255,255,255,.84);
+                    padding: 6px 8px;
+                    min-width: 0;
+                }
+                body.equip-running #questionProgressCard .equip-kv span {
+                    display: block;
+                    font-size: 10.5px;
+                    line-height: 1.15;
+                    color: rgba(76,29,149,.78);
+                    font-weight: 700;
+                }
+                body.equip-running #questionProgressCard .equip-kv strong {
+                    display: block;
+                    margin-top: 2px;
+                    font-size: 12.5px;
+                    line-height: 1.25;
+                    color: #4c1d95;
+                    font-weight: 800;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                body.equip-running #questionProgressCard .equip-order-head {
+                    margin-top: 7px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    font-size: 11.5px;
+                    font-weight: 800;
+                    color: #4c1d95;
+                }
+                body.equip-running #questionProgressCard .equip-order-track {
+                    margin-top: 7px;
+                    height: 8px;
+                    border-radius: 9999px;
+                    overflow: hidden;
+                    border: 1px solid rgba(147,197,253,.75);
+                    background: rgba(219,234,254,.62);
+                }
+                body.equip-running #questionProgressCard .equip-order-fill {
+                    height: 100%;
+                    border-radius: 9999px;
+                    background: linear-gradient(90deg, #8b5cf6, #3b82f6);
+                    transition: width .25s ease;
+                }
+                body.equip-running #questionProgressCard .equip-order-fill.equip-order-fill-live {
+                    position: relative;
+                    overflow: hidden;
+                }
+                body.equip-running #questionProgressCard .equip-order-fill.equip-order-fill-live::after {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                    left: -45%;
+                    width: 45%;
+                    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.42), rgba(255,255,255,0));
+                    animation: equipOrderShimmer 1.25s ease-in-out infinite;
+                }
+                body.equip-running #questionProgressCard .equip-order-text {
+                    margin-top: 6px;
+                    font-size: 11px;
+                    line-height: 1.4;
+                    color: rgba(55,48,163,.92);
+                    font-weight: 700;
+                    white-space: normal;
+                    word-break: break-word;
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 5px;
+                    align-items: center;
+                }
+                body.equip-running #questionProgressCard .equip-frag-chip {
+                    display: inline-flex;
+                    align-items: center;
+                    max-width: 100%;
+                    border-radius: 9999px;
+                    border: 1px solid rgba(147,197,253,.92);
+                    background: rgba(239,246,255,.95);
+                    color: #1d4ed8;
+                    padding: 2px 8px;
+                    font-size: 10.5px;
+                    line-height: 1.3;
+                    font-weight: 800;
+                }
+                body.equip-running #questionProgressCard .equip-frag-empty {
+                    font-size: 11px;
+                    color: rgba(76,29,149,.75);
+                }
+                body.equip-running #questionProgressCard .equip-frag-more {
+                    font-size: 10.5px;
+                    color: rgba(76,29,149,.74);
+                    font-weight: 800;
+                }
+                body.equip-running #questionProgressCard .equip-inline-note {
+                    margin-top: 3px;
+                    font-size: 11.5px;
+                    line-height: 1.35;
+                    color: rgba(76,29,149,.86);
+                    font-weight: 700;
+                }
+            }
+        
+        
+        /* Startup overlay: subtle shimmer for loading text */
+        @keyframes loadingShimmer {
+            0%   { text-shadow: 0 0 8px rgba(255,255,255,0.30); opacity: 0.92; }
+            50%  { text-shadow: 0 0 16px rgba(255,255,255,0.65); opacity: 1.00; }
+            100% { text-shadow: 0 0 8px rgba(255,255,255,0.30); opacity: 0.92; }
+        }
+        #startupOverlay .loading-shimmer { animation: loadingShimmer 2s ease-in-out infinite; }
+    /* Simple fade-in for startup elements */
+    @keyframes softFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    /* New sync show: pause animations until assets-ready, then all run together */
+    #startupOverlay .sync-item { visibility: hidden; opacity: 0; animation: softFadeIn 1.0s ease-out .14s forwards; animation-play-state: paused; will-change: opacity, transform; }
+    #startupOverlay.assets-ready .sync-item { visibility: visible; animation-play-state: running; }
+    /* Keep legacy classes for other places if used, but not for startup synced items anymore */
+    #startupOverlay .fade-in-1 { opacity: 0; animation: softFadeIn 1.2s ease-out .1s forwards; }
+    #startupOverlay .fade-in-2 { opacity: 0; animation: softFadeIn 1.4s ease-out .25s forwards; }
+    #startupOverlay .fade-in-3 { opacity: 0; animation: softFadeIn 1.6s ease-out .4s forwards; }
+    /* Reduced motion: show synced items immediately (no animation) */
+    @media (prefers-reduced-motion: reduce) {
+        #startupOverlay .sync-item { visibility: visible !important; opacity: 1 !important; animation: none !important; }
+    }
+        /* Startup overlay theme backgrounds */
+        #startupOverlay.theme-light {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 35%, #dbeafe 70%, #bfdbfe 100%);
+        }
+        #startupOverlay.theme-dark {
+            background: linear-gradient(135deg, #1f2937 0%, #273244 40%, #334155 100%);
+        }
+        /* Use a stable system font for all startup overlay text to prevent webfont swap jumps */
+        #startupOverlay {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", "Heiti TC", "PMingLiU", sans-serif !important;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-variant-ligatures: none;
+            font-feature-settings: "liga" 0, "clig" 0;
+        }
+        /* Optional startup logo sizing */
+        #startupOverlay #startupLogo {
+            max-width: clamp(420px, 60vw, 960px);
+            max-height: clamp(240px, 45vh, 420px);
+            width: auto; height: auto;
+            margin-bottom: 14px;
+            filter: drop-shadow(0 8px 18px rgba(0,0,0,0.18));
+            opacity: 0.98;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+    /* Version at top-right */
+    #startupOverlay #startupVersion { top: 14px !important; right: 16px !important; bottom: auto !important; }
+        /* Bottom-left wordmark */
+        #startupOverlay #startupWord {
+            position: absolute; left: calc(env(safe-area-inset-left, 0px) + 0px); bottom: calc(env(safe-area-inset-bottom, 0px) + 0px);
+            width: auto; height: auto; max-width: clamp(210px, 42vw, 540px); max-height: 30vh;
+            filter: drop-shadow(0 6px 14px rgba(0,0,0,0.18));
+            opacity: 0.95; pointer-events: none; user-select: none; -webkit-user-drag: none;
+        }
+        /* Bottom-right brand mark (logo0) — does not affect layout */
+        #startupOverlay #startupBrand {
+            position: absolute; right: calc(env(safe-area-inset-right, 0px) + 8px); bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+            width: auto; height: auto; max-width: clamp(80px, 18vw, 160px); max-height: 18vh;
+            opacity: 0.9; pointer-events: none; user-select: none; -webkit-user-drag: none;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.18));
+        }
+        /* Word2 variants follow the same bottom-left anchoring as default (no extra offsets/scaling) */
+        #startupOverlay #startupWord.variant-word2 {
+            left: calc(env(safe-area-inset-left, 0px) + 0px);
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 0px);
+            transform: none;
+            transform-origin: left bottom;
+        }
+        /* Loading text: center horizontally, at 25vh from the bottom (viewport-based) */
+        #startupOverlay #startupLoadingText {
+            position: absolute; left: 0; right: 0; bottom: calc(25vh + env(safe-area-inset-bottom, 0px)); transform: none;
+            width: 100%; text-align: center;
+            color: rgba(255,255,255,0.95); font-weight: 800; letter-spacing: 0.25em;
+            text-shadow: 0 0 14px rgba(0,0,0,0.25);
+            /* Force a stable, locally-available font to avoid webfont swap causing layout jump */
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", "Heiti TC", "PMingLiU", sans-serif !important;
+            /* Disable ligatures to keep width consistent across engines */
+            font-variant-ligatures: none;
+            font-feature-settings: "liga" 0, "clig" 0;
+        }
+    
+    
+        /* Global combo gauge styles (apply to both mobile and desktop) */
+        #comboContainer { margin-bottom: 8px; }
+        #comboLabel { font-weight: 800; letter-spacing: 0.02em; text-shadow: 0 1px 2px rgba(0,0,0,0.25); }
+        #comboBar { position: relative; height: 16px; border-radius: 9999px; overflow: hidden; }
+    #comboSegments { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; height: 100%; padding: 0 3px; }
+        .combo-seg { height: 100%; border-radius: 6px; background: linear-gradient(180deg, #e5e7eb, #d1d5db); border: 1px solid rgba(0,0,0,0.06); box-shadow: inset 0 1px 2px rgba(0,0,0,0.08); }
+        .combo-seg.filled { background: linear-gradient(180deg, #fde68a, #f59e0b); border-color: rgba(251,191,36,0.55); box-shadow: inset 0 1px 2px rgba(0,0,0,0.22), 0 0 6px rgba(245,158,11,0.55); }
+        .combo-seg.filled.tier-2 { background: linear-gradient(180deg, #fcd34d, #f59e0b); box-shadow: inset 0 1px 2px rgba(0,0,0,0.24), 0 0 10px rgba(245,158,11,0.66); }
+        .combo-seg.filled.tier-3 { background: linear-gradient(180deg, #fbbf24, #f59e0b); box-shadow: inset 0 1px 3px rgba(0,0,0,0.28), 0 0 12px rgba(245,158,11,0.78); }
+        .combo-seg.filled.tier-4 { background: linear-gradient(180deg, #f59e0b, #d97706); box-shadow: inset 0 1px 3px rgba(0,0,0,0.3), 0 0 14px rgba(217,119,6,0.85); }
+        .combo-seg.filled.tier-5 { background: linear-gradient(180deg, #f59e0b, #b45309); box-shadow: inset 0 1px 3px rgba(0,0,0,0.32), 0 0 16px rgba(180,83,9,0.95); }
+        .combo-flash { position:absolute; inset: -2px; pointer-events: none; background: radial-gradient(ellipse at center, rgba(255,255,255,0.45), rgba(255,255,255,0.0) 60%); opacity: 0; }
+        .combo-flash.play { animation: comboFlash 520ms ease-out forwards; }
+    /* MAX 連擊條光暈 */
+    #comboBar.max-glow { box-shadow: 0 0 0 2px rgba(253,230,138,0.8), 0 0 14px 4px rgba(252,211,77,0.75), 0 0 32px 10px rgba(245,158,11,0.55) !important; animation: comboMaxPulse 1.6s ease-in-out infinite; }
+    @keyframes comboMaxPulse { 0%,100%{ filter: brightness(1); } 50% { filter: brightness(1.25); } }
+        @keyframes comboFlash { 0%{opacity:.0} 25%{opacity:.9} 100%{opacity:0} }
+        .combo-shake { animation: comboShake 460ms cubic-bezier(.36,.07,.19,.97); }
+        @keyframes comboShake { 10% { transform: translateX(-4px) } 20% { transform: translateX(4px) } 30% { transform: translateX(-3px) } 40% { transform: translateX(3px) } 50% { transform: translateX(-2px) } 60% { transform: translateX(2px) } 70% { transform: translateX(-1px) } 80% { transform: translateX(1px) } 100% { transform: translateX(0) } }
+        .combo-pop { animation: comboPop 400ms cubic-bezier(.2,.9,.2,1); }
+        
+        /* 防護盾特效 */
+        .combo-shield-up { animation: shieldAura 1.0s ease-out; }
+        @keyframes shieldAura {
+            0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); border-color: transparent; }
+            30% { box-shadow: 0 0 15px 4px rgba(52, 211, 153, 0.7), inset 0 0 8px rgba(52, 211, 153, 0.5); border-color: #34d399; }
+            100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); border-color: transparent; }
+        }
+        
+    /* 裝備課程：隱藏連擊條本體但保留文字(Label) */
+    body.equip-running #comboBar { display:none !important; }
+        @keyframes comboPop { 0% { transform: scale(0.92); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+        /* Final mobile overrides (iPhone SE fixes): tighter top cards, hidden level label, clipped panel ornaments, compact score bar */
+        
+            @media (max-width: 640px) {
+                /* Use small-viewport height to avoid iOS 100vh jump */
+                #gameScreen { height: 100svh !important; overflow: visible !important; }
+
+                /* Hide the entire level-progress/timer card (use mobile mini fallback instead) */
+                #levelProgressCard, #survivalTimerCard { display: none !important; visibility: hidden !important; height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
+
+                /* Compact the center score card */
+                #gameScreen .cute-card[style*="min-w"] { padding: 0.45rem 0.5rem !important; }
+                #centerScore { font-size: clamp(2rem, 9vw, 3rem) !important; }
+            
+                /* Score bar: reduce height; re-layout ticks with equal grid columns so positions align with bar */
+                #scoreProgressBar { height: 14px !important; }
+                #scoreProgressFill { height: 100% !important; }
+                /* Keep tick row visible on mobile too (relayout uses grid below) */
+                #timeRewardProgressContainer > .flex.justify-between { display: flex !important; }
+                /* Build a 6-column grid that aligns with 0,10,20,30,40,50 under the bar */
+                #timeRewardTicksGrid { display: grid !important; grid-template-columns: repeat(6, 1fr) !important; gap: 0 !important; width: 100% !important; margin-top: 4px !important; font-size: 10px !important; color: #6b7280 !important; }
+                #timeRewardTicksGrid span { text-align: center !important; min-width: 0 !important; }
+                #timeRewardTicksGrid span:first-child { text-align: left !important; }
+                #timeRewardTicksGrid span:last-child { text-align: right !important; }
+                /* Show the time reward text on mobile */
+                #timeRewardProgressText { display: block !important; }
+
+                /* Combo gauge sizes tuned for mobile (overrides global) */
+                #comboContainer { margin-bottom: 6px !important; }
+                #comboBar { height: 14px !important; }
+                #comboSegments { gap: 2px !important; padding: 0 2px !important; }
+
+                /* ==== Score card vertical compression (mobile) ==== */
+                #scoreCardWrapper { padding-top: 0.35rem !important; padding-bottom: 0.40rem !important; }
+                #scoreCardWrapper .mb-4 { margin-bottom: 0.35rem !important; }
+                #scoreCardWrapper #comboContainer { margin-bottom: 4px !important; }
+                #scoreCardWrapper #timeRewardProgressContainer { margin-bottom: 2px !important; }
+                /* Remove any extra top spacing created by first flex wrapper */
+                #scoreCardWrapper > .relative .flex.items-center.justify-center.space-x-6 { margin-top: 0 !important; }
+                /* Ensure the label sits closer to the score */
+                #comboLabel { margin-top: 2px !important; }
+                /* Slightly tighten mini progress spacing if shown */
+                #levelProgressMini { margin-bottom: 4px !important; }
+
+                /* Mobile-only mini level progress (fallback) inside score card */
+                /* Columns will be overridden dynamically to match total levels */
+                #levelProgressMini { display: grid !important; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px !important; margin-bottom: 6px !important; }
+                #levelProgressMini .mini-dot { width: 100% !important; height: 10px !important; border-width: 2px !important; border-radius: 9999px !important; }
+
+                /* Mobile: survival mini timer bar above the score */
+                #survivalTimerMini { display: none !important; margin-bottom: 6px !important; }
+                #survivalTimerMini.active { display: block !important; }
+                #survivalTimerMini .timer-row { display: none !important; }
+                #survivalTimerMini .timer-clock { font-weight: 900; font-size: 1.05rem; color: #991b1b; }
+                #survivalTimerMini .timer-label { font-size: 0.85rem; font-weight: 800; color: #b91c1c; }
+                #survivalTimerMini .bar { height: 9px; border: 2px solid #fecaca; border-radius: 9999px; background: rgba(255,255,255,0.85); overflow: hidden; }
+                #survivalTimerMini .fill { height: 100%; width: 100%; background: linear-gradient(90deg,#fb7185,#ef4444); }
+
+                /* Carousel panels: trim side paddings and prevent decorative emojis from overlapping */
+                .verses-carousel .panel { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+                .verses-carousel .panel > .absolute { display: none !important; }
+                .verses-carousel .panel { min-height: 0 !important; }
+
+                /* Titles: smaller with tighter letter-spacing */
+                #verseTitle, #chapterTitle { font-size: clamp(0.98rem, 4.2vw, 1.22rem) !important; letter-spacing: 0.02em !important; }
+
+                /* Ensure our encouragement text sits above a slightly shorter pinned bar */
+                :root { --pinned-controls-height: 56px !important; }
+                #gameControlsPinned { min-height: var(--pinned-controls-height) !important; }
+                #gameControlsPinned .cute-button { height: 44px !important; }
+
+                /* Compress panel titles (前段經文/後段經文) to free space for questions */
+                /* Hide decorative emoji in titles on small screens */
+                #verseTitle .animate-pulse, #chapterTitle .animate-pulse { display: none !important; }
+                /* Make the title small, left-aligned, and tight letter-spacing */
+                #verseTitle, #chapterTitle {
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: flex-start !important;
+                    gap: 0.35rem !important;
+                    font-size: 0.95rem !important;
+                    line-height: 1.1 !important;
+                    letter-spacing: 0.02em !important;
+                    margin: 0 0 0.2rem 0 !important;
+                }
+                /* Override the wide tracking on inner label spans */
+                #verseTitle .tracking-widest, #chapterTitle .tracking-widest {
+                    letter-spacing: 0.02em !important;
+                    font-size: 0.98rem !important;
+                }
+                /* Reduce the wrapper block's bottom margin further */
+                #versesCarousel .panel .mb-8 { margin-bottom: 0.2rem !important; }
+            }
+            /* Desktop+ restore: show ticks in a spaced row as before */
+            @media (min-width: 641px) {
+                #timeRewardTicksGrid { display: flex !important; justify-content: space-between !important; }
+                /* Hide mini level progress on larger screens */
+                #levelProgressMini { display: none !important; }
+                /* Make the time reward bar slimmer on desktop */
+                #scoreProgressBar { height: 12px !important; border-width: 1px !important; }
+                #scoreProgressFill { height: 100% !important; }
+                /* Equalize hint/back button heights on desktop */
+                #gameControlsPinned .cute-button { height: 42px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; }
+                /* Desktop: stack panels vertically (front on top, back below) and show multi-column grids without per-item scroll */
+                .verses-carousel { display: block !important; overflow: visible !important; }
+                /* 保留 hidden class 作用：避免裝備課程時殘留空白與標題 */
+                .hidden#versesCarousel { display: none !important; }
+                .verses-carousel .panel { height: auto !important; overflow: visible !important; }
+                /* Front/back titles spacing for desktop */
+                #verseTitle, #chapterTitle { margin-top: 0.25rem !important; margin-bottom: 0.5rem !important; }
+                /* Desktop grids: 3 items top row, 2 items bottom row; centered */
+                #gameVerses, #gameChapters {
+                    display: grid !important;
+                    grid-template-columns: repeat(3, minmax(240px, 1fr)) !important;
+                    gap: 12px 16px !important;
+                    justify-content: center !important;
+                    justify-items: center !important;
+                    align-items: start !important;
+                    overflow: visible !important;
+                }
+                /* Place the last two items on a centered second row */
+                #gameVerses > .verse-card:nth-child(4),
+                #gameVerses > .verse-card:nth-child(5),
+                #gameChapters > .chapter-card:nth-child(4),
+                #gameChapters > .chapter-card:nth-child(5) {
+                    grid-column: span 1 / span 1;
+                }
+                /* Ensure cards auto-size and center neatly */
+                .verse-card, .chapter-card { width: 100% !important; min-height: 72px !important; }
+                /* Remove fixed positioning that might shift cards on desktop */
+                #gameScreen .fixed.inset-0.pointer-events-none.z-0 { display: none !important; }
+            }
+
+            /* Fallback for browsers without svh support: rely on a JS-updated --vh variable */
+            @supports not (height: 100svh) {
+                @media (max-width: 640px) {
+                    #gameScreen { height: calc(var(--vh, 1vh) * 100) !important; }
+                }
+            }
+/* Mode Selection Dimming Effect */
+/* When any mode is selected (container has .mode-selection-active), unselected items fade out */
+.mode-selection-active .mode-card-interactive:not([aria-pressed='true']) {
+    opacity: 0.86;
+    filter: saturate(0.92) brightness(0.98);
+    transform: translateY(0);
+    transition: all 0.3s ease;
+}
+
+.mode-selection-active .mode-card-interactive:not([aria-pressed='true']):hover {
+    opacity: 0.95;
+    filter: saturate(0.98) brightness(1);
+    transform: translateY(-1px);
+    cursor: pointer;
+}
+
+/* Selected item stands out more */
+.mode-selection-active .mode-card-interactive[aria-pressed='true'] {
+    opacity: 1;
+    filter: none;
+    transform: translateY(-2px);
+    z-index: 2;
+}
+
+/* Ensure transition applies when state changes */
+.mode-card-interactive {
+    transition: all 0.3s ease;
+}
+
+/* Step layout: keep mode selection as single entry and only show heavy settings when selected */
+#modeCard #equipCourseCard .equip-mode-detail {
+    display: none;
+}
+#modeCard #equipCourseCard[aria-pressed='true'] .equip-mode-detail {
+    display: block;
+}
+#modeCard #customAreaCard .custom-settings-content {
+    display: none;
+}
+#modeCard #customAreaCard[aria-pressed='true'] .custom-settings-content {
+    display: block;
+}
+
+@media (max-width: 1024px) {
+    #startScreen #modeCard.cute-card,
+    #startScreen #rangeCard.cute-card,
+    #startScreen #leaderboardSection.cute-card {
+        padding: 1rem !important;
+    }
+}
+
+/* Step 2 card visual polish */
+#startScreen #rangeCard .menu-action-score {
+    background-image: linear-gradient(90deg, #0ea5e9, #06b6d4) !important;
+    opacity: .75;
+    transition: background-color .2s ease, opacity .2s ease;
+}
+#equipStepProgress .equip-step-dot.is-active {
+    background: #8b5cf6;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(139,92,246,.2);
+    transform: scale(1.18);
+    opacity: 1;
+}
+#equipStepProgress .equip-step-dot.is-done {
+    background: #a78bfa;
+    border-color: #8b5cf6;
+    opacity: .96;
+}
+#equipStepProgress .equip-step-line.is-done {
+    background: linear-gradient(90deg, #a78bfa, #8b5cf6);
+    opacity: .95;
+}
+
+@media (max-width: 760px) {
+    #equipStepProgress.equip-stepper {
+        margin-bottom: .25rem !important;
+        gap: .3rem;
+    }
+    #equipStepProgress .equip-step-dot {
+        width: 9px;
+        height: 9px;
+        border-width: 1.8px;
+    }
+}
+
+/* Step 1: unify four mode cards/title rhythm */
+#startScreen #modeCard .home-mode-grid {
+    align-items: stretch;
+    gap: 0.65rem !important;
+}
+#startScreen #modeCard .home-mode-grid > .mode-card-interactive {
+    min-height: 148px;
+    height: 100%;
+}
+#startScreen #modeCard .home-mode-head {
+    gap: 0.7rem;
+}
+#startScreen #modeCard .home-mode-copy-wrap {
+    min-width: 0;
+    gap: 0.6rem;
+}
+#startScreen #modeCard .home-mode-copy {
+    min-width: 0;
+}
+#startScreen #modeCard .home-mode-icon {
+    flex-shrink: 0;
+}
+#startScreen #modeCard .home-mode-title {
+    font-size: 1.42rem !important;
+    line-height: 1.18;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+#startScreen #modeCard .mode-kind-badge {
+    min-width: 3.6rem;
+    text-align: center;
+    padding: 0.24rem 0.56rem;
+}
+#startScreen #modeCard .heading-sub {
+    font-size: 0.78rem;
+    line-height: 1.2;
+}
+
+@media (max-width: 639px) {
+    #mainMenuGrid {
+        gap: 0.7rem !important;
+    }
+    #startScreen #modeCard.cute-card {
+        padding: 0.85rem !important;
+        border-radius: 22px !important;
+    }
+    #startScreen #modeCardHeader {
+        margin-bottom: 0.55rem !important;
+        padding-bottom: 0.45rem !important;
+    }
+    #startScreen #modeCardTitle {
+        font-size: 1.45rem !important;
+        letter-spacing: 0.08em !important;
+    }
+    #startScreen #modeCardBody {
+        padding-top: 0.18rem !important;
+        padding-bottom: 0.35rem !important;
+    }
+    #startScreen #modeCard .home-mode-grid {
+        gap: 0.5rem !important;
+        margin-top: 0.12rem !important;
+    }
+    #startScreen #modeCard .home-mode-grid > .mode-card-interactive {
+        min-height: 108px;
+        padding: 0.72rem 0.8rem !important;
+        border-radius: 20px !important;
+        box-shadow: 0 7px 18px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255,255,255,0.5) !important;
+    }
+    #startScreen #modeCard .home-mode-grid > .mode-card-interactive[aria-pressed='true'] {
+        box-shadow: 0 16px 32px var(--mode-card-glow, rgba(15, 23, 42, 0.18)), 0 0 0 1px rgba(255,255,255,0.16) inset !important;
+    }
+    .mode-selection-active #startScreen #modeCard .home-mode-grid > .mode-card-interactive[aria-pressed='true'],
+    #startScreen #modeCard .home-mode-grid > .mode-card-interactive[aria-pressed='true'] {
+        transform: translateY(0) !important;
+    }
+    #startScreen #modeCard #modeClassicBtn,
+    #startScreen #modeCard #modeSurvivalBtn,
+    #startScreen #modeCard #equipCourseCard,
+    #startScreen #modeCard #customAreaCard {
+        align-items: center;
+    }
+    #startScreen #modeCard .home-mode-head,
+    #startScreen #modeCard .home-mode-copy-wrap {
+        min-width: 0;
+        gap: 0.55rem;
+    }
+    #startScreen #modeCard .home-mode-icon {
+        font-size: 1.45rem !important;
+        line-height: 1;
+        margin-right: 0.2rem !important;
+    }
+    #startScreen #modeCard .home-mode-title {
+        font-size: 1.02rem !important;
+        line-height: 1.15 !important;
+        letter-spacing: 0.01em !important;
+    }
+    #startScreen #modeCard .heading-sub {
+        font-size: 0.72rem !important;
+        line-height: 1.18 !important;
+        margin-top: 0.18rem !important;
+    }
+    #startScreen #modeCard .mode-kind-badge {
+        min-width: 3.2rem;
+        font-size: 0.68rem !important;
+        padding: 0.2rem 0.5rem !important;
+        line-height: 1.1 !important;
+        flex-shrink: 0;
+    }
+    #startScreen #modeCard #equipCourseCard[aria-pressed='false'],
+    #startScreen #modeCard #customAreaCard[aria-pressed='false'] {
+        min-height: 108px;
+    }
+    #startScreen #modeCard .mode-detail-panel {
+        margin-top: 0.65rem;
+        padding-top: 0.65rem;
+    }
+    #startScreen #modeCard .mode-detail-chip {
+        min-height: 30px;
+        font-size: 0.66rem !important;
+        letter-spacing: 0.02em;
+    }
+    #startScreen #modeCard #equipCourseCard .mode-detail-chip {
+        min-height: 32px;
+        font-size: 0.79rem !important;
+        line-height: 1.18;
+        padding-left: 0.38rem;
+        padding-right: 0.38rem;
+    }
+    #startScreen #modeCard .mode-detail-info-btn {
+        width: 1.15rem;
+        height: 1.15rem;
+        font-size: 0.56rem !important;
+    }
+    #startScreen #modeCard .mode-detail-subcard {
+        padding: 0.7rem !important;
+        margin-top: 0.55rem !important;
+        border-radius: 16px !important;
+    }
+    #startScreen #modeCard .mode-detail-subcard-btn {
+        font-size: 0.66rem !important;
+        padding: 0.28rem 0.5rem !important;
+    }
+    #startScreen #modeCard .mode-detail-search {
+        min-height: 30px;
+        padding: 0.35rem 0.55rem;
+    }
+}
+
+
+/* ========================================================
+    Emotional & Milestone VFX
+    ======================================================== */
+.shield-break-shatter {
+    animation: shieldShatter 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+}
+@keyframes shieldShatter {
+    0% { box-shadow: inset 0 0 0 0 rgba(191, 219, 254, 0); }
+    20% { box-shadow: inset 0 0 100px 30px rgba(147, 197, 253, 0.8); transform: scale(0.99) rotate(-0.5deg); }
+    40% { transform: scale(1.01) rotate(0.5deg); }
+    60% { box-shadow: inset 0 0 50px 10px rgba(191, 219, 254, 0.4); transform: scale(0.995) rotate(-0.2deg); }
+    100% { box-shadow: inset 0 0 0 0 rgba(191, 219, 254, 0); transform: scale(1) rotate(0); }
+}
+.combo-ripple-effect {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 100%; height: 100%; border-radius: inherit;
+    border: 4px solid #FCD34D; opacity: 1; pointer-events: none;
+    animation: rippleExpand 0.8s ease-out forwards;
+}
+@keyframes rippleExpand {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+    100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; border-color: #F59E0B; border-width: 0px; }
+}
+.combo-number-pop {
+    animation: comboNumberPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    color: #F59E0B !important; text-shadow: 0 0 15px rgba(245, 158, 11, 0.8);
+}
+@keyframes comboNumberPop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.8) rotate(-5deg); }
+    60% { transform: scale(1.4) rotate(3deg); }
+    100% { transform: scale(1) rotate(0); }
+}
+body.max-awakening-active { animation: maxBreathing 3s ease-in-out infinite alternate; }
+@keyframes maxBreathing {
+    0% { box-shadow: inset 0 0 30px 5px rgba(251, 191, 36, 0.1); }
+    100% { box-shadow: inset 0 0 80px 15px rgba(245, 158, 11, 0.25); }
+}
+.godlike-text {
+    position: fixed; top: 40%; left: 50%; font-size: 3rem; font-weight: 900;
+    color: #FFF; text-transform: uppercase; text-shadow: 0px 4px 15px rgba(0,0,0,0.4), 0 0 30px rgba(245,158,11,0.9);
+    background: linear-gradient(to bottom, #FEF08A, #F59E0B); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    pointer-events: none; z-index: 9999; opacity: 0;
+    animation: godlikeFloat 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+@keyframes godlikeFloat {
+    0% { opacity: 0; transform: translate(-50%, 80px) scale(0.3); }
+    20% { opacity: 1; transform: translate(-50%, 0px) scale(1.3); }
+    30% { transform: translate(-50%, -10px) scale(1.1); }
+    80% { opacity: 1; transform: translate(-50%, -40px) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -80px) scale(0.8); filter: blur(5px); }
+}
+
+/* Settlement Animation Styles */
+.achv-pop-in-large {
+    animation: achvStamp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+    animation-delay: var(--popDelay, 0.1s);
+}
+
+@keyframes achvStamp {
+    0% { transform: scale(0.3) rotate(-15deg); opacity: 0; box-shadow: 0 0 0 rgba(0,0,0,0); }
+    50% { transform: scale(1.1) rotate(5deg); opacity: 1; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
+    100% { transform: scale(1) rotate(0); opacity: 1; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2); }
+}
+
+.achv-pop-in-small {
+    animation: achvPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+    animation-delay: var(--popDelay, 0.1s);
+}
+
+@keyframes achvPop {
+    0% { transform: scale(0.8) translateY(10px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+

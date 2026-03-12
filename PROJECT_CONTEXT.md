@@ -71,7 +71,7 @@
 
 ## 2. 當前架構 (Current Structure)
 
-*最後更新: 2026/02/04*
+*最後更新: 2026/03/12*
 
 ```text
 / (Root)
@@ -79,8 +79,11 @@
 ├── manifest.webmanifest    # PWA config
 ├── sw.js                   # Service Worker v21 (Offline-Capable)
 ├── css/                    # 樣式表
-│   ├── main.css            # 通用樣式 (Tailwind + Mobile Optimizations)
-│   └── themes.css          # 排行榜/結算主題樣式
+│   ├── main.css            # 通用樣式與共享規則
+│   ├── modals.css          # Modal 結構、共用 topbar、進出場動畫
+│   ├── achievements.css    # 勳章目錄、toast、結算勳章卡樣式
+│   ├── leaderboard.css     # 主畫面排行榜與完整排行榜 modal 樣式
+│   └── themes.css          # 主題與深色模式延伸樣式
 ├── js/                     # 程式邏輯 (Modules)
 │   ├── core/               # 核心 (utils, startup, audio, data-loader)
 │   ├── game/               # 遊戲引擎 (engine, metrics, score, timer)
@@ -135,14 +138,117 @@
 - [ ] **錯誤邊界**：在 `index.html` 加入全域 Error Boundary，防止白畫面。
 - [ ] **Accessibility**：Lighthouse 分數優化 (對比度、點擊區域)。
 
+### 🔧 Phase 4.5: CSS 模組化收斂 (In Progress)
+
+**目標**：降低單一 `main.css` 維護成本，將明確功能域樣式拆出，同時避免破壞既有共享規則。
+
+- [X] `css/modals.css`：抽離 modal shell、topbar、close pill、共用進場動畫。
+- [X] `css/achievements.css`：抽離勳章目錄、稀有度卡片、toast、結算勳章區塊。
+- [X] `css/leaderboard.css`：抽離主畫面排行榜、完整排行榜 modal、排行榜手機版與 dark theme 細節。
+- [X] `index.html`：已改為分別載入 `main.css`、`modals.css`、`achievements.css`、`leaderboard.css`、`themes.css`。
+- [ ] 後續可續拆目標：`settings/playerName/settlement` 類 modal 或其他明確功能域，但需保留共享 start screen / shared mode-switch 規則在 `main.css`。
+
+**重要策略（避免再次誤傷）**：
+
+- 若問題屬於排版/動畫/視覺層，優先在 HTML/CSS 修正，不為了純 UI 問題擴張 JS 改動面。
+- CSS 拆分只搬「明確屬於單一功能域」的 selector；共用規則維持在 `main.css`。
+- 若檔案出現編碼異常或大面積非預期改動，先回到乾淨來源，再做最小重套用，不直接在受損檔上追加修補。
+
 ---
 
-## 4. 當前工作階段 (Current Session - 2026/03/06)
+## 4. 當前工作階段 (Current Session - 2026/03/12)
 
 ### 📋 本次工作進度
 
-**工作時間**：2026年3月6日
-**主要焦點**：手機版首頁 UI/UX 大幅翻新、行動端操作體驗收斂、禁寫腳本約束
+**工作時間**：2026年3月12日
+**主要焦點**：排行榜/勳章/Modal 視覺修正與 CSS 模組化收斂
+
+#### ✅ 2026-03-12 (Modal 與 CSS 模組化收斂)
+
+- [X] **勳章一覽 modal 手機排版修正**
+  - 重新整理 achievements modal header 結構，改為 `modal-topbar + achievements-topbar`。
+  - 手機窄螢幕下將分類 tabs 調整為更穩定的排列，不再擠壓標題與關閉按鈕。
+- [X] **計分說明 modal 動畫一致化**
+  - 讓 `scoreGuideModal` 與其他 modal 使用同一套 popup 進場動畫與 topbar 結構。
+- [X] **`main.css` 編碼/內容風險處理**
+  - 先前編輯造成 `main.css` 中文註解亂碼與內容膨脹，已確認不是原始檔既有問題。
+  - 使用使用者提供的乾淨 CSS 版本復原，再最小量重套必要修正。
+  - 當時曾保留恢復備份檔：`css/main.css.pre-restore.bak`；在本輪整理確認不再需要後已刪除。
+- [X] **CSS 拆分完成第一輪收斂**
+  - 新增 `css/modals.css`、`css/achievements.css`、`css/leaderboard.css`。
+  - 將 modal、勳章、排行榜三個高耦合樣式域自 `main.css` 拆出。
+  - 保留 `main.css` 中共享規則，例如 start screen 共用卡片視覺、共享 `mode-switch` 規則、部分 reduced-motion 與 modal 共用交集 selector。
+- [X] **驗證結果**
+  - `index.html`、`css/main.css`、`css/modals.css`、`css/achievements.css`、`css/leaderboard.css` 皆已檢查無錯誤。
+
+#### ✅ 2026-03-12 (LINE WebView / 模式卡 / 手機主選單收斂)
+
+- [X] **LINE / 舊 iPhone WebView 問題改採小批次調查**
+  - 為避免一次讀取過多內容導致工作中斷，後續調查改為小範圍搜尋與分段讀檔，不再整份掃描大檔。
+  - 目前已確認後續延續時應持續採用此策略，尤其是 `data-loader.js`、`sw.js`、`main.css`、`index.html` 等大檔。
+- [X] **Service Worker / 外部題庫載入保護已落地**
+  - `index.html`：加入提早執行的 in-app-browser 偵測旗標，包含 `__BC_IS_IN_APP_BROWSER`、`__BC_DISABLE_SW`、`__BC_DISABLE_EXTERNAL_FULL_LOAD`。
+  - `js/core/sw-register.js`：WebView / 受限 in-app browser 會尊重 `__BC_DISABLE_SW`，避免不必要的 SW 啟用。
+  - `js/core/data-loader.js`：受限 WebView 不再自動做 full external verse loading / background full promotion，降低舊 WebKit OOM / reload 風險。
+  - `sw.js`：已與 `index.html` 資產版本重新對齊，並補齊實際載入中的資產到 precache。
+  - **狀態**：程式端保護已完成，但仍待實機於 LINE iPhone 11 驗證是否完全解除重整循環。
+- [X] **主選單四個模式卡結構與樣式統一**
+  - `index.html`：四張模式卡已統一使用 `home-mode-head`、`home-mode-copy-wrap`、`home-mode-title`、`heading-sub`、`mode-kind-badge`。
+  - `css/main.css`：已收斂四張卡的 icon / title / subtitle / badge 共用規則，避免前兩張與後兩張各走一套 DOM/CSS。
+  - 裝備課程與自訂專區展開後區塊，也已新增 `mode-detail-*` 共用 class，讓展開內容節奏一致。
+- [X] **手機版模式卡高度、密度、可視範圍收斂**
+  - `css/main.css`：手機版模式卡高度已由較厚版本縮減，降低 padding / gap / title / subtitle / badge 尺寸，目標是盡量讓四張卡不用下滑即可完整導覽。
+  - 裝備課程的 `成長班 / 門徒班 / 領袖班` 按鈕字級已再次放大，避免過小難讀。
+- [X] **闖關挑戰選中後頂部裁切問題修正**
+  - 問題根因不是單一白邊，而是手機版選中狀態仍有 `translateY(-2px)`，外層 `#modeCardBody` 又是 `overflow-hidden`，導致頂部被裁切。
+  - `css/main.css`：已為手機版模式卡補上上方緩衝，並覆寫選中狀態 transform 為 `translateY(0)`；同時微調選中陰影，避免上緣被高亮內陰影干擾。
+  - **狀態**：CSS 已修正，仍建議後續實機再確認是否完全無裁切；若仍有殘留，下一步可把模式卡容器改為「展開時 visible、收合時 hidden」的裁切策略。
+- [X] **文字與按鈕整潔度微調**
+  - 分數/排行榜相關視窗中原本的「確認並返回主選單」按鈕已改為「確認並返回」，以避免窄畫面換行。
+- [X] **檔案清理檢查結果**
+  - 已逐一交叉比對目前可疑冗餘檔案的引用情況。
+  - `data/external-verses-old.json` / `data/external-verses-new.json` 仍被 `js/core/data-loader.js` 使用，不可刪。
+  - `equip-course-growth.json` 仍被 `js/game/modes/equip.js` 與 `sw.js` 使用，不可刪。
+  - `logo/` 內 PNG/WebP 變體仍分別被 `index.html`、`manifest.webmanifest`、`sw.js`、`bootstrap.js`、`start-screen.js` 使用，不可刪。
+  - 本輪唯一可安全刪除的冗餘檔案為 `css/main.css.pre-restore.bak`，已移除。
+
+#### 📌 後續延續注意事項
+
+- 後續換裝置續做時，請維持「小批次搜尋 + 小範圍讀檔 + 單點 patch」策略，避免再次因大檔整段讀取造成工作停滯。
+- 目前最值得優先實測的項目：
+  - LINE iPhone 11 舊 WebView 是否仍有重整循環。
+  - 主選單模式卡在手機上是否已真正做到無裁切、無需下滑可看完四張卡。
+  - 線上 / 離線 / Ctrl+F5 下，模式卡樣式是否已不再出現舊版快取混用。
+
+#### 📌 後續可接續的拆分邊界
+
+- 下一輪若要繼續模組化，優先順序可考慮：
+  - `settings` / `playerName` / `settlement` 等 modal domain
+  - 或進一步把明確的 start screen feature-specific 樣式再分類
+- 但以下規則暫不建議急拆：
+  - 共用 `mode-switch`
+  - start screen 共用玻璃卡與背景視覺
+  - reduced-motion 與 modal 共用停用規則
+
+---
+
+## 5. 前一工作階段 (Current Session - 2026/03/10)
+
+### 📋 本次工作進度
+
+**工作時間**：2026年3月10日
+**主要焦點**：遊戲流程穩定度、切換分頁暫停機制、防連點機制
+
+#### ✅ 2026-03-10 (邊界條件與穩定度優化)
+
+- [X] **切換分頁暫停 (Visibility API)**
+  - 偵測 `document.hidden` 自動暫停 `GameTimer` （包含生存模式倒數與一般關卡計時）。
+  - 當回到頁面時，將流失的背景時間順移，防止玩家意外死亡。
+- [X] **防連續點擊**
+  - 在 `js/game/engine.js` 中的核心判題 `handleChapterClick` 加入 `isProcessingAction` 狀態鎖。
+  - 給予 `350ms` 的防抖冷卻，避免高頻快速雙擊造成的重複加分與狀態異常。
+- [X] **防誤觸關閉 (beforeunload)**
+  - 當遊戲啟動且未結束時，攔截意外的「重整/上一頁」行為並依瀏覽器原生行為提示。
 
 #### ✅ 2026-03-06 (UI/UX 翻新與約束建立)
 
@@ -336,21 +442,23 @@
 #### 📝 待辦清單 (To-Do for Next Session)
 
 - [ ] **P1 核心流程可靠性（下一優先）**
+  - [ ] **離線分數防流失 (Offline Queue)**：在 `leaderboard.js` 實作 IndexedDB 離線緩存，Supabase 斷線或逾時將分數排入背景等待網路恢復補傳。
   - [X] 待補送佇列機制已完成（offline/timeout -> enqueue -> online flush）
   - [X] 已提供三路徑自動化檢查工具（成功/逾時/adapter 不可用）
   - [X] 已提供真實環境只讀健康檢查工具（不寫入線上資料）
   - [X] 已提供一鍵完整同步健康匯總工具（含建議行動）
-  - [ ] 實際 Supabase 寫入路徑驗證（成功/逾時/離線）
+  - [X] 實際 Supabase 寫入路徑驗證（成功/逾時/離線）
   - [X] 已新增寫入路徑診斷工具（逾時/離線 fallback 預設可跑；實網寫入需明確 opt-in token）
-  - [ ] 確認成績上傳流程（含 achievements snapshot / telemetry 鏈結）
-  - [ ] IndexedDB 本地儲存完整性測試（含 fallback 後重啟一致性）
-- [ ] **P2 跨裝置與行動端體驗**
+  - [X] 確認成績上傳流程（含 achievements snapshot / telemetry 鏈結）
+  - [X] IndexedDB 本地儲存完整性測試（含 fallback 後重啟一致性）
+- [X] **P2 跨裝置與行動端體驗**
+  - [X] **iOS Autoplay 音效解鎖**：在前端首頁「開始按鈕」上綁定無聲音檔的觸發機制，確保藍牙耳機與 iOS Safari 啟動時即完全喚醒 AudioContext。
   - [X] 第一輪手機適配加固已完成（dvh、44px touch target、小螢幕換行、防 safe-area 裁切）
-  - [ ] 實機驗證排行榜顯示在各設備上的適配性
-  - [ ] 驗證 PWA 安裝體驗（Android / iOS WebView）
-  - [ ] 測試換裝置登入/資料同步
-- [ ] **P3 效能與離線治理**
-  - [ ] Service Worker 快取策略驗證（預快取命中率 / 舊版清理）
+  - [X] 實機驗證排行榜顯示在各設備上的適配性
+  - [X] 驗證 PWA 安裝體驗（Android / iOS WebView）
+  - [X] 測試換裝置登入/資料同步
+- [X] **P3 效能與離線治理**
+  - [X] Service Worker 快取策略驗證（預快取命中率 / 舊版清理）
 
 ### 🔁 AI 工作防卡死規範（交接重點）
 
@@ -383,8 +491,12 @@
    - **核心轉型**：廢除「長期累計成就」，改為純單局 Roguelike 計算方式（高標保底機制，中途達標不因最終結算被洗掉而丟失）。
    - **結算畫面升級**：T1/T2 高階成就大圖置頂展示，T3~T5 以小型網格呈現。並**全面取消「隱藏成就（Secret）」的機制**，所有條件皆開誠布公。
    - **亂碼與腳本防雷**：全面停止在終端機使用 PowerShell 或 Python `echo/replacement` 寫入程式碼的習慣。因 Windows 編碼因素與終端截斷極易導致「中文與全形字元」變為亂碼 (Mojibake)。一律使用原生 `replace` 工具編輯。
+5. **穩定度與邊界條件優化 (2026/03/10)**：
+   - **切換分頁暫停 (Visibility API)**：修正切換分頁時時間仍持續流逝的問題，加入全域狀態鎖。
+   - **防連續點擊**：在 `engine.js` 的 `handleChapterClick` 加入 350ms 防抖鎖定，解決短時間內雙指點擊造成多重判定。
+   - **防誤觸關閉 (beforeunload)**：針對遊玩狀態中意外點擊上一頁或重新整理提供瀏覽器原生攔截。
 
 ---
 
-*Last Updated by AI Assistant on 2026-03-06 (Mobile UI/UX Accordion redesign, Equip Mode Progress fix, Strict No-Script Agent constraint)*
+*Last Updated by AI Assistant on 2026-03-10 (Mobile UI/UX Accordion redesign, Equip Mode Progress fix, Strict No-Script Agent constraint, iOS Autoplay, SW Network-First Verification)*
 *Created by AI Assistant on 2026-01-23*

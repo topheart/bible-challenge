@@ -2011,6 +2011,8 @@
             min-height: 3.4rem !important;
             flex: 1 1 0 !important;
             align-self: stretch !important;
+            position: relative !important;
+            z-index: 1 !important;
         }
 
         #replaySameQuestionsBtn,
@@ -2031,18 +2033,38 @@
         #replaySameQuestionsBtn > span:last-child {
             font-size: 0.92rem !important;
             font-weight: 800 !important;
+            color: #ffffff !important;
+            text-shadow: 0 1px 2px rgba(15, 23, 42, 0.22);
         }
 
         #replaySameQuestionsBtn > span:last-child > div {
             margin-top: 0.1rem !important;
             font-size: 0.68rem !important;
             line-height: 1.2 !important;
+            color: rgba(255, 255, 255, 0.92) !important;
+            text-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+        }
+
+        #replaySameQuestionsBtn > span,
+        #replaySameQuestionsBtn {
+            color: #ffffff !important;
+            opacity: 1 !important;
+            filter: none !important;
         }
 
         #confirmNameBtn > span:last-child {
             font-size: 0.95rem !important;
             font-weight: 800 !important;
             white-space: normal !important;
+            color: #ffffff !important;
+            text-shadow: 0 1px 2px rgba(15, 23, 42, 0.28);
+        }
+
+        #confirmNameBtn > span,
+        #confirmNameBtn {
+            color: #ffffff !important;
+            opacity: 1 !important;
+            filter: none !important;
         }
 
 

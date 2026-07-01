@@ -402,6 +402,7 @@ function initializeCustomBooks() {
             const startBtn = document.getElementById('startGameBtn');
             const hintElement = document.getElementById('gameStartHint');
             const confirmTitle = document.getElementById('confirmStartTitle');
+            const equipCourseCard = document.getElementById('equipCourseCard');
             if (!startBtn || !hintElement) return;
             const startScreen = document.getElementById('startScreen');
             if (startScreen && startScreen.classList.contains('hidden')) return;
@@ -438,8 +439,11 @@ function initializeCustomBooks() {
             const hasRanking = !!gameState.rarity;
             const hasPractice = !!gameState.range; // 包含 theme/testament/custom/all 任一
             const isCoreMode = (gameState.playMode === 'classic' || gameState.playMode === 'survival');
+            const hasEquipSelected = !!(equipCourseCard && equipCourseCard.getAttribute('aria-pressed') === 'true');
             const hasEquipPending = !!gameState.__pendingEquipTier;
-            let canStart = !!(((hasRanking || hasPractice || hasEquipPending) || isCoreMode) && hasData);
+            const equipBank = gameState.equipBank;
+            const equipReady = !!(hasEquipPending && equipBank && Array.isArray(equipBank[gameState.__pendingEquipTier]) && equipBank[gameState.__pendingEquipTier].length > 0);
+            let canStart = hasEquipPending ? equipReady : !!(((hasRanking || hasPractice) || isCoreMode) && hasData);
             
             // 檢查可開始條件：所有模式至少需有基本題數；「自訂範圍」在普通 >=3，本；簡單/困難 >=1 本
             if (canStart && hasPractice) {
@@ -484,7 +488,7 @@ function initializeCustomBooks() {
             let desiredModeTone = 'default';
 
             const resolveModeLabel = () => {
-                if (hasEquipPending) return '開始裝備課程';
+                if (hasEquipPending || hasEquipSelected) return '開始裝備課程';
                 if (hasPractice) return '開始自訂練習';
                 if (gameState.playMode === 'survival') return '開始生存計時';
                 if (gameState.playMode === 'classic') return '開始闖關挑戰';
@@ -492,7 +496,7 @@ function initializeCustomBooks() {
             };
 
             const resolveModeTone = () => {
-                if (hasEquipPending) return 'equip';
+                if (hasEquipPending || hasEquipSelected) return 'equip';
                 if (hasPractice) return 'custom';
                 if (gameState.playMode === 'survival') return 'survival';
                 if (gameState.playMode === 'classic') return 'classic';
@@ -530,7 +534,9 @@ function initializeCustomBooks() {
                     desiredModeTone = 'default';
                 }
 
-                if (!hasData) {
+                if (hasEquipPending && !equipReady) {
+                    desiredHintText = '裝備課程題庫準備中，請稍候再試。';
+                } else if (!hasData) {
                     if (location && location.protocol === 'file:') {
                         desiredHintText = '需要透過本機伺服器開啟（如 VS Code Live Server 或 python -m http.server），file:// 無法載入題庫。';
                     } else if (window && window.externalVersesLoadError) {
@@ -538,8 +544,10 @@ function initializeCustomBooks() {
                     } else {
                         desiredHintText = '正在載入題庫…';
                     }
-                } else if (!hasRanking && !hasPractice && !isCoreMode) {
+                } else if (!hasRanking && !hasPractice && !isCoreMode && !hasEquipSelected) {
                     desiredHintText = '請先選擇模式（闖關 / 生存 / 裝備 / 自訂）';
+                } else if (hasEquipSelected && !hasEquipPending) {
+                    desiredHintText = '裝備課程請先選擇班級';
                 } else if (gameState.range === 'custom') {
                     if (gameState.customBooks.length < 1) {
                         desiredHintText = '自訂範圍至少選 1 本書卷';
@@ -619,26 +627,32 @@ function initializeCustomBooks() {
 // Book Selection Bindings (Extracted from engine.js) 
 // ---------------------------------------------------- 
 function initBookSelectionUI() {
+            if (window.__bookSelectionUIBound) return;
+            window.__bookSelectionUIBound = true;
+            const bind = (id, eventName, handler) => {
+                const el = document.getElementById(id);
+                if (el && typeof handler === 'function') el.addEventListener(eventName, handler);
+            };
             // 書卷搜尋和快速選擇事件
-            document.getElementById('bookSearch').addEventListener('input', filterBooks);
-            document.getElementById('selectAllBooks').addEventListener('click', selectAllBooksInModal);
-            document.getElementById('selectOldTestament').addEventListener('click', selectOldTestamentBooks);
-            document.getElementById('selectNewTestament').addEventListener('click', selectNewTestamentBooks);
+            bind('bookSearch', 'input', filterBooks);
+            bind('selectAllBooks', 'click', selectAllBooksInModal);
+            bind('selectOldTestament', 'click', selectOldTestamentBooks);
+            bind('selectNewTestament', 'click', selectNewTestamentBooks);
             
             // 自訂專區（固定面板）搜尋與操作
-            document.getElementById('bookSearchExpand').addEventListener('input', filterBooksInExpandCard);
-            document.getElementById('selectAllBooksExpand').addEventListener('click', selectAllBooksInExpandCard);
-            document.getElementById('clearAllBooksExpand').addEventListener('click', clearAllBooksInExpandCard);
+            bind('bookSearchExpand', 'input', filterBooksInExpandCard);
+            bind('selectAllBooksExpand', 'click', selectAllBooksInExpandCard);
+            bind('clearAllBooksExpand', 'click', clearAllBooksInExpandCard);
             // 快速選擇按鈕
-            document.getElementById('qsOld').addEventListener('click', () => applyQuickSelectBooks(bibleBooks.old, true));
-            document.getElementById('qsLaw').addEventListener('click', () => quickSelectLaw(true));
-            document.getElementById('qsHistory').addEventListener('click', () => quickSelectHistory(true));
-            document.getElementById('qsPoetry').addEventListener('click', () => quickSelectPoetry(true));
-            document.getElementById('qsProphets').addEventListener('click', () => quickSelectProphets(true));
-            document.getElementById('qsNew').addEventListener('click', () => applyQuickSelectBooks(bibleBooks.new, true));
-            document.getElementById('qsGospels').addEventListener('click', () => quickSelectGospels(true));
-            document.getElementById('qsPaul').addEventListener('click', () => quickSelectPaul(true));
-            document.getElementById('qsGeneral').addEventListener('click', () => quickSelectGeneral(true));
+            bind('qsOld', 'click', () => applyQuickSelectBooks(bibleBooks.old, true));
+            bind('qsLaw', 'click', () => quickSelectLaw(true));
+            bind('qsHistory', 'click', () => quickSelectHistory(true));
+            bind('qsPoetry', 'click', () => quickSelectPoetry(true));
+            bind('qsProphets', 'click', () => quickSelectProphets(true));
+            bind('qsNew', 'click', () => applyQuickSelectBooks(bibleBooks.new, true));
+            bind('qsGospels', 'click', () => quickSelectGospels(true));
+            bind('qsPaul', 'click', () => quickSelectPaul(true));
+            bind('qsGeneral', 'click', () => quickSelectGeneral(true));
             try { refreshQuickSelectCategoryStates(); } catch(_) {}
 
 }

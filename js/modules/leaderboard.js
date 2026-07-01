@@ -113,6 +113,9 @@ async function updateLeaderboardDisplay(selectedMode = 'classic', options = {}) 
         const container = document.getElementById('leaderboardList');
         if (!container) return;
     try { window.__lbActiveMode = selectedMode; } catch(_) {}
+    const requestId = ((window.__lbDisplayRequestId || 0) + 1);
+    try { window.__lbDisplayRequestId = requestId; } catch(_) {}
+    const isStaleRequest = () => window.__lbDisplayRequestId !== requestId || window.__lbActiveMode !== selectedMode;
         // Ensure tabs reflect current mode theme
         try { setActiveLeaderboardTabByMode && setActiveLeaderboardTabByMode(selectedMode); } catch(_) {}
         // Prevent overlapping transitions from programmatic calls
@@ -144,8 +147,9 @@ async function updateLeaderboardDisplay(selectedMode = 'classic', options = {}) 
                 console.warn('online leaderboard load failed; using empty fallback', e);
                 allLeaderboards = { classic: [], survival: [] };
             } finally {
-                container.removeAttribute('aria-busy');
+                if (!isStaleRequest()) container.removeAttribute('aria-busy');
             }
+            if (isStaleRequest()) return;
 
             // 若線上結果為空，採用本機備份做為回退來源；不主動清空本機資料，避免誤刪有效紀錄
             try {
@@ -336,6 +340,8 @@ async function updateLeaderboardDisplay(selectedMode = 'classic', options = {}) 
                     })();
 
         }
+
+    if (isStaleRequest()) return;
 
         const difficultyLeaderboard = (allLeaderboards && allLeaderboards[selectedMode]) || [];
 
@@ -1393,18 +1399,15 @@ if (!marqueeContainer || !Array.isArray(pool) || pool.length === 0) return;
             const l = document.getElementById('equipTierLeader');
                         const bind = (el, tier) => {
                             if (!el) return;
+                            if (el.__equipTierBound) return;
+                            el.__equipTierBound = true;
                             el.addEventListener('click', () => {
                                 // Toggle: 若再次點擊同一班級 -> 取消選擇
                                 if (gameState.__pendingEquipTier === tier) {
                                     gameState.__pendingEquipTier = null;
                                     highlightSelectedEquipTier(null);
-                                    // 取消高亮裝備卡片外框
-                                    try {
-                                        const equipCard = document.getElementById('equipCourseCard');
-                                        if (equipCard) { equipCard.setAttribute('aria-pressed','false'); equipCard.style.borderWidth=''; equipCard.style.borderColor=''; equipCard.style.boxShadow=''; }
-                                    } catch(_){ }
-                                    // 確保 core 模式亦為空（避免殘留 classic/survival）
                                     gameState.playMode = null;
+                                    try { window.__selectHomeMode && window.__selectHomeMode(null); } catch(_) {}
                                     try { highlightSelectedModeCard(null); } catch(_) {}
                                     updateStartButtonState();
                                     /* removed deselect hint */
@@ -1435,6 +1438,13 @@ if (!marqueeContainer || !Array.isArray(pool) || pool.length === 0) return;
                 // 收起自訂書卷展開卡
                 try { document.getElementById('customBooksExpandCard')?.classList.add('hidden'); } catch(_) {}
                 updateStartButtonState();
+                                try {
+                                    if (typeof window.__loadEquipBank === 'function') {
+                                        window.__loadEquipBank().finally(() => {
+                                            try { updateStartButtonState(); } catch(_) {}
+                                        });
+                                    }
+                                } catch(_) {}
                                 try { window.__applyModeUI && window.__applyModeUI(); } catch(_) {}
                                 // 手機：選擇裝備班級後自動滾動到開始按鈕（保留互換要求：取消選擇不滾動）
                                 try { scrollToStartButtonForMobile(); } catch(_) {}
@@ -1455,6 +1465,8 @@ if (!marqueeContainer || !Array.isArray(pool) || pool.length === 0) return;
                         // 題庫明細按鈕（避免干擾原本班級選擇：stopPropagation）
                         try {
                             document.querySelectorAll('[data-equip-info]').forEach(btn => {
+                                if (btn.__equipInfoBound) return;
+                                btn.__equipInfoBound = true;
                                 btn.addEventListener('click', (ev)=>{ ev.stopPropagation(); ev.preventDefault(); showEquipTierBankModal(btn.getAttribute('data-equip-info')); });
                             });
                         } catch(_){ }

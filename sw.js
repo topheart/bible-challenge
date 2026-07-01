@@ -89,7 +89,7 @@ self.addEventListener('fetch', (event) => {
         
         // 🚨 不快取超過 1MB 的超大 JSON (保護記憶體)
         if (!isExternalVerseShard) {
-            caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
+          caches.open(CACHE_NAME).then(cache => cache.put(req, clone)).catch(()=>{});
         }
       }
       return netRes;
@@ -108,6 +108,8 @@ self.addEventListener('fetch', (event) => {
       if (url.pathname.endsWith('.json')) {
           return new Response('[]', { headers: { 'Content-Type': 'application/json' } });
       }
+
+      return new Response('', { status: 504, statusText: 'Offline' });
     })
   );
 });

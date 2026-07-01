@@ -57,6 +57,7 @@ function setupMobileScoreBadges() {
                 }
             } catch(_) {}
             // 安全停止所有計時器（避免生存模式殘留）
+            try { if (window.GameTimer && typeof window.GameTimer.stopAll === 'function') window.GameTimer.stopAll(); } catch(_) {}
             try { if (gameState.timerInterval) { clearInterval(gameState.timerInterval); gameState.timerInterval = null; } } catch(_) {}
             try { if (gameState.survivalTimerInterval) { clearInterval(gameState.survivalTimerInterval); gameState.survivalTimerInterval = null; } } catch(_) {}
             // 停止任何殘留的星星雨特效並清除節點
@@ -134,6 +135,8 @@ function setupMobileScoreBadges() {
 // Start Screen UI Bindings (Extracted from engine.js) 
 // ---------------------------------------------------- 
 function initStartScreenUI() {
+            if (window.__startScreenUIBound) return;
+            window.__startScreenUIBound = true;
             // 開始畫面按鈕事件
             document.getElementById('startGameBtn').addEventListener('click', startGame);
             // Unlock audio on first gesture

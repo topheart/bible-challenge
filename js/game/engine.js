@@ -850,13 +850,17 @@ function initializeGame() {
         GameTimer.startLevel(updateCurrentScore, 100);
     }
 
-    function clearPendingLevelFlowTimers() {
+    function clearPendingLevelCompleteTimer() {
             try {
                 if (gameState.__levelCompleteTimer) {
                     clearTimeout(gameState.__levelCompleteTimer);
                     gameState.__levelCompleteTimer = null;
                 }
             } catch(_) {}
+        }
+
+    function clearPendingLevelFlowTimers() {
+            clearPendingLevelCompleteTimer();
             try {
                 if (gameState.__handoffTimer) {
                     clearTimeout(gameState.__handoffTimer);
@@ -900,14 +904,15 @@ function initializeGame() {
     // Lightweight dedupe for repeated level-complete checks
     function scheduleLevelCompleteCheck(delayMs = 140) {
             try {
+                if (gameState.levelEndHandled) return;
                 const delay = Math.max(80, Number(delayMs) || 140);
-                clearPendingLevelFlowTimers();
+                clearPendingLevelCompleteTimer();
                 gameState.__levelCompleteTimer = setTimeout(() => {
                     gameState.__levelCompleteTimer = null;
                     checkLevelComplete();
                 }, delay);
             } catch(_) {
-                try { checkLevelComplete(); } catch(__) {}
+                try { if (!gameState.levelEndHandled) checkLevelComplete(); } catch(__) {}
             }
         }
         try { window.scheduleLevelCompleteCheck = scheduleLevelCompleteCheck; } catch(_) {}
@@ -916,7 +921,6 @@ function initializeGame() {
     // Check if level is finished and set result state
     function checkLevelComplete() {
             const isDebugGame = !!window.DEBUG_GAME;
-            clearPendingLevelFlowTimers();
             // 確保有題目數據
             if (!gameState.questionData || gameState.questionData.length === 0) {
                 if (isDebugGame) console.log('沒有題目數據，無法檢查關卡完成狀態');
@@ -927,6 +931,7 @@ function initializeGame() {
             if (gameState.levelEndHandled) {
                 return;
             }
+            clearPendingLevelFlowTimers();
 
             const totalQuestions = gameState.questionData.length;
             const byIndex = new Map();
@@ -1782,6 +1787,12 @@ function initializeGame() {
             clearPendingLevelFlowTimers();
             // If equip is running, classic completeGame should not run (equip has finishEquipRun)
             if (gameState.equipRunning) { console.warn('[EQUIP] Ignoring classic completeGame during equip run'); try { setLevelInteractionLock(false); } catch(_) {} return; }
+            if (gameState.gameCompleted) {
+                try { GameTimer.stopLevel(); } catch(_) {}
+                try { GameTimer.stopSurvival(); } catch(_) {}
+                try { setLevelInteractionLock(false); } catch(_) {}
+                return;
+            }
             // 停止計時器
             GameTimer.stopLevel();
             // 停止生存模式倒數並隱藏卡片

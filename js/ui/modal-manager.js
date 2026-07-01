@@ -103,7 +103,13 @@
             try {
                 const top = stack[stack.length-1];
                 const target = top && top.trigger ? top.trigger : (closedEntry && closedEntry.trigger ? closedEntry.trigger : null);
-                if (target && typeof target.focus === 'function') target.focus();
+                if (target && target.isConnected && typeof target.focus === 'function') {
+                    target.focus();
+                } else if (top) {
+                    const topModal = document.getElementById(top.id);
+                    const fallback = topModal && topModal.querySelector(focusableSelector);
+                    if (fallback && typeof fallback.focus === 'function') fallback.focus();
+                }
             } catch(_) {}
             document.dispatchEvent(new CustomEvent('modal:closed', { detail:{ id: modal.id } }));
             return true;

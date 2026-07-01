@@ -15,8 +15,10 @@ window.onerror = function(msg, url, line, col, error) {
     d.style.zIndex = '999999';
     d.style.padding = '20px';
     d.style.fontSize = '24px';
-    d.innerHTML = 'ERROR: ' + msg + '<br>Line: ' + line + '<br>URL: ' + url;
-    document.body.appendChild(d);
+    d.style.whiteSpace = 'pre-wrap';
+    d.textContent = 'ERROR: ' + msg + '\nLine: ' + line + '\nURL: ' + url;
+    var target = document.body || document.documentElement;
+    if (target && target.appendChild) target.appendChild(d);
     return false;
 };
 </script>
@@ -208,7 +210,16 @@ window.onerror = function(msg, url, line, col, error) {
     <script src="js/core/bootstrap.js" defer></script>
     <script src="js/core/events.js" defer></script>
 
-<script>window.onerror = function(m, s, l, c, e) { alert(m + ' at ' + s + ':' + l); }; window.addEventListener('unhandledrejection', function(e) { alert('Unhandled promise rejection: ' + e.reason); });</script>
+<script>
+(function() {
+    if (window.__BC_RUNTIME_REJECTION_LOGGER) return;
+    window.__BC_RUNTIME_REJECTION_LOGGER = true;
+    window.addEventListener('unhandledrejection', function(event) {
+        try { console.error('Unhandled promise rejection:', event.reason); } catch (_) {}
+        try { window.__bcLog && window.__bcLog.error && window.__bcLog.error('unhandledrejection', event.reason); } catch (_) {}
+    });
+})();
+</script>
 </head>
 
 <body class="bg-gradient-to-br from-pink-100 via-purple-50 to-blue-100 min-h-screen">

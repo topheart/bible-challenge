@@ -8,13 +8,46 @@ function startGame() {
                 const abortStartFlow = () => {
                     try { window.__startFlowActive = false; } catch(_) {}
                 };
+                const abortEquipStartFlow = (message) => {
+                    abortStartFlow();
+                    try { lockMainScreenButtons(false); } catch(_) {}
+                    try { updateStartButtonState(); } catch(_) {}
+                    const hint = document.getElementById('gameStartHint');
+                    if (hint) {
+                        hint.textContent = message || '裝備課程題庫載入失敗，請稍後再試。';
+                        hint.style.opacity = '1';
+                    }
+                    try { if (typeof showCuteHint === 'function') showCuteHint(message || '裝備課程題庫載入失敗，請稍後再試。', 'rose', 2800, '⚠️'); } catch(_) {}
+                };
+                const ensureEquipReady = () => {
+                    const tier = gameState.__pendingEquipTier;
+                    if (!tier) return true;
+                    const bank = gameState.equipBank;
+                    return !!(bank && Array.isArray(bank[tier]) && bank[tier].length > 0);
+                };
+                const waitForEquipReady = () => {
+                    if (!gameState.__pendingEquipTier) return Promise.resolve(true);
+                    const loader = window.__loadEquipBank;
+                    const pending = window.__equipPunctMapPromise || (typeof loader === 'function' ? loader() : null);
+                    if (pending && typeof pending.then === 'function') {
+                        return pending.then(() => ensureEquipReady());
+                    }
+                    return Promise.resolve(ensureEquipReady());
+                };
 
-                // 等待裝備模式題庫載入完成（如果存在 Promise）
-                if (window.__equipPunctMapPromise) {
-                    window.__equipPunctMapPromise.then(() => startGameInner(abortStartFlow)).catch(() => startGameInner(abortStartFlow));
-                } else {
-                    startGameInner(abortStartFlow);
-                }
+                // 等待裝備模式題庫載入完成，避免無題庫時進入倒數
+                waitForEquipReady()
+                    .then((ready) => {
+                        if (!ready) {
+                            abortEquipStartFlow('裝備課程題庫尚未準備好，請稍後再試。');
+                            return;
+                        }
+                        startGameInner(abortStartFlow);
+                    })
+                    .catch((err) => {
+                        console.warn('[EQUIP] preload failed before start', err);
+                        abortEquipStartFlow('裝備課程題庫載入失敗，請稍後再試。');
+                    });
             }
 
             function startGameInner(abortStartFlow) {
@@ -27,7 +60,7 @@ function startGame() {
                         (Array.isArray(window.__normalizedDB) && window.__normalizedDB.length > 0) ||
                         (Array.isArray(window.verseDatabase) && window.verseDatabase.length > 0)
                     );
-                    if (!hasData) {
+                    if (!hasData && !gameState.__pendingEquipTier) {
                         try { if (typeof requestUrgentVerseLoad === 'function') requestUrgentVerseLoad(false, { interactive: true }); } catch(_) {}
                         const hint = document.getElementById('gameStartHint');
                         if (hint) {
@@ -76,7 +109,7 @@ function startGame() {
             // 開始倒數
             try { startCountdown(); } catch(_) { abortStartFlow(); }
         }
-        
+
     function startCountdown() {
             try {
                 if (window.__startCountdownInterval) {

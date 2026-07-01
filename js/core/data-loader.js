@@ -135,6 +135,7 @@
     let __externalBootLoadScheduled = false;
     let __lastUrgentLoadTs = 0;
     let __lastUrgentForceFull = false;
+    let __pendingExternalFullPromotion = false;
 
     function requestUrgentVerseLoad(forceFull = false, options = {}) {
         try {
@@ -248,7 +249,10 @@
                 return;
             }
 
-            if (__externalLoadPromise) return __externalLoadPromise;
+            if (__externalLoadPromise) {
+                if (forceFull) __pendingExternalFullPromotion = true;
+                return __externalLoadPromise;
+            }
 
             __externalLoadPromise = (async () => {
             try {
@@ -356,6 +360,15 @@
                             } catch(_) {}
                         }, urgent ? 900 : 2200);
                     }
+                } else {
+                    try { window.__externalVersesReady = false; } catch(_) {}
+                    try { window.externalVersesLoadError = 'empty-external-verses'; } catch(_) {}
+                    try { window.__externalVersesLastErrorTs = Date.now(); } catch(_) {}
+                    try { updateStartButtonState(); } catch(_) {}
+                    try {
+                        const evt = new CustomEvent('externalVersesLoaded', { detail: { hasData: false, source: 'empty', error: 'empty-external-verses' } });
+                        window.dispatchEvent(evt);
+                    } catch(_) {}
                 }
             } catch (e) {
                 // 記錄失敗，以便 UI 顯示明確提示（例如 file:// 或 CORS/路徑問題）
@@ -375,6 +388,12 @@
                     window.dispatchEvent(loadingEvt);
                 } catch(_) {}
                 __externalLoadPromise = null;
+                if (__pendingExternalFullPromotion && !forceFull && !constrained && !window.__BC_DISABLE_EXTERNAL_FULL_LOAD) {
+                    __pendingExternalFullPromotion = false;
+                    try { attemptLoadExternalVerses({ urgent: true, forceFull: true }); } catch(_) {}
+                } else if (forceFull) {
+                    __pendingExternalFullPromotion = false;
+                }
             }
             })();
 

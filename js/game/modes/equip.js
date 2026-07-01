@@ -2,7 +2,8 @@
         // ==== 裝備課程：資料載入與流程控制 ====
         async function loadEquipBank() {
             try {
-                if (gameState.equipBank) return gameState.equipBank;
+                const hasLoadedBank = (bank) => !!(bank && ['growth','disciple','leader'].some(tier => Array.isArray(bank[tier]) && bank[tier].length > 0));
+                if (hasLoadedBank(gameState.equipBank)) return gameState.equipBank;
                 const res = await fetch('equip-course-growth.json', { cache: 'no-store' });
                 if (!res.ok) throw new Error('failed to fetch equip-course-growth.json');
                 const json = await res.json();
@@ -14,6 +15,7 @@
                 return gameState.equipBank;
             }
         }
+        try { window.__loadEquipBank = loadEquipBank; } catch(_) {}
 
         function highlightSelectedEquipTier(tier) {
             try {
@@ -1200,8 +1202,10 @@
             gameState.__equipFinished = true;
             gameState.equipRunning = false;
             // Stop timers
+            try { if (window.GameTimer && typeof window.GameTimer.stopAll === 'function') window.GameTimer.stopAll(); } catch(_) {}
             try { if (gameState.timerInterval) { clearInterval(gameState.timerInterval); gameState.timerInterval = null; } } catch(_) {}
             try { if (gameState.survivalTimerInterval) { clearInterval(gameState.survivalTimerInterval); gameState.survivalTimerInterval = null; } } catch(_) {}
+            try { setEquipInteractionLock(false); } catch(_) {}
             gameState.gameCompleted = true;
             gameState.gameEndTime = Date.now();
 

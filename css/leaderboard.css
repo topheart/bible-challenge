@@ -1,0 +1,438 @@
+@media (max-width: 640px) {
+    /* Leaderboard: ensure comfortable spacing and readable font sizes */
+    #leaderboardList > div { padding: 0; }
+    #leaderboardList .bg-white { padding: 0.75rem !important; }
+
+    /* Compact typography inside leaderboard cards to fit more info without changing card size */
+    .leaderboard-compact .text-lg { line-height: 1.05 !important; }
+    .leaderboard-compact .text-sm { line-height: 1 !important; }
+    .leaderboard-compact .truncate { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+    #leaderboardList .bg-white { display: flex; align-items: center; }
+
+    /* easier-to-tap leaderboard tabs */
+    .leaderboard-tab { padding: 0.6rem 0.9rem; font-size: 0.95rem; }
+}
+
+/* Leaderboard cards — redesigned for clearer rank styling and responsiveness */
+/* Base card */
+#leaderboardList .leaderboard-card {
+    position: relative;
+    background: #ffffff;
+    border: 2px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 0.85rem 0.95rem;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+    display: block !important;
+    overflow: hidden;
+    will-change: transform;
+    z-index: 0;
+}
+
+#leaderboardList .leaderboard-card:hover,
+#leaderboardList .leaderboard-card:focus-visible {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 38px rgba(0,0,0,0.12);
+    z-index: 5;
+}
+
+/* Click/press lift a bit more */
+#leaderboardList .leaderboard-card:active {
+    transform: translateY(-8px);
+    box-shadow: 0 18px 42px rgba(0,0,0,0.16);
+    z-index: 6;
+}
+
+/* Rank ribbon (desktop) / chip (mobile) */
+#leaderboardList .leaderboard-card .lb-rank-ribbon {
+    position: absolute;
+    left: 0.5rem;
+    top: 0.5rem;
+    width: 2.6rem;
+    height: calc(100% - 1rem);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    color: #111827;
+    user-select: none;
+}
+
+#leaderboardList .leaderboard-card .lb-rank-ribbon span {
+    writing-mode: horizontal-tb;
+    transform: none;
+    letter-spacing: 0.06em;
+}
+
+/* Content body */
+#leaderboardList .leaderboard-card .lb-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+@media (min-width: 640px) {
+    #leaderboardList .leaderboard-card { padding-left: 3.75rem; }
+}
+
+#leaderboardList .leaderboard-card .lb-top-row { display: flex; align-items: baseline; gap: 0.5rem; }
+#leaderboardList .leaderboard-card .lb-score { font-size: 1.35rem; font-weight: 900; color: #111827; line-height: 1; }
+#leaderboardList .leaderboard-card .lb-score .unit { font-size: 0.7rem; font-weight: 600; margin-left: 2px; color: #6b7280; }
+#leaderboardList .leaderboard-card .lb-name { font-size: 0.95rem; font-weight: 700; color: #374151; min-width: 0; }
+#leaderboardList .leaderboard-card .lb-name .truncate { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#leaderboardList .leaderboard-card .lb-meta { font-size: 0.72rem; color: #9ca3af; }
+#leaderboardList .leaderboard-card .lb-pill { font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 9999px; font-weight: 800; display: inline-block; }
+
+/* CONTRAST NOTE: .lb-meta (#9ca3af @ ~11.5px) on gradient light background is near WCAG small-text threshold; if background brightens further or font shrinks, consider darkening (#6b7280) or increasing font-size >=12.5px. */
+/* CONTRAST NOTE: .lb-score .unit (#6b7280 @ 0.7rem) may fall below AA if user display scales down; safe if minimum effective size >=11.5px. */
+/* Leaderboard rarity pill colors follow rank color scheme (與名次色系一致) */
+#leaderboardList .leaderboard-card.rank-1 .lb-pill { background-color: #FDE68A; color: #1F2937; box-shadow: 0 1px 0 rgba(0,0,0,0.04); }
+#leaderboardList .leaderboard-card.rank-2 .lb-pill { background-color: #E5E7EB; color: #1F2937; box-shadow: 0 1px 0 rgba(0,0,0,0.04); }
+#leaderboardList .leaderboard-card.rank-3 .lb-pill { background-color: #FCD34D; color: #111827; box-shadow: 0 1px 0 rgba(0,0,0,0.04); }
+
+/* 全部檢視 按鈕 – 外觀與未啟用的闖關/生存相同的橢圓底卡樣式 */
+#viewAllLeaderboard {
+    background-image: linear-gradient(135deg,#F9FAFB,#F3F4F6);
+    background-color: transparent;
+    color: #6B7280;
+    border: 1px solid #E5E7EB;
+    border-radius: 9999px;
+    box-shadow: none;
+    transition: background .25s, box-shadow .25s, transform .18s;
+}
+
+#viewAllLeaderboard:hover { background-image: linear-gradient(135deg,#F3F4F6,#E5E7EB); box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+#viewAllLeaderboard:active { transform: translateY(1px); }
+
+/* 保持與標籤一致的內距 */
+#viewAllLeaderboard.px-4 { padding-left: 1rem; padding-right: 1rem; }
+
+/* Full leaderboard modal enhancements */
+/* ---------------- Full Leaderboard (Rebuilt Layout) ---------------- */
+#fullLeaderboardModal #fullClassicBoard,
+#fullLeaderboardModal #fullSurvivalBoard { grid-template-columns: repeat(1,minmax(0,1fr)); }
+
+/* Responsive expansion for full leaderboard: aim to display 20 cards (4 rows x 5 cols) per section on wide screens */
+@media (min-width: 1100px) {
+    #fullLeaderboardModal #fullClassicBoard,
+    #fullLeaderboardModal #fullSurvivalBoard { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+
+@media (min-width: 1400px) {
+    #fullLeaderboardModal .full-lb-shell { max-width: 90rem; }
+
+    #fullLeaderboardModal #fullClassicBoard,
+    #fullLeaderboardModal #fullSurvivalBoard { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+
+#fullLeaderboardModal .full-lb-scroll { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+#fullLeaderboardModal .full-lb-shell { max-height: 90vh; max-height: 90dvh; }
+
+/* Ensure sections stretch to equal height for visual balance */
+#fullLeaderboardModal .full-lb-scroll > div { display: flex; flex-direction: column; }
+#fullLeaderboardModal .full-lb-scroll h4 { flex: 0 0 auto; }
+
+#fullLeaderboardModal #fullClassicBoard,
+#fullLeaderboardModal #fullSurvivalBoard { flex: 1 1 auto; }
+
+#fullLeaderboardModal .leaderboard-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: .85rem 1rem;
+    min-height: 66px;
+    border: 1px solid #d9e3ef;
+    border-radius: 18px;
+    background: linear-gradient(150deg,#ffffff,#f5f8fb);
+    box-shadow: 0 3px 6px -2px rgba(0,0,0,.05),0 8px 22px -6px rgba(31,41,55,.12);
+    overflow: hidden;
+    transition: box-shadow .22s, transform .22s, background .45s;
+}
+
+#fullLeaderboardModal .leaderboard-card .fl-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: .35rem; }
+#fullLeaderboardModal .leaderboard-card .fl-row1 { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+#fullLeaderboardModal .leaderboard-card .fl-score { font-size: 1.15rem; font-weight: 800; letter-spacing: .5px; color: #1f2937; }
+#fullLeaderboardModal .leaderboard-card .fl-name { font-size: .8rem; font-weight: 600; color: #374151; max-width: 9.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#fullLeaderboardModal .leaderboard-card .fl-meta { font-size: .62rem; letter-spacing: .5px; font-weight: 500; color: #6b7280; display: flex; gap: .75rem; flex-wrap: wrap; }
+
+/* CONTRAST NOTE: .fl-meta at .62rem (~9.9px) is below recommended size for subtle gray (#6b7280). Consider raising to .70rem or darkening to #475569 for AA normal text. Currently treated as decorative metadata. */
+#fullLeaderboardModal .fl-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+#fullLeaderboardModal .mode-switch { display: inline-flex; background: #f1f5f9; padding: 4px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.05); }
+#fullLeaderboardModal .mode-switch button { position: relative; flex: 1 1 auto; padding: .45rem 1rem; font-size: .75rem; font-weight: 600; border-radius: 999px; color: #475569; transition: color .25s; }
+#fullLeaderboardModal .mode-switch button[aria-pressed="true"] { background: linear-gradient(90deg,#6366f1,#818cf8); color: #fff; box-shadow: 0 4px 10px -2px rgba(99,102,241,.45); }
+#fullLeaderboardModal .back-main-btn { display: inline-flex; align-items: center; gap: .4rem; background: #fff; border: 1px solid #e2e8f0; padding: .5rem .9rem; border-radius: 14px; font-size: .7rem; font-weight: 600; color: #334155; box-shadow: 0 2px 4px -2px rgba(0,0,0,.05); transition: background .25s, box-shadow .25s; }
+#fullLeaderboardModal .back-main-btn:hover { background: #f8fafc; box-shadow: 0 4px 12px -3px rgba(0,0,0,.12); }
+#fullLeaderboardModal .single-board-wrapper { display: grid; gap: 1rem; }
+
+@media (min-width: 640px) { #fullLeaderboardModal .single-board-wrapper { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (min-width: 1024px) { #fullLeaderboardModal .single-board-wrapper { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+@media (min-width: 1280px) { #fullLeaderboardModal .single-board-wrapper { grid-template-columns: repeat(5,minmax(0,1fr)); } }
+
+#fullLeaderboardModal .empty-slot { opacity: .4; }
+
+@keyframes flCardIn {
+    0% { transform: translateY(14px) scale(.97); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+#fullLeaderboardModal .leaderboard-card { opacity: 0; }
+#fullLeaderboardModal .leaderboard-card.fl-appear { animation: flCardIn .45s ease forwards; }
+#fullLeaderboardModal .leaderboard-card:before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 115% 10%,rgba(99,102,241,.18),transparent 60%); opacity: 0; transition: opacity .35s; }
+#fullLeaderboardModal .leaderboard-card:hover:before { opacity: 1; }
+#fullLeaderboardModal .leaderboard-card:after { content: ""; position: absolute; inset: 5px; border: 1px solid rgba(255,255,255,.55); border-radius: 11px; pointer-events: none; }
+#fullLeaderboardModal .leaderboard-card:hover { transform: translateY(-4px) scale(1.012); box-shadow: 0 10px 26px -6px rgba(31,41,55,.28),0 4px 10px -2px rgba(0,0,0,.12); }
+#fullLeaderboardModal .leaderboard-card:active { transform: translateY(-1px) scale(.995); }
+#fullLeaderboardModal .leaderboard-card .fl-rank { flex: 0 0 44px; height: 44px; border-radius: 14px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.05rem; color: #374151; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04); letter-spacing: .5px; position: relative; }
+
+/* === New 1~10 Rank Color System (Challenger -> Iron) ===
+    Mapping (rank -> tier):
+    1 Challenger, 2 Grandmaster, 3 Master, 4 Diamond, 5 Emerald,
+    6 Platinum, 7 Gold, 8 Silver, 9 Bronze, 10 Iron
+    Existing rank-1..rank-3 styles replaced; rank-4..rank-10 newly added.
+    Note: Main menu only shows top 5 so it will use rank-1..rank-5.
+*/
+/* Challenger (Rank 1): vivid cyan + gold core */
+#fullLeaderboardModal .leaderboard-card.rank-1 .fl-rank { background: linear-gradient(135deg,#18b4ff,#1c6bff 35%,#ffb347 70%,#ffd36b); color: #082f49; box-shadow: 0 0 0 1px #1c6bff,0 4px 14px -2px rgba(24,180,255,.55); }
+/* Grandmaster (Rank 2): fiery red/orange */
+#fullLeaderboardModal .leaderboard-card.rank-2 .fl-rank { background: linear-gradient(135deg,#ff6a3d,#ff3d3d 45%,#ff9955); color: #3c0a0a; box-shadow: 0 0 0 1px #ff3d3d,0 4px 12px -2px rgba(255,61,61,.45); }
+/* Master (Rank 3): royal purple */
+#fullLeaderboardModal .leaderboard-card.rank-3 .fl-rank { background: linear-gradient(135deg,#a855f7,#7e22ce 55%,#c084fc); color: #2e0f52; box-shadow: 0 0 0 1px #7e22ce,0 4px 10px -2px rgba(168,85,247,.40); }
+/* Diamond (Rank 4): icy blue / violet edge */
+#fullLeaderboardModal .leaderboard-card.rank-4 .fl-rank { background: linear-gradient(135deg,#60a5fa,#6366f1 55%,#c7d2fe); color: #0f1e38; box-shadow: 0 0 0 1px #6366f1,0 4px 10px -2px rgba(99,102,241,.35); }
+/* Emerald (Rank 5): luminous green */
+#fullLeaderboardModal .leaderboard-card.rank-5 .fl-rank { background: linear-gradient(135deg,#10b981,#059669 60%,#34d399); color: #062e25; box-shadow: 0 0 0 1px #059669,0 4px 10px -2px rgba(16,185,129,.40); }
+/* Platinum (Rank 6): pale teal / platinum sheen */
+#fullLeaderboardModal .leaderboard-card.rank-6 .fl-rank { background: linear-gradient(135deg,#67e8f9,#38bdf8 58%,#a5f3fc); color: #083344; box-shadow: 0 0 0 1px #38bdf8,0 4px 10px -2px rgba(8,51,68,.35); }
+/* Gold (Rank 7) */
+#fullLeaderboardModal .leaderboard-card.rank-7 .fl-rank { background: linear-gradient(135deg,#fbbf24,#f59e0b 60%,#fde68a); color: #78350f; box-shadow: 0 0 0 1px #f59e0b,0 4px 10px -2px rgba(245,158,11,.45); }
+/* Silver (Rank 8) */
+#fullLeaderboardModal .leaderboard-card.rank-8 .fl-rank { background: linear-gradient(135deg,#d1d5db,#9ca3af 65%,#f3f4f6); color: #1f2937; box-shadow: 0 0 0 1px #9ca3af,0 4px 10px -2px rgba(156,163,175,.40); }
+/* Bronze (Rank 9) */
+#fullLeaderboardModal .leaderboard-card.rank-9 .fl-rank { background: linear-gradient(135deg,#c96d32,#b45309 60%,#eab308); color: #311b05; box-shadow: 0 0 0 1px #b45309,0 4px 10px -2px rgba(180,83,9,.45); }
+/* Iron (Rank 10) */
+#fullLeaderboardModal .leaderboard-card.rank-10 .fl-rank { background: linear-gradient(135deg,#4b5563,#374151 55%,#9ca3af); color: #e5e7eb; box-shadow: 0 0 0 1px #374151,0 4px 10px -2px rgba(55,65,81,.55); }
+
+#fullLeaderboardModal .leaderboard-card .fl-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+#fullLeaderboardModal .leaderboard-card .fl-row1 { display: flex; align-items: baseline; gap: .55rem; min-width: 0; }
+
+/* Unified text color system (reduce per-rank text variance for readability) */
+#fullLeaderboardModal .leaderboard-card .fl-score { font-size: 1.32rem; font-weight: 900; line-height: 1; color: #0f172a; letter-spacing: .5px; text-shadow: 0 1px 0 rgba(255,255,255,.35); }
+#fullLeaderboardModal .leaderboard-card .fl-score .unit { font-size: .55rem; font-weight: 600; margin-left: 3px; color: #64748b; }
+#fullLeaderboardModal .leaderboard-card .fl-name { font-size: .83rem; font-weight: 700; color: #1e293b; min-width: 0; max-width: 100%; display: inline-block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 0 rgba(255,255,255,.4); }
+#fullLeaderboardModal .leaderboard-card .fl-meta { display: flex; align-items: center; gap: .8rem; font-size: .6rem; font-weight: 600; letter-spacing: .55px; color: #475569; text-transform: uppercase; }
+#fullLeaderboardModal .leaderboard-card .fl-meta span { white-space: nowrap; }
+#fullLeaderboardModal .leaderboard-card[aria-hidden="true"] .fl-rank { opacity: .4; }
+
+/* Per-rank card accent backgrounds & outlines (1-10). Using layered gradients for subtle depth. */
+#fullLeaderboardModal .leaderboard-card[class*='rank-'] { --card-overlay-opacity: .55; --card-border-alpha: .75; }
+#fullLeaderboardModal .leaderboard-card.rank-1 { border-color: #1c6bff; background: linear-gradient(125deg,rgba(28,107,255,0.14),rgba(255,255,255,0) 55%), linear-gradient(150deg,#ffffff,#f1f6ff); box-shadow: 0 4px 14px -4px rgba(28,107,255,.45),0 1px 0 0 rgba(255,255,255,.9) inset; }
+#fullLeaderboardModal .leaderboard-card.rank-2 { border-color: #ff3d3d; background: linear-gradient(125deg,rgba(255,61,61,0.16),rgba(255,255,255,0) 55%), linear-gradient(150deg,#ffffff,#fff5f5); box-shadow: 0 4px 14px -4px rgba(255,61,61,.42),0 1px 0 0 rgba(255,255,255,.9) inset; }
+#fullLeaderboardModal .leaderboard-card.rank-3 { border-color: #7e22ce; background: linear-gradient(125deg,rgba(126,34,206,0.18),rgba(255,255,255,0) 55%), linear-gradient(150deg,#ffffff,#faf5ff); box-shadow: 0 4px 14px -5px rgba(126,34,206,.42),0 1px 0 0 rgba(255,255,255,.9) inset; }
+#fullLeaderboardModal .leaderboard-card.rank-4 { border-color: #6366f1; background: linear-gradient(125deg,rgba(99,102,241,0.17),rgba(255,255,255,0) 55%), linear-gradient(150deg,#ffffff,#f3f6ff); box-shadow: 0 4px 14px -5px rgba(99,102,241,.40),0 1px 0 0 rgba(255,255,255,.85) inset; }
+#fullLeaderboardModal .leaderboard-card.rank-5 { border-color: #059669; background: linear-gradient(125deg,rgba(16,185,129,0.15),rgba(255,255,255,0) 55%), linear-gradient(150deg,#ffffff,#f1fff8); box-shadow: 0 4px 14px -5px rgba(16,185,129,.38),0 1px 0 0 rgba(255,255,255,.85) inset; }
+#fullLeaderboardModal .leaderboard-card.rank-6 { border-color: #38bdf8; background: linear-gradient(125deg,rgba(56,189,248,0.18),rgba(255,255,255,0) 55%), linear-gradient(150deg,#ffffff,#f0fcff); box-shadow: 0 4px 14px -5px rgba(56,189,248,.40),0 1px 0 0 rgba(255,255,255,.85) inset; }
+#fullLeaderboardModal .leaderboard-card.rank-7 { border-color: #f59e0b; background: linear-gradient(125deg,rgba(245,158,11,0.16),rgba(255,255,255,0) 55%), linear-gradient(150deg,#ffffff,#fff9ed); box-shadow: 0 4px 14px -5px rgba(245,158,11,.40),0 1px 0 0 rgba(255,255,255,.85) inset; }
+#fullLeaderboardModal .leaderboard-card.rank-8 { border-color: #9ca3af; background: linear-gradient(125deg,rgba(156,163,175,0.18),rgba(255,255,255,0) 55%), linear-gradient(150deg,#ffffff,#f6f7f9); box-shadow: 0 4px 14px -5px rgba(156,163,175,.34),0 1px 0 0 rgba(255,255,255,.85) inset; }
+#fullLeaderboardModal .leaderboard-card.rank-9 { border-color: #b45309; background: linear-gradient(125deg,rgba(180,83,9,0.18),rgba(255,255,255,0) 55%), linear-gradient(150deg,#ffffff,#fff6ec); box-shadow: 0 4px 14px -5px rgba(180,83,9,.40),0 1px 0 0 rgba(255,255,255,.85) inset; }
+#fullLeaderboardModal .leaderboard-card.rank-10 { border-color: #4b5563; background: linear-gradient(125deg,rgba(75,85,99,0.20),rgba(255,255,255,0) 55%), linear-gradient(150deg,#ffffff,#f3f4f6); box-shadow: 0 4px 14px -5px rgba(75,85,99,.38),0 1px 0 0 rgba(255,255,255,.85) inset; }
+
+/* Decorative glow ring on hover using ::before overlay already present; intensify per-rank by tinting */
+#fullLeaderboardModal .leaderboard-card.rank-1:hover:before { background: radial-gradient(circle at 115% 10%,rgba(28,107,255,.55),transparent 66%); }
+#fullLeaderboardModal .leaderboard-card.rank-2:hover:before { background: radial-gradient(circle at 115% 10%,rgba(255,61,61,.55),transparent 66%); }
+#fullLeaderboardModal .leaderboard-card.rank-3:hover:before { background: radial-gradient(circle at 115% 10%,rgba(126,34,206,.55),transparent 66%); }
+#fullLeaderboardModal .leaderboard-card.rank-4:hover:before { background: radial-gradient(circle at 115% 10%,rgba(99,102,241,.50),transparent 66%); }
+#fullLeaderboardModal .leaderboard-card.rank-5:hover:before { background: radial-gradient(circle at 115% 10%,rgba(16,185,129,.50),transparent 66%); }
+#fullLeaderboardModal .leaderboard-card.rank-6:hover:before { background: radial-gradient(circle at 115% 10%,rgba(56,189,248,.50),transparent 66%); }
+#fullLeaderboardModal .leaderboard-card.rank-7:hover:before { background: radial-gradient(circle at 115% 10%,rgba(245,158,11,.55),transparent 66%); }
+#fullLeaderboardModal .leaderboard-card.rank-8:hover:before { background: radial-gradient(circle at 115% 10%,rgba(156,163,175,.55),transparent 66%); }
+#fullLeaderboardModal .leaderboard-card.rank-9:hover:before { background: radial-gradient(circle at 115% 10%,rgba(180,83,9,.55),transparent 66%); }
+#fullLeaderboardModal .leaderboard-card.rank-10:hover:before { background: radial-gradient(circle at 115% 10%,rgba(75,85,99,.55),transparent 66%); }
+#fullLeaderboardModal .leaderboard-card[aria-hidden="true"] { background: repeating-linear-gradient(45deg,#f9fafb,#f9fafb 6px,#f3f4f6 6px,#f3f4f6 12px); }
+
+/* Compact layout on very small screens */
+@media (max-width: 520px) {
+    #fullLeaderboardModal .leaderboard-card { flex-direction: row; padding: .55rem .6rem; gap: .55rem; }
+    #fullLeaderboardModal .leaderboard-card .fl-rank { flex: 0 0 38px; height: 38px; font-size: .95rem; }
+    #fullLeaderboardModal .leaderboard-card .fl-score { font-size: 1.15rem; }
+    #fullLeaderboardModal .leaderboard-card .fl-name { font-size: .72rem; }
+    #fullLeaderboardModal .leaderboard-card .fl-meta { font-size: .5rem; gap: .5rem; }
+}
+
+/* Full leaderboard mobile scroll handling */
+.full-lb-shell { max-height: 92vh; max-height: 92dvh; }
+.full-lb-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+@media (max-width: 760px) {
+    .full-lb-shell { max-height: 92vh; max-height: 92dvh; }
+    .full-lb-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: .25rem; max-height: calc(92vh - 3.5rem); max-height: calc(92dvh - 3.5rem); }
+}
+
+/* Desktop (>=1024px): disable internal scroll so whole content shows without scrolling container */
+@media (min-width: 1024px) {
+    #fullLeaderboardModal .full-lb-shell { max-height: none; }
+    #fullLeaderboardModal .full-lb-scroll { overflow: visible !important; max-height: none !important; }
+    #fullLeaderboardModal .full-lb-scroll .full-lb-inner { overflow: visible !important; max-height: none !important; }
+}
+
+@media (max-width: 480px) {
+    .full-lb-scroll { gap: 1.1rem; }
+    #fullLeaderboardModal .leaderboard-card { min-height: 54px; }
+}
+
+/* Leaderboard interaction accessibility: keep touch targets >=44px */
+#leaderboardSection .leaderboard-tab,
+#viewAllLeaderboard,
+#fullLeaderboardModal .mode-switch button,
+#fullLeaderboardModal .back-main-btn {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+}
+
+/* Small screens: avoid top-row overflow in leaderboard section */
+@media (max-width: 640px) {
+    #leaderboardSection > .flex.justify-between.items-center.mb-4 {
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 0.6rem;
+    }
+
+    #leaderboardSection > .flex.justify-between.items-center.mb-4 > .flex.items-center.space-x-3 {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: nowrap;
+    }
+
+    #leaderboardSection .bg-gray-100.rounded-full.p-1.flex {
+        display: inline-flex;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    #leaderboardSection .bg-gray-100.rounded-full.p-1.flex .leaderboard-tab {
+        flex: 1 1 0;
+    }
+
+    #fullLeaderboardModal {
+        align-items: stretch;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* Start screen: mobile tweaks for leaderboard title and tabs */
+    #startScreen #leaderboardSection { padding: 0.75rem !important; }
+    #startScreen #leaderboardSection h2 { font-size: 1.1rem !important; line-height: 1.15 !important; }
+    #startScreen #leaderboardSection .mb-4 { margin-bottom: 0.5rem !important; }
+    #startScreen #leaderboardSection .bg-gray-100.rounded-full { padding: 2px !important; }
+    #startScreen #leaderboardSection .leaderboard-tab {
+        padding: 0.35rem 0.6rem !important;
+        font-size: 0.85rem !important;
+        font-weight: 800 !important;
+        min-width: auto !important;
+    }
+}
+
+#leaderboardSection > .flex.justify-between.items-center.mb-4 {
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid rgba(148,163,184,0.18);
+}
+
+#leaderboardSection .bg-gray-100.rounded-full.p-1.flex {
+    background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(241,245,249,0.94)) !important;
+    border: 1px solid rgba(203,213,225,0.72);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.72), 0 8px 16px rgba(15, 23, 42, 0.06);
+}
+
+#leaderboardSection .leaderboard-tab,
+#viewAllLeaderboard {
+    border-radius: 999px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+@media (max-width: 480px) {
+    .rank-badge { width: 30px; height: 30px; font-size: 0.8rem; margin-right: 10px; }
+    #leaderboardList li { padding-left: 10px; display: flex; align-items: center; }
+    #leaderboardList .leaderboard-card { padding-left: 3.4rem !important; }
+}
+
+/* Darker bronze for '全部經文' chip under rank-3 to distinguish from gold */
+#leaderboardList .leaderboard-card.rank-3 .lb-pill.rarity-all { background-color: #D97706; color: #111827; border: 1px solid #B45309; }
+#leaderboardList .leaderboard-card.rank-default .lb-pill { background-color: #F3F4F6; color: #6B7280; }
+#leaderboardList .leaderboard-card .lb-medal { position: absolute; top: 0.4rem; right: 0.5rem; font-size: 1.15rem; line-height: 1; }
+
+/* Dark theme leaderboard treatment */
+:root[data-theme='dark'] .leaderboard-card { background: linear-gradient(150deg,#1d2837,#14202d) !important; border-color: #233246 !important; }
+:root[data-theme='dark'] .leaderboard-card.rank-default .fl-rank { background: #1f2937 !important; color: #94a3b8 !important; }
+
+@media (prefers-reduced-motion: reduce) {
+    :root[data-theme='dark'] .leaderboard-card { transition: none !important; }
+}
+
+:root[data-theme='dark'] .leaderboard-card[class*='rank-'] .fl-rank { text-shadow: 0 1px 2px rgba(0,0,0,.55); }
+:root[data-theme='dark'] .leaderboard-card.rank-1 .fl-rank { background: linear-gradient(135deg,#1bb4ff,#1c6bff 38%,#ffb347 72%,#ffd770); }
+:root[data-theme='dark'] .leaderboard-card.rank-2 .fl-rank { background: linear-gradient(135deg,#ff5e2b,#e33131 50%,#ff9148); }
+:root[data-theme='dark'] .leaderboard-card.rank-3 .fl-rank { background: linear-gradient(135deg,#bb74f9,#6f1ec5 56%,#c792ff); }
+:root[data-theme='dark'] .leaderboard-card.rank-4 .fl-rank { background: linear-gradient(135deg,#539df2,#5660ea 60%,#a8bbff); }
+:root[data-theme='dark'] .leaderboard-card.rank-5 .fl-rank { background: linear-gradient(135deg,#0fae71,#03885a 63%,#33d49c); }
+:root[data-theme='dark'] .leaderboard-card.rank-6 .fl-rank { background: linear-gradient(135deg,#53d6ee,#27b5dc 60%,#9ae3f3); }
+:root[data-theme='dark'] .leaderboard-card.rank-7 .fl-rank { background: linear-gradient(135deg,#f6b91e,#d88606 63%,#fcd96e); }
+:root[data-theme='dark'] .leaderboard-card.rank-8 .fl-rank { background: linear-gradient(135deg,#c2c7d0,#8e959e 68%,#e5e7eb); }
+:root[data-theme='dark'] .leaderboard-card.rank-9 .fl-rank { background: linear-gradient(135deg,#ba6a30,#9a4508 60%,#e0a447); }
+:root[data-theme='dark'] .leaderboard-card.rank-10 .fl-rank { background: linear-gradient(135deg,#555f68,#2f3943 60%,#8f99a5); }
+
+/* Leaderboard swipe/slide container */
+/* Allow cards to float outside without being clipped */
+#leaderboardList { position: relative; overflow: visible; }
+.lb-slide { position: absolute; inset: 0; will-change: transform, opacity; transition: transform 360ms cubic-bezier(.2,.9,.2,1), opacity 240ms ease-out; }
+.lb-slide.lb-slide-static { position: relative; transition: none; transform: none; }
+
+/* Keep breakdown number and suffix on one line */
+.bd-right { white-space: nowrap; display: inline-flex; align-items: baseline; gap: 2px; }
+.bd-suffix { margin-left: 0.1em; }
+
+/* Rank themes (ribbon + subtle border accent) */
+/* New border colors (main menu & any compact list) */
+#leaderboardList .leaderboard-card.rank-1 { border-color: #1c6bff; }
+#leaderboardList .leaderboard-card.rank-2 { border-color: #ff3d3d; }
+#leaderboardList .leaderboard-card.rank-3 { border-color: #7e22ce; }
+#leaderboardList .leaderboard-card.rank-4 { border-color: #6366f1; }
+#leaderboardList .leaderboard-card.rank-5 { border-color: #059669; }
+#leaderboardList .leaderboard-card.rank-6 { border-color: #38bdf8; }
+#leaderboardList .leaderboard-card.rank-7 { border-color: #f59e0b; }
+#leaderboardList .leaderboard-card.rank-8 { border-color: #9ca3af; }
+#leaderboardList .leaderboard-card.rank-9 { border-color: #b45309; }
+#leaderboardList .leaderboard-card.rank-10 { border-color: #4b5563; }
+
+/* Main menu ribbon colors updated to new system (only top 5 needed, but define through 10 for reuse) */
+#leaderboardList .leaderboard-card.rank-1 .lb-rank-ribbon { background: linear-gradient(180deg,#18b4ff,#1c6bff); color: #072c47; box-shadow: 0 6px 16px rgba(28,107,255,.40); }
+#leaderboardList .leaderboard-card.rank-2 .lb-rank-ribbon { background: linear-gradient(180deg,#ff6a3d,#ff3d3d); color: #3b0b0b; box-shadow: 0 6px 16px rgba(255,61,61,.35); }
+#leaderboardList .leaderboard-card.rank-3 .lb-rank-ribbon { background: linear-gradient(180deg,#a855f7,#7e22ce); color: #1e0537; box-shadow: 0 6px 16px rgba(126,34,206,.35); }
+#leaderboardList .leaderboard-card.rank-4 .lb-rank-ribbon { background: linear-gradient(180deg,#60a5fa,#6366f1); color: #0f1e38; box-shadow: 0 6px 16px rgba(99,102,241,.30); }
+#leaderboardList .leaderboard-card.rank-5 .lb-rank-ribbon { background: linear-gradient(180deg,#10b981,#059669); color: #062e25; box-shadow: 0 6px 16px rgba(16,185,129,.30); }
+#leaderboardList .leaderboard-card.rank-6 .lb-rank-ribbon { background: linear-gradient(180deg,#67e8f9,#38bdf8); color: #083344; box-shadow: 0 6px 16px rgba(8,51,68,.28); }
+#leaderboardList .leaderboard-card.rank-7 .lb-rank-ribbon { background: linear-gradient(180deg,#fbbf24,#f59e0b); color: #6b370c; box-shadow: 0 6px 16px rgba(245,158,11,.32); }
+#leaderboardList .leaderboard-card.rank-8 .lb-rank-ribbon { background: linear-gradient(180deg,#d1d5db,#9ca3af); color: #1f2937; box-shadow: 0 6px 16px rgba(156,163,175,.28); }
+#leaderboardList .leaderboard-card.rank-9 .lb-rank-ribbon { background: linear-gradient(180deg,#c96d32,#b45309); color: #271203; box-shadow: 0 6px 16px rgba(180,83,9,.30); }
+#leaderboardList .leaderboard-card.rank-10 .lb-rank-ribbon { background: linear-gradient(180deg,#4b5563,#374151); color: #e5e7eb; box-shadow: 0 6px 16px rgba(55,65,81,.35); }
+#leaderboardList .leaderboard-card.rank-default .lb-rank-ribbon { background: #f3f4f6; color: #6b7280; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.02); }
+
+/* Mobile: turn ribbon into a circular chip at the left */
+@media (max-width: 640px) {
+    #leaderboardList .leaderboard-card { display: flex !important; align-items: center; padding-left: 0.95rem; }
+
+    #leaderboardList .leaderboard-card .lb-rank-ribbon {
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 9999px;
+        margin-right: 0.75rem;
+    }
+
+    #leaderboardList .leaderboard-card .lb-rank-ribbon span { writing-mode: horizontal-tb; transform: none; letter-spacing: 0; font-size: 1.1rem; }
+    #leaderboardList .leaderboard-card .lb-medal { top: 0.45rem; right: 0.55rem; }
+
+    /* Shift content body right slightly (approx one full-width char) */
+    #leaderboardList .leaderboard-card .lb-card-body { padding-left: 0.75rem; }
+}

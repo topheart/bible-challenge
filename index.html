@@ -33,13 +33,15 @@ window.onerror = function(msg, url, line, col, error) {
 
     try {
         if ('serviceWorker' in navigator) {
+            const appScope = new URL('./', location.href).href;
             navigator.serviceWorker.getRegistrations()
-                .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister().catch(() => {}))))
+                .then((registrations) => Promise.all(registrations.filter((registration) => registration.scope === appScope).map((registration) => registration.unregister().catch((error) => console.warn('[SW] Unregister failed:', error)))))
                 .catch(() => {});
         }
         if ('caches' in window) {
+            const cachePrefix = `bc-safe-${encodeURIComponent(new URL('./', location.href).pathname)}-`;
             caches.keys()
-                .then((keys) => Promise.all(keys.filter((key) => /^bc-safe-/.test(key)).map((key) => caches.delete(key))))
+                .then((keys) => Promise.all(keys.filter((key) => key.startsWith(cachePrefix)).map((key) => caches.delete(key))))
                 .catch(() => {});
         }
     } catch (_) {}
@@ -165,7 +167,7 @@ window.onerror = function(msg, url, line, col, error) {
         })();
     </script>
 
-    <link rel="stylesheet" href="css/main.css?v=3">
+    <link rel="stylesheet" href="css/main.css?v=4">
 
     <link rel="stylesheet" href="css/modals.css?v=1">
 
@@ -207,7 +209,7 @@ window.onerror = function(msg, url, line, col, error) {
 
     <!-- Startup images are preloaded dynamically below based on a quick pick; remove static duplicates to save bandwidth. -->
 
-    <script src="js/core/bootstrap.js" defer></script>
+    <script src="js/core/bootstrap.js?v=75" defer></script>
     <script src="js/core/events.js" defer></script>
 
 <script>
@@ -1740,7 +1742,7 @@ window.onerror = function(msg, url, line, col, error) {
 
     <script src="js/core/error-logger.js" defer></script>
 
-    <script src="js/core/utils.js" defer></script>
+    <script src="js/core/utils.js?v=69" defer></script>
 
     <script src="js/core/security.js" defer></script>
 
@@ -1748,19 +1750,21 @@ window.onerror = function(msg, url, line, col, error) {
 
     <script src="js/utils/idb-helper.js" defer></script>
 
-    <script src="js/core/data-loader.js?v=44" defer></script>
+    <script src="js/core/verse-manifest.js?v=64" defer></script>
+    <script src="js/core/verse-integrity.js?v=64" defer></script>
+    <script src="js/core/data-loader.js?v=64" defer></script>
 
-    <script src="js/game/state.js" defer></script>
+    <script src="js/game/state.js?v=57" defer></script>
 
-    <script src="js/game/metrics.js" defer></script>
+    <script src="js/game/metrics.js?v=68" defer></script>
 
     
 
     
 
-    <script src="js/modules/achievements.js" defer></script>
+    <script src="js/modules/achievements.js?v=79" defer></script>
 
-    <script src="js/modules/leaderboard.js?v=44" defer></script>
+    <script src="js/modules/leaderboard.js?v=71" defer></script>
 
     <script src="js/modules/diagnostics.js" defer></script>
 
@@ -1772,33 +1776,33 @@ window.onerror = function(msg, url, line, col, error) {
 
     <script src="js/ui/cute-hints.js" defer></script>
 
-    <script src="js/ui/book-selection.js" defer></script>
+    <script src="js/ui/book-selection.js?v=68" defer></script>
 
-    <script src="js/ui/settings-ui.js" defer></script>
+    <script src="js/ui/settings-ui.js?v=72" defer></script>
 
     <script src="js/ui/achievement-ui.js" defer></script>
 
-    <script src="js/ui/start-screen.js?v=44" defer></script>
+    <script src="js/ui/start-screen.js?v=72" defer></script>
 
-    <script src="js/ui/settlement-ui.js" defer></script>
+    <script src="js/ui/settlement-ui.js?v=67" defer></script>
 
-    <script src="js/ui/leaderboard-ui.js" defer></script>
+    <script src="js/ui/leaderboard-ui.js?v=74" defer></script>
 
 
 
-    <script src="js/game/modes/equip.js" defer></script>
+    <script src="js/game/modes/equip.js?v=76" defer></script>
 
-    <script src="js/game/modes/survival.js" defer></script>
+    <script src="js/game/modes/survival.js?v=78" defer></script>
 
     
 
     <script src="js/game/timer.js" defer></script>
 
-    <script src="js/game/score.js" defer></script>
-    <script src="js/ui/board-ui.js" defer></script>
-    <script src="js/ui/game-ui-binder.js" defer></script>
-    <script src="js/core/startup.js" defer></script>
-    <script src="js/game/engine.js" defer></script>
+    <script src="js/game/score.js?v=56" defer></script>
+    <script src="js/ui/board-ui.js?v=59" defer></script>
+    <script src="js/ui/game-ui-binder.js?v=55" defer></script>
+    <script src="js/core/startup.js?v=68" defer></script>
+    <script src="js/game/engine.js?v=73" defer></script>
 
 
 
@@ -1806,7 +1810,3 @@ window.onerror = function(msg, url, line, col, error) {
     </body>
 
     </html>
-
-
-
-
